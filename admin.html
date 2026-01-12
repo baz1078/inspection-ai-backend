@@ -1,0 +1,543 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Assure Inspections - Admin Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        * {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', sans-serif;
+        }
+        .sidebar {
+            background: linear-gradient(135deg, #0EA5E9 0%, #0369A1 100%);
+        }
+        .nav-item {
+            padding: 12px 16px;
+            cursor: pointer;
+            transition: all 0.3s;
+            color: rgba(255,255,255,0.8);
+            border-left: 4px solid transparent;
+        }
+        .nav-item:hover {
+            background: rgba(255,255,255,0.1);
+        }
+        .nav-item.active {
+            background: rgba(255,255,255,0.2);
+            border-left-color: white;
+            color: white;
+            font-weight: 600;
+        }
+        .stat-card {
+            background: white;
+            border: 1px solid #e5e7eb;
+            border-radius: 12px;
+            padding: 20px;
+            transition: all 0.3s;
+        }
+        .stat-card:hover {
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        .stat-number {
+            font-size: 32px;
+            font-weight: bold;
+            color: #0ea5e9;
+        }
+        .table-row {
+            padding: 12px;
+            border-bottom: 1px solid #f3f4f6;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+            gap: 12px;
+            align-items: center;
+        }
+        .table-row:hover {
+            background: #f9fafb;
+        }
+        .button-small {
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .button-primary {
+            background: #0ea5e9;
+            color: white;
+        }
+        .button-primary:hover {
+            background: #0284c7;
+        }
+        .button-danger {
+            background: #ef4444;
+            color: white;
+        }
+        .button-danger:hover {
+            background: #dc2626;
+        }
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+        .modal.active {
+            display: flex;
+        }
+        .modal-content {
+            background: white;
+            border-radius: 12px;
+            padding: 24px;
+            max-width: 500px;
+            width: 90%;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+        .form-group {
+            margin-bottom: 16px;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 6px;
+            font-weight: 500;
+            color: #374151;
+        }
+        .form-group input, .form-group select {
+            width: 100%;
+            padding: 8px 12px;
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <div class="flex h-screen">
+        <!-- Sidebar -->
+        <div class="sidebar w-64 text-white flex flex-col">
+            <div class="p-6 border-b border-white/10">
+                <img src="assure-logo.jpg" alt="Assure" class="h-8 mb-2" />
+                <h2 class="text-xl font-bold">Admin Panel</h2>
+            </div>
+            <nav class="flex-1 py-4">
+                <div class="nav-item active" onclick="switchTab('dashboard')">📊 Dashboard</div>
+                <div class="nav-item" onclick="switchTab('contractors')">👷 Contractors</div>
+                <div class="nav-item" onclick="switchTab('leads')">📞 Leads</div>
+                <div class="nav-item" onclick="switchTab('analytics')">📈 Analytics</div>
+            </nav>
+            <div class="p-4 border-t border-white/10 text-sm text-white/70">
+                Assure Inspections AI v1.0
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <div class="flex-1 flex flex-col">
+            <!-- Top Bar -->
+            <div class="bg-white border-b border-gray-200 px-8 py-4 flex justify-between items-center">
+                <h1 class="text-2xl font-bold text-gray-900" id="pageTitle">Dashboard</h1>
+                <div class="text-sm text-gray-600">
+                    <span id="timestamp"></span>
+                </div>
+            </div>
+
+            <!-- Content Area -->
+            <div class="flex-1 overflow-y-auto p-8">
+                <!-- Dashboard Tab -->
+                <div id="dashboard-tab" class="tab-content">
+                    <div class="grid grid-cols-4 gap-6 mb-8">
+                        <div class="stat-card">
+                            <div class="text-gray-600 text-sm mb-2">Total Reports</div>
+                            <div class="stat-number" id="stat-reports">0</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="text-gray-600 text-sm mb-2">Total Questions</div>
+                            <div class="stat-number" id="stat-questions">0</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="text-gray-600 text-sm mb-2">Active Leads</div>
+                            <div class="stat-number" id="stat-leads">0</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="text-gray-600 text-sm mb-2">Contractors</div>
+                            <div class="stat-number" id="stat-contractors">0</div>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-6">
+                        <div class="bg-white rounded-12 p-6 border border-gray-200">
+                            <h3 class="font-semibold text-gray-900 mb-4">Questions by Issue Type</h3>
+                            <div id="questions-by-type" class="space-y-3"></div>
+                        </div>
+                        <div class="bg-white rounded-12 p-6 border border-gray-200">
+                            <h3 class="font-semibold text-gray-900 mb-4">Leads by Status</h3>
+                            <div id="leads-by-status" class="space-y-3"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Contractors Tab -->
+                <div id="contractors-tab" class="tab-content hidden">
+                    <div class="mb-6 flex justify-between items-center">
+                        <h2 class="text-xl font-semibold text-gray-900">Manage Contractors</h2>
+                        <button onclick="openAddContractorModal()" class="button-primary button-small">+ Add Contractor</button>
+                    </div>
+
+                    <div class="bg-white rounded-12 border border-gray-200">
+                        <div class="table-row" style="background: #f3f4f6; font-weight: 600; color: #374151;">
+                            <div>Name</div>
+                            <div>Specialty</div>
+                            <div>Location</div>
+                            <div>Rating</div>
+                            <div>Actions</div>
+                        </div>
+                        <div id="contractors-list"></div>
+                    </div>
+                </div>
+
+                <!-- Leads Tab -->
+                <div id="leads-tab" class="tab-content hidden">
+                    <h2 class="text-xl font-semibold text-gray-900 mb-6">Lead Tracking</h2>
+
+                    <div class="bg-white rounded-12 border border-gray-200">
+                        <div class="table-row" style="background: #f3f4f6; font-weight: 600; color: #374151;">
+                            <div>Contractor</div>
+                            <div>Issue</div>
+                            <div>Status</div>
+                            <div>Date</div>
+                            <div>Actions</div>
+                        </div>
+                        <div id="leads-list"></div>
+                    </div>
+                </div>
+
+                <!-- Analytics Tab -->
+                <div id="analytics-tab" class="tab-content hidden">
+                    <h2 class="text-xl font-semibold text-gray-900 mb-6">Contractor Analytics</h2>
+
+                    <div class="bg-white rounded-12 border border-gray-200">
+                        <div class="table-row" style="background: #f3f4f6; font-weight: 600; color: #374151;">
+                            <div>Contractor</div>
+                            <div>Specialty</div>
+                            <div>Total Leads</div>
+                            <div>Converted</div>
+                            <div>Conv. Rate</div>
+                            <div>Rating</div>
+                        </div>
+                        <div id="analytics-list"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add/Edit Contractor Modal -->
+    <div id="contractorModal" class="modal">
+        <div class="modal-content">
+            <h2 class="text-2xl font-bold text-gray-900 mb-6" id="modalTitle">Add Contractor</h2>
+            
+            <form onsubmit="saveContractor(event)">
+                <div class="form-group">
+                    <label>Name *</label>
+                    <input type="text" id="contractorName" required>
+                </div>
+
+                <div class="form-group">
+                    <label>Specialty *</label>
+                    <select id="contractorSpecialty" required>
+                        <option value="">Select...</option>
+                        <option value="electrical">Electrical</option>
+                        <option value="plumbing">Plumbing</option>
+                        <option value="roofing">Roofing</option>
+                        <option value="hvac">HVAC</option>
+                        <option value="structural">Structural Engineer</option>
+                        <option value="mold">Mold Specialist</option>
+                        <option value="radon">Radon Testing</option>
+                        <option value="pest">Pest Control</option>
+                        <option value="general">General Contractor</option>
+                        <option value="foundation">Foundation Specialist</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label>Phone *</label>
+                    <input type="tel" id="contractorPhone" required>
+                </div>
+
+                <div class="form-group">
+                    <label>Email *</label>
+                    <input type="email" id="contractorEmail" required>
+                </div>
+
+                <div class="form-group">
+                    <label>City</label>
+                    <input type="text" id="contractorCity">
+                </div>
+
+                <div class="form-group">
+                    <label>State</label>
+                    <input type="text" id="contractorState" placeholder="IL">
+                </div>
+
+                <div class="form-group">
+                    <label>Zip Codes (comma separated)</label>
+                    <input type="text" id="contractorZips" placeholder="60601,60602,60603">
+                </div>
+
+                <div class="form-group">
+                    <label>Rating (0-5)</label>
+                    <input type="number" id="contractorRating" step="0.1" min="0" max="5" value="4.8">
+                </div>
+
+                <div class="flex gap-3 justify-end">
+                    <button type="button" onclick="closeContractorModal()" class="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50">Cancel</button>
+                    <button type="submit" class="button-primary px-6 py-2">Save</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = 'http://localhost:5000';
+        let currentTab = 'dashboard';
+        let currentContractorId = null;
+
+        // Initialize
+        window.addEventListener('load', () => {
+            updateTimestamp();
+            loadDashboard();
+            setInterval(updateTimestamp, 60000);
+        });
+
+        function updateTimestamp() {
+            const now = new Date().toLocaleString();
+            document.getElementById('timestamp').textContent = now;
+        }
+
+        function switchTab(tab) {
+            currentTab = tab;
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+            document.getElementById(tab + '-tab').classList.remove('hidden');
+            document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+            event.target.classList.add('active');
+            
+            const titles = {
+                dashboard: 'Dashboard',
+                contractors: 'Manage Contractors',
+                leads: 'Lead Tracking',
+                analytics: 'Contractor Analytics'
+            };
+            document.getElementById('pageTitle').textContent = titles[tab];
+
+            if (tab === 'contractors') loadContractors();
+            else if (tab === 'leads') loadLeads();
+            else if (tab === 'analytics') loadAnalytics();
+            else loadDashboard();
+        }
+
+        async function loadDashboard() {
+            try {
+                const res = await fetch(`${API_URL}/api/admin/dashboard/stats`);
+                const data = await res.json();
+
+                document.getElementById('stat-reports').textContent = data.total_reports;
+                document.getElementById('stat-questions').textContent = data.total_questions;
+                document.getElementById('stat-leads').textContent = data.total_leads;
+                document.getElementById('stat-contractors').textContent = data.total_contractors;
+
+                // Questions by type
+                let questionsHtml = '';
+                for (const [type, count] of Object.entries(data.questions_by_issue_type)) {
+                    questionsHtml += `<div class="flex justify-between"><span>${type}</span><span class="font-semibold text-gray-900">${count}</span></div>`;
+                }
+                document.getElementById('questions-by-type').innerHTML = questionsHtml || '<p class="text-gray-600">No data yet</p>';
+
+                // Leads by status
+                let leadsHtml = '';
+                for (const [status, count] of Object.entries(data.leads_by_status)) {
+                    leadsHtml += `<div class="flex justify-between"><span>${status}</span><span class="font-semibold text-gray-900">${count}</span></div>`;
+                }
+                document.getElementById('leads-by-status').innerHTML = leadsHtml || '<p class="text-gray-600">No data yet</p>';
+            } catch (e) {
+                console.error('Error loading dashboard:', e);
+            }
+        }
+
+        async function loadContractors() {
+            try {
+                const res = await fetch(`${API_URL}/api/admin/contractors`);
+                const data = await res.json();
+
+                let html = '';
+                for (const c of data.contractors) {
+                    html += `
+                        <div class="table-row">
+                            <div>${c.name}</div>
+                            <div>${c.specialty}</div>
+                            <div>${c.city}, ${c.state}</div>
+                            <div>⭐ ${c.rating}</div>
+                            <div class="flex gap-2">
+                                <button onclick="editContractor('${c.id}')" class="button-primary button-small">Edit</button>
+                                <button onclick="deleteContractor('${c.id}')" class="button-danger button-small">Delete</button>
+                            </div>
+                        </div>
+                    `;
+                }
+                document.getElementById('contractors-list').innerHTML = html || '<div class="p-8 text-center text-gray-600">No contractors yet</div>';
+            } catch (e) {
+                console.error('Error loading contractors:', e);
+            }
+        }
+
+        async function loadLeads() {
+            try {
+                const res = await fetch(`${API_URL}/api/admin/leads`);
+                const data = await res.json();
+
+                let html = '';
+                for (const l of data.leads) {
+                    html += `
+                        <div class="table-row">
+                            <div>${l.contractor_name}</div>
+                            <div>${l.issue_type}</div>
+                            <div><span class="px-2 py-1 rounded text-xs bg-blue-100 text-blue-800">${l.status}</span></div>
+                            <div>${new Date(l.created_at).toLocaleDateString()}</div>
+                            <div><button onclick="updateLeadStatus('${l.id}')" class="button-primary button-small">Update</button></div>
+                        </div>
+                    `;
+                }
+                document.getElementById('leads-list').innerHTML = html || '<div class="p-8 text-center text-gray-600">No leads yet</div>';
+            } catch (e) {
+                console.error('Error loading leads:', e);
+            }
+        }
+
+        async function loadAnalytics() {
+            try {
+                const res = await fetch(`${API_URL}/api/admin/analytics/contractors`);
+                const data = await res.json();
+
+                let html = '';
+                for (const c of data.contractors) {
+                    html += `
+                        <div class="table-row">
+                            <div>${c.name}</div>
+                            <div>${c.specialty}</div>
+                            <div>${c.total_leads}</div>
+                            <div>${c.converted_leads}</div>
+                            <div>${c.conversion_rate.toFixed(1)}%</div>
+                            <div>⭐ ${c.rating}</div>
+                        </div>
+                    `;
+                }
+                document.getElementById('analytics-list').innerHTML = html || '<div class="p-8 text-center text-gray-600">No data yet</div>';
+            } catch (e) {
+                console.error('Error loading analytics:', e);
+            }
+        }
+
+        function openAddContractorModal() {
+            currentContractorId = null;
+            document.getElementById('modalTitle').textContent = 'Add Contractor';
+            document.getElementById('contractorName').value = '';
+            document.getElementById('contractorSpecialty').value = '';
+            document.getElementById('contractorPhone').value = '';
+            document.getElementById('contractorEmail').value = '';
+            document.getElementById('contractorCity').value = '';
+            document.getElementById('contractorState').value = 'IL';
+            document.getElementById('contractorZips').value = '';
+            document.getElementById('contractorRating').value = '4.8';
+            document.getElementById('contractorModal').classList.add('active');
+        }
+
+        function editContractor(id) {
+            // For now, just open add modal
+            openAddContractorModal();
+            currentContractorId = id;
+            document.getElementById('modalTitle').textContent = 'Edit Contractor';
+        }
+
+        function closeContractorModal() {
+            document.getElementById('contractorModal').classList.remove('active');
+        }
+
+        async function saveContractor(e) {
+            e.preventDefault();
+
+            const data = {
+                name: document.getElementById('contractorName').value,
+                specialty: document.getElementById('contractorSpecialty').value,
+                phone: document.getElementById('contractorPhone').value,
+                email: document.getElementById('contractorEmail').value,
+                city: document.getElementById('contractorCity').value,
+                state: document.getElementById('contractorState').value,
+                zip_codes: document.getElementById('contractorZips').value,
+                rating: parseFloat(document.getElementById('contractorRating').value)
+            };
+
+            try {
+                const url = currentContractorId 
+                    ? `${API_URL}/api/admin/contractors/${currentContractorId}`
+                    : `${API_URL}/api/admin/contractors`;
+                
+                const method = currentContractorId ? 'PUT' : 'POST';
+
+                const res = await fetch(url, {
+                    method: method,
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+
+                if (res.ok) {
+                    closeContractorModal();
+                    loadContractors();
+                    alert('Contractor saved!');
+                } else {
+                    alert('Error saving contractor');
+                }
+            } catch (e) {
+                alert('Error: ' + e.message);
+            }
+        }
+
+        async function deleteContractor(id) {
+            if (!confirm('Delete this contractor?')) return;
+
+            try {
+                const res = await fetch(`${API_URL}/api/admin/contractors/${id}`, { method: 'DELETE' });
+                if (res.ok) {
+                    loadContractors();
+                    alert('Contractor deleted');
+                }
+            } catch (e) {
+                alert('Error: ' + e.message);
+            }
+        }
+
+        async function updateLeadStatus(id) {
+            const newStatus = prompt('New status (pending, contacted, quoted, converted, lost):');
+            if (!newStatus) return;
+
+            try {
+                const res = await fetch(`${API_URL}/api/admin/leads/${id}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ status: newStatus })
+                });
+
+                if (res.ok) {
+                    loadLeads();
+                    alert('Lead updated');
+                }
+            } catch (e) {
+                alert('Error: ' + e.message);
+            }
+        }
+    </script>
+</body>
+</html>

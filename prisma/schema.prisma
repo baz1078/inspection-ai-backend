@@ -1,0 +1,126 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-py"
+}
+
+model InspectionReport {
+  id                String    @id @default(cuid())
+  address           String
+  inspectorName     String
+  inspectionDate    DateTime
+  reportType        String
+  originalFilename  String
+  filePath          String
+  fileSize          Int
+  extractedText     String    @db.Text
+  summary           String    @db.Text
+  shareToken        String    @unique
+  isShared          Boolean   @default(true)
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  conversations     Conversation[]
+  questions         Question[]
+  leads             Lead[]
+
+  @@index([shareToken])
+  @@index([createdAt])
+}
+
+model Contractor {
+  id                String    @id @default(cuid())
+  name              String
+  specialty         String    // "roofer", "plumber", "electrician", etc.
+  phone             String
+  email             String
+  zipCodes          String    // comma-separated: "60601,60602,60603"
+  city              String
+  state             String
+  rating            Float     @default(0.0)
+  reviewCount       Int       @default(0)
+  description       String    @db.Text
+  imageUrl          String?
+  website           String?
+  isLicensed        Boolean   @default(true)
+  isBonded          Boolean   @default(true)
+  isInsured         Boolean   @default(true)
+  costPerLead       Float     // How much you charge them per lead
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+  isActive          Boolean   @default(true)
+
+  leads             Lead[]
+
+  @@index([specialty])
+  @@index([city])
+  @@index([state])
+}
+
+model Question {
+  id                String    @id @default(cuid())
+  reportId          String
+  report            InspectionReport @relation(fields: [reportId], references: [id], onDelete: Cascade)
+  
+  question          String    @db.Text
+  issueType         String    // "electrical", "roofing", "plumbing", etc.
+  answer            String    @db.Text
+  
+  createdAt         DateTime  @default(now())
+
+  leads             Lead[]
+
+  @@index([reportId])
+  @@index([issueType])
+}
+
+model Lead {
+  id                String    @id @default(cuid())
+  reportId          String
+  report            InspectionReport @relation(fields: [reportId], references: [id], onDelete: Cascade)
+  
+  questionId        String
+  question          Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  
+  contractorId      String
+  contractor        Contractor @relation(fields: [contractorId], references: [id], onDelete: Cascade)
+  
+  status            String    @default("pending") // pending, contacted, quoted, converted, lost
+  notes             String?   @db.Text
+  
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  @@index([contractorId])
+  @@index([status])
+  @@index([createdAt])
+}
+
+model Conversation {
+  id                String    @id @default(cuid())
+  reportId          String
+  report            InspectionReport @relation(fields: [reportId], references: [id], onDelete: Cascade)
+  
+  customerQuestion  String    @db.Text
+  aiResponse        String    @db.Text
+  
+  createdAt         DateTime  @default(now())
+
+  @@index([reportId])
+}
+
+model Analytics {
+  id                String    @id @default(cuid())
+  reportId          String
+  issueType         String
+  questionCount     Int       @default(0)
+  leadCount         Int       @default(0)
+  
+  createdAt         DateTime  @default(now())
+
+  @@index([issueType])
+  @@index([createdAt])
+}
