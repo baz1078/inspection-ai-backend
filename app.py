@@ -6,7 +6,9 @@ from utils import (
     extract_text_from_pdf,
     generate_summary_from_report,
     InspectionReportQA,
-    save_uploaded_file
+    save_uploaded_file,
+    generate_punchlist,
+    send_contractor_email
 )
 import os
 from datetime import datetime
@@ -26,6 +28,14 @@ app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
     'pool_pre_ping': True,
 }
 
+# Email config
+app.config['MAIL_SERVER'] = os.getenv('MAIL_SERVER', 'smtp.gmail.com')
+app.config['MAIL_PORT'] = int(os.getenv('MAIL_PORT', 587))
+app.config['MAIL_USE_TLS'] = True
+app.config['MAIL_USERNAME'] = os.getenv('MAIL_USERNAME')
+app.config['MAIL_PASSWORD'] = os.getenv('MAIL_PASSWORD')
+app.config['MAIL_DEFAULT_SENDER'] = os.getenv('MAIL_DEFAULT_SENDER', 'noreply@assureinspections.com')
+
 # Initialize database
 db.init_app(app)
 CORS(app)
@@ -44,12 +54,12 @@ MAX_CACHE_SIZE = 10
 def extract_issue_type(question: str) -> str:
     """Extract issue type from question"""
     keywords = {
-        'electrical': ['electrical', 'outlet', 'wire', 'breaker', 'amperage', 'power'],
-        'roofing': ['roof', 'shingles', 'leak', 'top layer', 'gutter'],
-        'plumbing': ['plumb', 'drain', 'water line', 'trap', 'pipe', 'faucet'],
-        'hvac': ['hvac', 'heating', 'cooling', 'furnace', 'ac', 'boiler', 'thermostat'],
-        'structural': ['foundation', 'crack', 'structural', 'settle', 'beam', 'wall'],
-        'siding': ['siding', 'exterior', 'cladding', 'fascia'],
+        'electrical': ['electrical', 'outlet', 'wire', 'breaker', 'amperage', 'power', 'panel', 'gfci', 'wiring'],
+        'roofing': ['roof', 'shingles', 'leak', 'gutter', 'chimney', 'flashing'],
+        'plumbing': ['plumb', 'drain', 'water line', 'trap', 'pipe', 'faucet', 'leak', 'sewer'],
+        'hvac': ['hvac', 'heating', 'cooling', 'furnace', 'ac', 'boiler', 'thermostat', 'duct'],
+        'structural': ['foundation', 'crack', 'structural', 'settle', 'beam', 'wall', 'joist'],
+        'siding': ['siding', 'exterior', 'cladding', 'fascia', 'trim', 'deck'],
         'mold': ['mold', 'mildew', 'moisture', 'fungal'],
         'radon': ['radon', 'gas', 'testing'],
         'pest': ['pest', 'termite', 'insect', 'rodent'],
@@ -77,7 +87,7 @@ def get_matching_contractors(issue_type: str, zip_code: str = None):
     if zip_code and contractors:
         matching = []
         for c in contractors:
-            if zip_code in c.zip_codes:
+            if c.zip_codes and zip_code in c.zip_codes:
                 matching.append(c)
         return matching if matching else contractors[:3]
     
@@ -437,17 +447,37 @@ def update_lead(lead_id):
 
 @app.route('/api/referral-request', methods=['POST'])
 def create_referral_request():
-    """Customer requests quote from contractor"""
+    """Customer requests quote from contractor - generates punchlist and sends email"""
     try:
         data = request.get_json()
         
-        # Get the report to update customer info if provided
-        report = InspectionReport.query.get(data['report_id'])
-        if report and data.get('customer_name'):
-            report.customer_name = data.get('customer_name')
-            report.customer_email = data.get('customer_email')
-            report.customer_phone = data.get('customer_phone')
+        # Validate required fields
+        required = ['report_id', 'question_id', 'contractor_id', 'customer_name', 'customer_email', 'customer_phone']
+        if not all(k in data for k in required):
+            return jsonify({'error': 'Missing required fields'}), 400
         
+        # Get report and question for context
+        report = InspectionReport.query.get(data['report_id'])
+        question = Question.query.get(data['question_id'])
+        contractor = Contractor.query.get(data['contractor_id'])
+        
+        if not (report and question and contractor):
+            return jsonify({'error': 'Report, question, or contractor not found'}), 404
+        
+        # UPDATE report with customer info if provided
+        report.customer_name = data.get('customer_name')
+        report.customer_email = data.get('customer_email')
+        report.customer_phone = data.get('customer_phone')
+        
+        # GENERATE PUNCHLIST: Create filtered issue list for this contractor specialty
+        print(f"Generating punchlist for {question.issue_type}...")
+        punchlist = generate_punchlist(
+            report.extracted_text,
+            question.issue_type,
+            question.question
+        )
+        
+        # CREATE LEAD with punchlist in notes
         lead = Lead(
             report_id=data['report_id'],
             question_id=data['question_id'],
@@ -455,16 +485,35 @@ def create_referral_request():
             customer_name=data.get('customer_name', ''),
             customer_email=data.get('customer_email', ''),
             customer_phone=data.get('customer_phone', ''),
-            status='pending'
+            status='pending',
+            notes=punchlist
         )
         
         db.session.add(lead)
         db.session.commit()
         
+        # SEND EMAIL to contractor with punchlist
+        if contractor.email:
+            try:
+                send_contractor_email(
+                    contractor_email=contractor.email,
+                    contractor_name=contractor.name,
+                    customer_name=data.get('customer_name'),
+                    customer_email=data.get('customer_email'),
+                    customer_phone=data.get('customer_phone'),
+                    property_address=report.address,
+                    issue_type=question.issue_type,
+                    punchlist=punchlist
+                )
+                print(f"Email sent to contractor: {contractor.email}")
+            except Exception as e:
+                print(f"Warning: Failed to send email to contractor: {str(e)}")
+                # Don't fail the request if email fails - lead is still created
+        
         return jsonify({
             'success': True,
             'lead_id': lead.id,
-            'message': 'Contractor will be notified'
+            'message': 'Quote request sent to contractor'
         }), 201
         
     except Exception as e:
@@ -565,11 +614,6 @@ def not_found(error):
 def internal_error(error):
     db.session.rollback()
     return jsonify({'error': 'Internal server error'}), 500
-
-# ============================================================================
-# INITIALIZATION
-# ============================================================================
-
 
 # ============================================================================
 # INITIALIZATION

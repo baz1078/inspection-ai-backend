@@ -1,6 +1,9 @@
 import PyPDF2
 import os
 from anthropic import Anthropic
+import smtplib
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
 
 def extract_text_from_pdf(pdf_path):
     """Extract all text from a PDF file"""
@@ -49,6 +52,162 @@ Do NOT make up information. Only summarize what's in the report."""
     )
     
     return message.content[0].text
+
+
+def generate_punchlist(extracted_text, issue_type, question):
+    """Generate AI punchlist filtered by issue type for contractor"""
+    client = create_ai_client()
+    
+    system_prompt = f"""You are an expert creating detailed, visually appealing punchlist summaries for {issue_type} contractors.
+
+Create a professional punchlist that:
+1. Filters ONLY {issue_type} related issues
+2. Organizes by urgency (Immediate vs. Attention needed)
+3. Is clear, scannable, and actionable
+4. Includes Location, Issue, Required fix, Why it matters, and Tradesperson
+5. Uses professional formatting for readability
+
+Format exactly like this:
+
+[ISSUE TYPE] PUNCHLIST - [ADDRESS]
+
+IMMEDIATE ATTENTION ITEMS:
+[List any critical/safety issues that need immediate attention, or "None requiring immediate action, but items below should be addressed soon"]
+
+ATTENTION ITEMS - Should be corrected:
+1. [LOCATION NAME] - [Issue Title]
+   Location: [specific location]
+   Issue: [detailed description]
+   Required: [what needs to be done]
+   Why: [why it's important/safety concern]
+   Tradesperson: [who should do it]
+
+2. [next item]
+   ...
+
+GENERAL [ISSUE TYPE] INFORMATION:
+[Add any relevant general information about the system from the inspection]
+
+Do NOT include issues unrelated to {issue_type}.
+Make it visually appealing and easy to read."""
+    
+    message = client.messages.create(
+        model="claude-sonnet-4-5-20250929",
+        max_tokens=1500,
+        system=system_prompt,
+        messages=[{
+            "role": "user",
+            "content": f"Create a punchlist for a {issue_type} contractor based on this inspection report and question:\n\nQuestion: {question}\n\nReport:\n{extracted_text}"
+        }]
+    )
+    
+    return message.content[0].text
+
+
+def send_contractor_email(contractor_email, contractor_name, customer_name, customer_email, customer_phone, property_address, issue_type, punchlist):
+    """Send punchlist email to contractor with customer quote request"""
+    try:
+        # Get email config from environment
+        mail_server = os.getenv('MAIL_SERVER', 'smtp.gmail.com')
+        mail_port = int(os.getenv('MAIL_PORT', 587))
+        mail_username = os.getenv('MAIL_USERNAME')
+        mail_password = os.getenv('MAIL_PASSWORD')
+        mail_from = os.getenv('MAIL_DEFAULT_SENDER', mail_username)
+        
+        # Validate email config
+        if not mail_username or not mail_password:
+            raise ValueError("Email credentials not configured. Set MAIL_USERNAME and MAIL_PASSWORD in environment.")
+        
+        # Create message
+        msg = MIMEMultipart('alternative')
+        msg['From'] = mail_from
+        msg['To'] = contractor_email
+        msg['Subject'] = f'New {issue_type.title()} Lead - {property_address}'
+        
+        # Create HTML and plain text versions
+        text = f"""
+NEW QUOTE REQUEST FROM ASSURE INSPECTIONS
+
+PROPERTY DETAILS:
+Address: {property_address}
+
+CUSTOMER INFORMATION:
+Name: {customer_name}
+Email: {customer_email}
+Phone: {customer_phone}
+
+---
+
+{punchlist}
+
+---
+
+NEXT STEPS:
+Please contact the customer directly at {customer_email} or {customer_phone} to discuss the work and provide a quote.
+
+Best regards,
+Assure Inspections AI System
+https://www.assureinspections.com
+"""
+        
+        html = f"""
+<html>
+<body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
+    <div style="max-width: 800px; margin: 0 auto; padding: 20px;">
+        <h2 style="color: #0369a1;">NEW QUOTE REQUEST FROM ASSURE INSPECTIONS</h2>
+        
+        <h3 style="color: #1f2937; margin-top: 20px;">PROPERTY DETAILS:</h3>
+        <p><strong>Address:</strong> {property_address}</p>
+        
+        <h3 style="color: #1f2937; margin-top: 20px;">CUSTOMER INFORMATION:</h3>
+        <p>
+            <strong>Name:</strong> {customer_name}<br>
+            <strong>Email:</strong> <a href="mailto:{customer_email}">{customer_email}</a><br>
+            <strong>Phone:</strong> <a href="tel:{customer_phone}">{customer_phone}</a>
+        </p>
+        
+        <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 30px 0;">
+        
+        <div style="background: #f9fafb; padding: 20px; border-radius: 8px; border-left: 4px solid #0369a1;">
+            <pre style="font-family: Arial, sans-serif; white-space: pre-wrap; word-wrap: break-word;">{punchlist}</pre>
+        </div>
+        
+        <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 30px 0;">
+        
+        <h3 style="color: #1f2937;">NEXT STEPS:</h3>
+        <p>Please contact the customer directly at <a href="mailto:{customer_email}">{customer_email}</a> or <a href="tel:{customer_phone}">{customer_phone}</a> to discuss the work and provide a quote.</p>
+        
+        <p style="margin-top: 40px; color: #6b7280; font-size: 12px;">
+            <strong>Assure Inspections AI System</strong><br>
+            https://www.assureinspections.com
+        </p>
+    </div>
+</body>
+</html>
+"""
+        
+        # Attach both versions
+        part1 = MIMEText(text, 'plain')
+        part2 = MIMEText(html, 'html')
+        msg.attach(part1)
+        msg.attach(part2)
+        
+        # Connect to SMTP server and send
+        print(f"Connecting to {mail_server}:{mail_port}...")
+        server = smtplib.SMTP(mail_server, mail_port)
+        server.starttls()
+        print(f"Logging in as {mail_username}...")
+        server.login(mail_username, mail_password)
+        print(f"Sending email to {contractor_email}...")
+        server.send_message(msg)
+        server.quit()
+        
+        print(f"Email successfully sent to {contractor_email}")
+        return True
+        
+    except Exception as e:
+        print(f"Error sending email: {str(e)}")
+        raise
 
 
 class InspectionReportQA:
