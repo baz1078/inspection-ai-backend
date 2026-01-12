@@ -18,6 +18,9 @@ app = Flask(__name__)
 
 # Database config
 app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URL', 'sqlite:///inspection_reports.db')
+    'pool_size': 5,
+    'pool_recycle': 300,
+    'pool_pre_ping': True,
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['UPLOAD_FOLDER'] = 'uploads'
 
