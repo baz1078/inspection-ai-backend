@@ -47,9 +47,17 @@
             padding: 12px;
             border-bottom: 1px solid #f3f4f6;
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
             gap: 12px;
             align-items: center;
+        }
+        .table-row.contractors-row {
+            grid-template-columns: 200px 120px 150px 100px 150px;
+        }
+        .table-row.leads-row {
+            grid-template-columns: 150px 150px 150px 120px 100px 120px;
+        }
+        .table-row.analytics-row {
+            grid-template-columns: 150px 120px 100px 100px 100px 120px;
         }
         .table-row:hover {
             background: #f9fafb;
@@ -189,7 +197,7 @@
                     </div>
 
                     <div class="bg-white rounded-12 border border-gray-200">
-                        <div class="table-row" style="background: #f3f4f6; font-weight: 600; color: #374151;">
+                        <div class="table-row contractors-row" style="background: #f3f4f6; font-weight: 600; color: #374151;">
                             <div>Name</div>
                             <div>Specialty</div>
                             <div>Location</div>
@@ -205,7 +213,7 @@
                     <h2 class="text-xl font-semibold text-gray-900 mb-6">Lead Tracking</h2>
 
                     <div class="bg-white rounded-12 border border-gray-200">
-                        <div class="table-row" style="background: #f3f4f6; font-weight: 600; color: #374151;">
+                        <div class="table-row leads-row" style="background: #f3f4f6; font-weight: 600; color: #374151;">
                             <div>Customer Name</div>
                             <div>Contact</div>
                             <div>Contractor</div>
@@ -377,12 +385,12 @@
                 let html = '';
                 for (const c of data.contractors) {
                     html += `
-                        <div class="table-row">
-                            <div>${c.name}</div>
+                        <div class="table-row contractors-row">
+                            <div><strong>${c.name}</strong></div>
                             <div>${c.specialty}</div>
                             <div>${c.city}, ${c.state}</div>
                             <div>⭐ ${c.rating}</div>
-                            <div class="flex gap-2">
+                            <div style="display: flex; gap: 8px; justify-content: flex-end;">
                                 <button onclick="editContractor('${c.id}')" class="button-primary button-small">Edit</button>
                                 <button onclick="deleteContractor('${c.id}')" class="button-danger button-small">Delete</button>
                             </div>
@@ -394,6 +402,7 @@
                 console.error('Error loading contractors:', e);
             }
         }
+        }
 
         async function loadLeads() {
             try {
@@ -404,7 +413,7 @@
                 for (const l of data.leads) {
                     const contactInfo = l.customer_email !== 'N/A' ? l.customer_email : l.customer_phone;
                     html += `
-                        <div class="table-row">
+                        <div class="table-row leads-row">
                             <div><strong>${l.customer_name}</strong></div>
                             <div><small style="color: #666;">${contactInfo}</small></div>
                             <div>${l.contractor_name}</div>

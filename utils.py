@@ -58,17 +58,46 @@ def generate_punchlist(extracted_text, issue_type, question):
     """Generate AI punchlist filtered by issue type for contractor"""
     client = create_ai_client()
     
-    system_prompt = f"""Create a brief, actionable punchlist for a {issue_type} contractor.
-Only include {issue_type} related issues from the inspection.
-Format clearly with Location, Issue, Required action, and Why it matters."""
+    system_prompt = f"""You are an expert creating detailed, visually appealing punchlist summaries for {issue_type} contractors.
+
+Create a professional punchlist that:
+1. Filters ONLY {issue_type} related issues
+2. Organizes by urgency (Immediate vs. Attention needed)
+3. Is clear, scannable, and actionable
+4. Includes Location, Issue, Required fix, Why it matters, and Tradesperson
+5. Uses professional formatting for readability
+
+Format exactly like this:
+
+[ISSUE TYPE] PUNCHLIST - [ADDRESS]
+
+IMMEDIATE ATTENTION ITEMS:
+[List any critical/safety issues that need immediate attention, or "None requiring immediate action, but items below should be addressed soon"]
+
+ATTENTION ITEMS - Should be corrected:
+1. [LOCATION NAME] - [Issue Title]
+   Location: [specific location]
+   Issue: [detailed description]
+   Required: [what needs to be done]
+   Why: [why it's important/safety concern]
+   Tradesperson: [who should do it]
+
+2. [next item]
+   ...
+
+GENERAL [ISSUE TYPE] INFORMATION:
+[Add any relevant general information about the system from the inspection]
+
+Do NOT include issues unrelated to {issue_type}.
+Make it visually appealing and easy to read."""
     
     message = client.messages.create(
         model="claude-sonnet-4-5-20250929",
-        max_tokens=800,
+        max_tokens=1500,
         system=system_prompt,
         messages=[{
             "role": "user",
-            "content": f"Create a {issue_type} punchlist from this inspection:\n\n{extracted_text[:3000]}"
+            "content": f"Create a punchlist for a {issue_type} contractor based on this inspection report and question:\n\nQuestion: {question}\n\nReport:\n{extracted_text}"
         }]
     )
     

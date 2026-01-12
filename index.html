@@ -278,7 +278,7 @@
                             <div class="max-w-4xl mx-auto px-6 py-8">
                                 <div class="bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl p-8 mb-12 border border-blue-200">
                                     <h2 class="font-semibold text-gray-900 text-lg mb-4">Summary</h2>
-                                    <div class="text-gray-700" style="line-height: 1.8;">
+                                    <div class="text-gray-700 space-y-4" style="line-height: 1.8;">
                                         ${state.summary.split('\n\n').map(para => {
                                             let cleanPara = escapeHtml(para);
                                             cleanPara = cleanPara.replace(/\*\*(.*?)\*\*/g, '<strong class="font-semibold text-gray-900">$1</strong>');
@@ -395,28 +395,28 @@
                 }, 100);
             }
 
-            // Render confirmation modal if active
+            // RENDER MODAL IF ACTIVE
             if (state.showConfirmModal && state.pendingQuote) {
-                const modalDiv = document.createElement('div');
-                modalDiv.style.cssText = 'position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 1000;';
-                modalDiv.innerHTML = `
+                const modalOverlay = document.createElement('div');
+                modalOverlay.style.cssText = 'position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 1000;';
+                modalOverlay.innerHTML = `
                     <div style="background: white; border-radius: 12px; padding: 24px; max-width: 500px; width: 90%; box-shadow: 0 20px 60px rgba(0,0,0,0.3);">
                         <h2 style="font-size: 20px; font-weight: 600; color: #1f2937; margin-bottom: 16px;">Confirm Quote Request</h2>
                         <p style="color: #6b7280; margin-bottom: 24px;">Please confirm your information before we send this to the contractor:</p>
                         
                         <div style="margin-bottom: 16px;">
-                            <div style="font-size: 12px; font-weight: 600; color: #0369a1; text-transform: uppercase; margin-bottom: 6px;">Your Name</div>
-                            <div style="font-size: 16px; color: #1f2937;">${escapeHtml(state.customerName)}</div>
+                            <label style="font-size: 12px; font-weight: 600; color: #0369a1; text-transform: uppercase; margin-bottom: 6px; display: block;">Your Name</label>
+                            <input type="text" id="modalName" value="${escapeHtml(state.customerName)}" style="width: 100%; padding: 10px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 14px; box-sizing: border-box;">
                         </div>
                         
                         <div style="margin-bottom: 16px;">
-                            <div style="font-size: 12px; font-weight: 600; color: #0369a1; text-transform: uppercase; margin-bottom: 6px;">Email</div>
-                            <div style="font-size: 16px; color: #1f2937;">${escapeHtml(state.customerEmail || 'Not provided')}</div>
+                            <label style="font-size: 12px; font-weight: 600; color: #0369a1; text-transform: uppercase; margin-bottom: 6px; display: block;">Email</label>
+                            <input type="email" id="modalEmail" value="${escapeHtml(state.customerEmail || '')}" style="width: 100%; padding: 10px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 14px; box-sizing: border-box;">
                         </div>
                         
                         <div style="margin-bottom: 24px;">
-                            <div style="font-size: 12px; font-weight: 600; color: #0369a1; text-transform: uppercase; margin-bottom: 6px;">Phone</div>
-                            <div style="font-size: 16px; color: #1f2937;">${escapeHtml(state.customerPhone || 'Not provided')}</div>
+                            <label style="font-size: 12px; font-weight: 600; color: #0369a1; text-transform: uppercase; margin-bottom: 6px; display: block;">Phone</label>
+                            <input type="tel" id="modalPhone" value="${escapeHtml(state.customerPhone || '')}" style="width: 100%; padding: 10px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 14px; box-sizing: border-box;">
                         </div>
                         
                         <div style="display: flex; gap: 12px;">
@@ -425,7 +425,7 @@
                         </div>
                     </div>
                 `;
-                document.body.appendChild(modalDiv);
+                document.body.appendChild(modalOverlay);
             }
         }
 
@@ -526,6 +526,22 @@
 
         async function confirmQuote() {
             const { questionId, contractorId } = state.pendingQuote;
+            
+            // READ FROM MODAL INPUT FIELDS
+            const modalName = document.getElementById('modalName');
+            const modalEmail = document.getElementById('modalEmail');
+            const modalPhone = document.getElementById('modalPhone');
+            
+            if (!modalName || !modalEmail || !modalPhone) {
+                alert('Error: Modal fields not found');
+                return;
+            }
+            
+            // UPDATE STATE WITH VALUES FROM INPUTS
+            state.customerName = modalName.value;
+            state.customerEmail = modalEmail.value;
+            state.customerPhone = modalPhone.value;
+            
             try {
                 const res = await fetch(`${API_URL}/api/referral-request`, {
                     method: 'POST',
@@ -545,7 +561,8 @@
                     state.pendingQuote = null;
                     render();
                 } else {
-                    alert('Error sending request. Please try again.');
+                    const error = await res.json();
+                    alert('Error: ' + (error.error || 'Failed to send request'));
                 }
             } catch (e) {
                 alert('Error: ' + e.message);
