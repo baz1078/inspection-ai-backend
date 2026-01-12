@@ -549,8 +549,13 @@ def internal_error(error):
 # ============================================================================
 
 
-    with app.app_context():
-        db.create_all()
-        print("Database initialized")
-   if __name__ == '__main__': 
+# ============================================================================
+# INITIALIZATION
+# ============================================================================
+
+with app.app_context():
+    db.create_all()
+    print("Database tables verified/created")
+
+if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=False)
