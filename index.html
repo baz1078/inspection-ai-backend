@@ -433,14 +433,13 @@
                     state.currentQuestionId = data.conversation_id;
                     
                     // Add referral CTA if there are referrals
-                    if (data.referrals && data.referrals.length > 0) {
-                        state.messages.push({ type: 'referral-cta', questionId: data.conversation_id });
-                        state.messages.push({ 
-                            type: 'referrals', 
-                            contractors: data.referrals,
-                            questionId: data.conversation_id
-                        });
-                    }
+                if (data.referrals && data.referrals.length > 0) {
+                    state.messages.push({ 
+                        type: 'referral-cta', 
+                        questionId: data.conversation_id,
+                        contractors: data.referrals
+                    });
+                }
                 } else {
                     state.messages.push({ type: 'ai', text: 'Error getting response. Try again.' });
                 }
@@ -452,14 +451,17 @@
         }
 
         function toggleReferrals(questionId) {
-            // Already shown, just scroll
-            setTimeout(() => {
-                const container = document.querySelector('.chat-container');
-                if (container) {
-                    container.scrollTop = container.scrollHeight;
-                }
-            }, 100);
-        }
+    state.messages.push({ 
+        type: 'referrals', 
+        contractors: state.messages.find(m => m.questionId === questionId)?.contractors || [],
+        questionId: questionId
+    });
+    render();
+    setTimeout(() => {
+        const container = document.querySelector('.chat-container');
+        if (container) container.scrollTop = container.scrollHeight;
+    }, 100);
+}
 
         async function requestQuote(questionId, contractorId) {
             try {
