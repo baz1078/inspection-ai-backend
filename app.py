@@ -399,6 +399,9 @@ def list_leads():
             'leads': [
                 {
                     'id': l.id,
+                    'customer_name': l.customer_name or 'N/A',
+                    'customer_email': l.customer_email or 'N/A',
+                    'customer_phone': l.customer_phone or 'N/A',
                     'contractor_name': l.contractor.name,
                     'issue_type': l.question.issue_type,
                     'status': l.status,
@@ -438,10 +441,22 @@ def create_referral_request():
     try:
         data = request.get_json()
         
+        # Get the report to add customer info if needed
+        report = InspectionReport.query.get(data['report_id'])
+        
+        # Update report with customer info if provided
+        if report and data.get('customer_name'):
+            report.customer_name = data.get('customer_name')
+            report.customer_email = data.get('customer_email')
+            report.customer_phone = data.get('customer_phone')
+        
         lead = Lead(
             report_id=data['report_id'],
             question_id=data['question_id'],
             contractor_id=data['contractor_id'],
+            customer_name=data.get('customer_name', ''),
+            customer_email=data.get('customer_email', ''),
+            customer_phone=data.get('customer_phone', ''),
             status='pending'
         )
         
@@ -456,6 +471,7 @@ def create_referral_request():
         
     except Exception as e:
         db.session.rollback()
+        print(f"Error creating referral request: {str(e)}")
         return jsonify({'error': str(e)}), 500
 
 # ============================================================================

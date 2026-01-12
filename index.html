@@ -138,6 +138,48 @@
             border-radius: 8px;
             margin: 16px 0;
         }
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+        .modal-content {
+            background: white;
+            border-radius: 16px;
+            padding: 32px;
+            max-width: 500px;
+            width: 90%;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        }
+        .confirmation-section {
+            background: #f0f9ff;
+            border: 1px solid #bfdbfe;
+            border-radius: 8px;
+            padding: 16px;
+            margin-bottom: 16px;
+        }
+        .confirmation-label {
+            font-size: 12px;
+            font-weight: 600;
+            color: #0369a1;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 4px;
+        }
+        .confirmation-value {
+            font-size: 16px;
+            color: #1f2937;
+            font-weight: 500;
+        }
     </style>
 </head>
 <body class="bg-white">
@@ -153,7 +195,14 @@
             messages: [],
             uploading: false,
             loading: false,
-            currentQuestionId: null
+            currentQuestionId: null,
+            // Customer info - NOW PERSISTED IN STATE
+            customerName: '',
+            customerEmail: '',
+            customerPhone: '',
+            // Quote confirmation modal state
+            showQuoteConfirmation: false,
+            pendingQuoteData: null
         };
 
         function render() {
@@ -180,151 +229,122 @@
                                 <div class="grid md:grid-cols-3 gap-8 mb-20">
                                     <div class="feature-card rounded-2xl p-8">
                                         <div class="w-14 h-14 bg-white/20 rounded-xl flex items-center justify-center mb-4">
-                                            <span style="font-size: 28px;">📋</span>
+                                            <span class="text-3xl">⚡</span>
                                         </div>
-                                        <h3 class="font-semibold text-white text-lg mb-2">Upload Your Report</h3>
-                                        <p class="text-blue-100 text-sm">Drag and drop your PDF inspection report</p>
+                                        <h3 class="font-bold text-lg mb-2">Instant Answers</h3>
+                                        <p class="text-blue-100 text-sm leading-relaxed">Ask any question about your inspection report and get AI-powered answers in seconds</p>
                                     </div>
-                                    
                                     <div class="feature-card rounded-2xl p-8">
                                         <div class="w-14 h-14 bg-white/20 rounded-xl flex items-center justify-center mb-4">
-                                            <span style="font-size: 28px;">✨</span>
+                                            <span class="text-3xl">🔗</span>
                                         </div>
-                                        <h3 class="font-semibold text-white text-lg mb-2">AI Summary</h3>
-                                        <p class="text-blue-100 text-sm">Professional overview generated instantly</p>
+                                        <h3 class="font-bold text-lg mb-2">Qualified Contractors</h3>
+                                        <p class="text-blue-100 text-sm leading-relaxed">Get connected with vetted, licensed contractors in your area who can help</p>
                                     </div>
-                                    
                                     <div class="feature-card rounded-2xl p-8">
                                         <div class="w-14 h-14 bg-white/20 rounded-xl flex items-center justify-center mb-4">
-                                            <span style="font-size: 28px;">💬</span>
+                                            <span class="text-3xl">📊</span>
                                         </div>
-                                        <h3 class="font-semibold text-white text-lg mb-2">Ask Questions</h3>
-                                        <p class="text-blue-100 text-sm">Get instant answers about any finding</p>
+                                        <h3 class="font-bold text-lg mb-2">Clear Insights</h3>
+                                        <p class="text-blue-100 text-sm leading-relaxed">Understand your report without jargon. Get actionable information you can use</p>
                                     </div>
                                 </div>
 
-                                <div class="mb-12 bg-white/10 backdrop-blur-sm rounded-2xl p-8 border border-white/20">
-                                    <h3 class="text-white font-semibold text-lg mb-6">Your Information</h3>
-    
-                                    <div class="grid md:grid-cols-3 gap-4">
-                                    <input type="text" id="customerName" placeholder="Your Name" class="px-4 py-3 bg-white/90 rounded-lg focus:outline-none focus:ring-2 focus:ring-white" />
-                                    <input type="email" id="customerEmail" placeholder="Email" class="px-4 py-3 bg-white/90 rounded-lg focus:outline-none focus:ring-2 focus:ring-white" />
-                                    <input type="tel" id="customerPhone" placeholder="Phone" class="px-4 py-3 bg-white/90 rounded-lg focus:outline-none focus:ring-2 focus:ring-white" />
-                                      </div>
-                                </div>
-                                
-                                <div class="drop-zone border-2 border-white/30 rounded-3xl p-20 text-center cursor-pointer" id="dropZone">
-                                    <div class="upload-icon" style="font-size: 72px; margin-bottom: 20px; display: block;">📄</div>
-                                    <p class="text-gray-900 font-bold text-2xl mb-2">Drop your report here</p>
-                                    <p class="text-gray-600 text-lg">or click to select a PDF file</p>
-                                </div>
-
-                                <input type="file" id="fileInput" accept=".pdf" hidden />
-
-                                ${state.uploading ? `
-                                    <div class="mt-12 text-center">
-                                        <div class="inline-flex flex-col items-center">
-                                            <div class="loader mb-4">
-                                                <div class="dot"></div>
-                                                <div class="dot"></div>
-                                                <div class="dot"></div>
-                                            </div>
-                                            <p class="text-white font-medium">Processing your report...</p>
+                                <div class="bg-white rounded-3xl shadow-2xl p-10 backdrop-blur-xl">
+                                    <h2 class="text-2xl font-bold text-gray-900 mb-6">Your Information</h2>
+                                    
+                                    <div class="grid md:grid-cols-3 gap-4 mb-8">
+                                        <div>
+                                            <label class="block text-sm font-medium text-gray-700 mb-2">Your Name</label>
+                                            <input 
+                                                type="text" 
+                                                id="customerName" 
+                                                placeholder="John Doe"
+                                                class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
+                                                value="${state.customerName}"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label class="block text-sm font-medium text-gray-700 mb-2">Email</label>
+                                            <input 
+                                                type="email" 
+                                                id="customerEmail" 
+                                                placeholder="john@example.com"
+                                                class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
+                                                value="${state.customerEmail}"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label class="block text-sm font-medium text-gray-700 mb-2">Phone</label>
+                                            <input 
+                                                type="tel" 
+                                                id="customerPhone" 
+                                                placeholder="(555) 123-4567"
+                                                class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
+                                                value="${state.customerPhone}"
+                                            />
                                         </div>
                                     </div>
-                                ` : ''}
-                            </div>
-                        </div>
 
-                        <div class="relative z-10 border-t border-white/10 backdrop-blur-sm py-8">
-                            <div class="max-w-5xl mx-auto px-6 text-center">
-                                <p class="text-blue-100 text-sm">Trusted home inspections in Illinois • IIRC Certified</p>
+                                    <div class="drop-zone border-2 border-dashed border-gray-300 rounded-xl p-8 text-center cursor-pointer transition" 
+                                         onclick="document.getElementById('fileInput').click()"
+                                         ondrop="handleDrop(event)"
+                                         ondragover="event.preventDefault(); event.target.style.borderColor='#0ea5e9';"
+                                         ondragleave="event.target.style.borderColor='#d1d5db';">
+                                        <div class="upload-icon text-6xl mb-4">📄</div>
+                                        <p class="text-lg font-semibold text-gray-900 mb-2">Drop your inspection report here</p>
+                                        <p class="text-gray-600">or click to browse • PDF format • Max 50MB</p>
+                                        <input type="file" id="fileInput" class="hidden" accept=".pdf" onchange="handleFileSelect(event)" />
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
                 `;
-                
-                document.getElementById('dropZone').addEventListener('click', () => document.getElementById('fileInput').click());
-                document.getElementById('fileInput').addEventListener('change', (e) => {
-                    if (e.target.files[0]) uploadFile(e.target.files[0]);
-                });
-                document.getElementById('dropZone').addEventListener('drop', (e) => {
-                    e.preventDefault();
-                    if (e.dataTransfer.files[0]) uploadFile(e.dataTransfer.files[0]);
-                });
-                document.getElementById('dropZone').addEventListener('dragover', (e) => e.preventDefault());
-            } else {
+            } else if (state.screen === 'chat') {
                 app.innerHTML = `
-                    <div class="h-screen bg-white flex flex-col">
+                    <div class="flex flex-col h-screen bg-gray-50">
                         <div class="bg-white border-b border-gray-200 shadow-sm">
                             <div class="max-w-4xl mx-auto px-6 py-4 flex justify-between items-center">
-                                <div class="flex items-center gap-3">
-                                    <img src="assure-logo.jpg" alt="Assure" class="h-8" />
-                                    <div>
-                                        <p class="text-xs text-gray-500">Report</p>
-                                        <p class="text-sm font-semibold text-gray-900">${state.address}</p>
-                                    </div>
+                                <div>
+                                    <h1 class="text-xl font-bold text-gray-900">Inspection Analysis</h1>
+                                    <p class="text-sm text-gray-600">${state.address}</p>
                                 </div>
-                                <button class="px-6 py-2 text-sm font-semibold text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition" onclick="resetApp()">New Report</button>
+                                <button onclick="resetApp()" class="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-lg transition">
+                                    ← Back
+                                </button>
                             </div>
                         </div>
 
                         <div class="flex-1 overflow-y-auto chat-container">
-                            <div class="max-w-4xl mx-auto px-6 py-8">
-                                <div class="bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl p-8 mb-12 border border-blue-200">
-                                    <h2 class="font-semibold text-gray-900 text-lg mb-4">Summary</h2>
-                                    <div class="text-gray-700 space-y-4" style="line-height: 1.8;">
-                                        ${state.summary.split('\n\n').map(para => {
-                                            let cleanPara = escapeHtml(para);
-                                            cleanPara = cleanPara.replace(/\*\*(.*?)\*\*/g, '<strong class="font-semibold text-gray-900">$1</strong>');
-                                            cleanPara = cleanPara.replace(/\*(.*?)\*/g, '<em class="italic">$1</em>');
-                                            return `<p>${cleanPara}</p>`;
-                                        }).join('')}
-                                    </div>
+                            <div class="max-w-4xl mx-auto px-6 py-6">
+                                <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+                                    <p class="text-sm text-blue-900"><strong>Summary:</strong> ${escapeHtml(state.summary.substring(0, 200))}...</p>
                                 </div>
 
-                                <div class="space-y-4 mb-8">
-                                    ${state.messages.length === 0 ? '<p class="text-gray-400 text-center py-12 text-lg">Ask any question about this report</p>' : ''}
-                                    ${state.messages.map(msg => {
-                                        if (msg.type === 'user') {
-                                            return `<div class="message user-msg"><div class="text">${escapeHtml(msg.text)}</div></div>`;
-                                        } else if (msg.type === 'ai') {
-                                            let formattedText = escapeHtml(msg.text);
-                                            formattedText = formattedText.replace(/\*\*(.*?)\*\*/g, '<strong class="font-semibold">$1</strong>');
-                                            formattedText = formattedText.replace(/\*(.*?)\*/g, '<em class="italic">$1</em>');
-                                            formattedText = formattedText.replace(/\n/g, '<br>');
-                                            return `<div class="message ai-msg"><div class="text">${formattedText}</div></div>`;
-                                        } else if (msg.type === 'referral-cta') {
-                                            return `<div class="message ai-msg">
-                                                <div class="w-full">
+                                ${state.messages.map(msg => {
+                                    if (msg.type === 'user') {
+                                        return `
+                                            <div class="message user-msg">
+                                                <div class="text">${escapeHtml(msg.text)}</div>
+                                            </div>
+                                        `;
+                                    } else if (msg.type === 'ai') {
+                                        return `
+                                            <div class="message ai-msg">
+                                                <div class="text">${escapeHtml(msg.text)}</div>
+                                            </div>
+                                        `;
+                                    } else if (msg.type === 'referral-cta') {
+                                        return `
+                                            <div class="message ai-msg">
+                                                <div class="text" style="max-width: 100%;">
                                                     <div class="referral-cta">
-                                                        <p class="font-semibold text-gray-900 mb-3">💡 Would you like referrals?</p>
-                                                        <p class="text-gray-700 text-sm mb-4">We work with trusted contractors in your area who have completed similar work and come highly recommended by Assure Inspections.</p>
-                                                        <button onclick="toggleReferrals('${msg.questionId}')" class="px-4 py-2 bg-blue-600 text-white text-sm font-semibold rounded-lg hover:bg-blue-700 transition">
-                                                            View Vetted Contractors
-                                                        </button>
-                                                    </div>
-                                                </div>
-                                            </div>`;
-                                        } else if (msg.type === 'referrals') {
-                                            return `<div class="message ai-msg">
-                                                <div class="w-full">
-                                                    <div class="text" style="max-width: 100%; padding: 0; border: none; background: transparent;">
-                                                        <div class="mb-4">
-                                                            <p class="font-semibold text-gray-900 mb-4">Vetted Contractors We Trust</p>
-                                                            ${msg.contractors.length > 0 ? msg.contractors.map(c => `
+                                                        <p class="font-semibold text-gray-900 mb-4">We found qualified contractors for this issue:</p>
+                                                        <div class="space-y-3">
+                                                            ${msg.contractors.map(c => `
                                                                 <div class="contractor-card">
-                                                                    <div class="flex justify-between items-start mb-3">
-                                                                        <div>
-                                                                            <h4 class="font-semibold text-gray-900">${escapeHtml(c.name)}</h4>
-                                                                            <p class="text-sm text-gray-600">${escapeHtml(c.city)}, ${c.state}</p>
-                                                                        </div>
-                                                                        <div class="text-right">
-                                                                            <div class="font-semibold text-gray-900">⭐ ${c.rating}</div>
-                                                                            <p class="text-xs text-gray-500">${c.review_count} reviews</p>
-                                                                        </div>
-                                                                    </div>
-                                                                    
+                                                                    <h3 class="font-semibold text-gray-900 mb-2">${escapeHtml(c.name)}</h3>
                                                                     <div class="flex gap-2 mb-3 text-xs">
                                                                         ${c.is_licensed ? '<span class="bg-green-100 text-green-800 px-2 py-1 rounded">Licensed</span>' : ''}
                                                                         ${c.is_bonded ? '<span class="bg-green-100 text-green-800 px-2 py-1 rounded">Bonded</span>' : ''}
@@ -333,29 +353,30 @@
                                                                     
                                                                     <p class="text-sm text-gray-700 mb-3">${c.specialty === 'electrical' ? '⚡ Licensed Electrician' : c.specialty === 'plumbing' ? '🚰 Licensed Plumber' : c.specialty === 'roofing' ? '🏠 Certified Roofer' : escapeHtml(c.specialty)}</p>
                                                                     
-                                                                    <button onclick="requestQuote('${msg.questionId}', '${c.id}')" class="w-full px-4 py-2 bg-blue-600 text-white text-sm font-semibold rounded-lg hover:bg-blue-700 transition">
+                                                                    <button onclick="showQuoteConfirmation('${msg.questionId}', '${c.id}')" class="w-full px-4 py-2 bg-blue-600 text-white text-sm font-semibold rounded-lg hover:bg-blue-700 transition">
                                                                         Request Quote
                                                                     </button>
                                                                 </div>
-                                                            `).join('') : '<p class="text-gray-600">No contractors available in your area yet.</p>'}
+                                                            `).join('')}
                                                         </div>
                                                     </div>
                                                 </div>
-                                            </div>`;
-                                        }
-                                    }).join('')}
-                                    ${state.loading ? `
-                                        <div class="message ai-msg">
-                                            <div class="text">
-                                                <div class="loader">
-                                                    <div class="dot"></div>
-                                                    <div class="dot"></div>
-                                                    <div class="dot"></div>
-                                                </div>
+                                            </div>
+                                        `;
+                                    }
+                                    return '';
+                                }).join('')}
+                                ${state.loading ? `
+                                    <div class="message ai-msg">
+                                        <div class="text">
+                                            <div class="loader">
+                                                <div class="dot"></div>
+                                                <div class="dot"></div>
+                                                <div class="dot"></div>
                                             </div>
                                         </div>
-                                    ` : ''}
-                                </div>
+                                    </div>
+                                ` : ''}
                             </div>
                         </div>
 
@@ -389,6 +410,64 @@
                     }
                 }, 100);
             }
+
+            // Render quote confirmation modal if active
+            if (state.showQuoteConfirmation && state.pendingQuoteData) {
+                const quoteOverlay = document.createElement('div');
+                quoteOverlay.className = 'modal-overlay';
+                quoteOverlay.innerHTML = `
+                    <div class="modal-content">
+                        <h2 class="text-2xl font-bold text-gray-900 mb-6">Confirm Quote Request</h2>
+                        
+                        <p class="text-gray-700 mb-6">Please confirm your information before we send this to the contractor:</p>
+
+                        <div class="space-y-4 mb-6">
+                            <div class="confirmation-section">
+                                <div class="confirmation-label">Your Name</div>
+                                <div class="confirmation-value">${escapeHtml(state.customerName || 'Not provided')}</div>
+                            </div>
+                            
+                            <div class="confirmation-section">
+                                <div class="confirmation-label">Email</div>
+                                <div class="confirmation-value">${escapeHtml(state.customerEmail || 'Not provided')}</div>
+                            </div>
+                            
+                            <div class="confirmation-section">
+                                <div class="confirmation-label">Phone</div>
+                                <div class="confirmation-value">${escapeHtml(state.customerPhone || 'Not provided')}</div>
+                            </div>
+
+                            <div class="confirmation-section">
+                                <div class="confirmation-label">Address</div>
+                                <div class="confirmation-value">${escapeHtml(state.address)}</div>
+                            </div>
+
+                            <div class="confirmation-section">
+                                <div class="confirmation-label">Issue Type</div>
+                                <div class="confirmation-value">${escapeHtml(state.pendingQuoteData.issueType)}</div>
+                            </div>
+                        </div>
+
+                        <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mb-6 text-sm text-yellow-800">
+                            <p>The contractor will use this information to contact you directly about your quote.</p>
+                        </div>
+
+                        <div class="flex gap-3">
+                            <button 
+                                onclick="cancelQuoteConfirmation()" 
+                                class="flex-1 px-4 py-3 bg-gray-200 text-gray-900 font-semibold rounded-lg hover:bg-gray-300 transition">
+                                Cancel
+                            </button>
+                            <button 
+                                onclick="confirmQuoteRequest()" 
+                                class="flex-1 px-4 py-3 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition">
+                                Send Quote Request
+                            </button>
+                        </div>
+                    </div>
+                `;
+                app.appendChild(quoteOverlay);
+            }
         }
 
         function escapeHtml(text) {
@@ -396,15 +475,31 @@
             return text.replace(/[&<>"']/g, m => map[m]);
         }
 
+        function handleDrop(e) {
+            e.preventDefault();
+            const file = e.dataTransfer.files[0];
+            if (file) uploadFile(file);
+        }
+
+        function handleFileSelect(e) {
+            const file = e.target.files[0];
+            if (file) uploadFile(file);
+        }
+
         async function uploadFile(file) {
+            // Save customer info to state before uploading
+            state.customerName = document.getElementById('customerName').value;
+            state.customerEmail = document.getElementById('customerEmail').value;
+            state.customerPhone = document.getElementById('customerPhone').value;
+
             state.uploading = true;
             render();
             const formData = new FormData();
             formData.append('file', file);
-            formData.append('address', file.name);
-            formData.append('customer_name', document.getElementById('customerName').value || 'Unknown');
-            formData.append('customer_email', document.getElementById('customerEmail').value);
-            formData.append('customer_phone', document.getElementById('customerPhone').value);
+            formData.append('address', document.getElementById('customerName').value || file.name);
+            formData.append('customer_name', state.customerName);
+            formData.append('customer_email', state.customerEmail);
+            formData.append('customer_phone', state.customerPhone);
             formData.append('inspector_name', 'Inspector');
             formData.append('report_type', 'home_inspection');
             try {
@@ -417,10 +512,10 @@
                     state.screen = 'chat';
                     state.messages = [];
                 } else {
-                    alert('Upload failed. Make sure backend is running on localhost:5000');
+                    alert('Upload failed. Make sure backend is running.');
                 }
             } catch (e) {
-                alert('Error: Cannot connect to backend. Is it running on localhost:5000?');
+                alert('Error: Cannot connect to backend.');
             }
             state.uploading = false;
             render();
@@ -446,13 +541,13 @@
                     state.currentQuestionId = data.conversation_id;
                     
                     // Add referral CTA if there are referrals
-                if (data.referrals && data.referrals.length > 0) {
-                    state.messages.push({ 
-                        type: 'referral-cta', 
-                        questionId: data.conversation_id,
-                        contractors: data.referrals
-                    });
-                }
+                    if (data.referrals && data.referrals.length > 0) {
+                        state.messages.push({ 
+                            type: 'referral-cta', 
+                            questionId: data.conversation_id,
+                            contractors: data.referrals
+                        });
+                    }
                 } else {
                     state.messages.push({ type: 'ai', text: 'Error getting response. Try again.' });
                 }
@@ -463,20 +558,31 @@
             render();
         }
 
-        function toggleReferrals(questionId) {
-    state.messages.push({ 
-        type: 'referrals', 
-        contractors: state.messages.find(m => m.questionId === questionId)?.contractors || [],
-        questionId: questionId
-    });
-    render();
-    setTimeout(() => {
-        const container = document.querySelector('.chat-container');
-        if (container) container.scrollTop = container.scrollHeight;
-    }, 100);
-}
+        function showQuoteConfirmation(questionId, contractorId) {
+            // Find the contractor and issue type from messages
+            const referralMsg = state.messages.find(m => m.type === 'referral-cta' && m.questionId === questionId);
+            const contractor = referralMsg?.contractors.find(c => c.id === contractorId);
+            
+            state.showQuoteConfirmation = true;
+            state.pendingQuoteData = {
+                questionId,
+                contractorId,
+                issueType: contractor?.specialty || 'General'
+            };
+            render();
+        }
 
-        async function requestQuote(questionId, contractorId) {
+        function cancelQuoteConfirmation() {
+            state.showQuoteConfirmation = false;
+            state.pendingQuoteData = null;
+            render();
+        }
+
+        async function confirmQuoteRequest() {
+            if (!state.pendingQuoteData) return;
+
+            const { questionId, contractorId } = state.pendingQuoteData;
+
             try {
                 const res = await fetch(`${API_URL}/api/referral-request`, {
                     method: 'POST',
@@ -484,11 +590,17 @@
                     body: JSON.stringify({
                         report_id: state.reportId,
                         question_id: questionId,
-                        contractor_id: contractorId
+                        contractor_id: contractorId,
+                        customer_name: state.customerName,
+                        customer_email: state.customerEmail,
+                        customer_phone: state.customerPhone
                     })
                 });
                 if (res.ok) {
-                    alert('Request sent! The contractor will reach out to you soon.');
+                    alert('✓ Quote request sent! The contractor will reach out to you soon.');
+                    state.showQuoteConfirmation = false;
+                    state.pendingQuoteData = null;
+                    render();
                 } else {
                     alert('Error sending request. Please try again.');
                 }
@@ -498,7 +610,21 @@
         }
 
         function resetApp() {
-            state = { screen: 'upload', reportId: null, summary: null, address: null, messages: [], uploading: false, loading: false, currentQuestionId: null };
+            state = { 
+                screen: 'upload', 
+                reportId: null, 
+                summary: null, 
+                address: null, 
+                messages: [], 
+                uploading: false, 
+                loading: false, 
+                currentQuestionId: null,
+                customerName: '',
+                customerEmail: '',
+                customerPhone: '',
+                showQuoteConfirmation: false,
+                pendingQuoteData: null
+            };
             render();
         }
 
