@@ -278,7 +278,7 @@
                             <div class="max-w-4xl mx-auto px-6 py-8">
                                 <div class="bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl p-8 mb-12 border border-blue-200">
                                     <h2 class="font-semibold text-gray-900 text-lg mb-4">Summary</h2>
-                                    <div class="text-gray-700 space-y-4" style="line-height: 1.8; margin: 0;">
+                                    <div class="text-gray-700" style="line-height: 1.8;">
                                         ${state.summary.split('\n\n').map(para => {
                                             let cleanPara = escapeHtml(para);
                                             cleanPara = cleanPara.replace(/\*\*(.*?)\*\*/g, '<strong class="font-semibold text-gray-900">$1</strong>');
@@ -400,32 +400,28 @@
                 const modalDiv = document.createElement('div');
                 modalDiv.style.cssText = 'position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 1000;';
                 modalDiv.innerHTML = `
-                    <div style="background: white; border-radius: 12px; padding: 24px; max-width: 500px; width: 90%;">
+                    <div style="background: white; border-radius: 12px; padding: 24px; max-width: 500px; width: 90%; box-shadow: 0 20px 60px rgba(0,0,0,0.3);">
                         <h2 style="font-size: 20px; font-weight: 600; color: #1f2937; margin-bottom: 16px;">Confirm Quote Request</h2>
                         <p style="color: #6b7280; margin-bottom: 24px;">Please confirm your information before we send this to the contractor:</p>
                         
-                        <div style="background: #f0f9ff; border: 1px solid #bfdbfe; border-radius: 8px; padding: 12px; margin-bottom: 12px;">
-                            <div style="font-size: 11px; font-weight: 600; color: #0369a1; text-transform: uppercase; margin-bottom: 4px;">Your Name</div>
-                            <div style="font-size: 16px; color: #1f2937; font-weight: 500;">${escapeHtml(state.customerName)}</div>
+                        <div style="margin-bottom: 16px;">
+                            <div style="font-size: 12px; font-weight: 600; color: #0369a1; text-transform: uppercase; margin-bottom: 6px;">Your Name</div>
+                            <div style="font-size: 16px; color: #1f2937;">${escapeHtml(state.customerName)}</div>
                         </div>
                         
-                        <div style="background: #f0f9ff; border: 1px solid #bfdbfe; border-radius: 8px; padding: 12px; margin-bottom: 12px;">
-                            <div style="font-size: 11px; font-weight: 600; color: #0369a1; text-transform: uppercase; margin-bottom: 4px;">Email</div>
-                            <div style="font-size: 16px; color: #1f2937; font-weight: 500;">${escapeHtml(state.customerEmail || 'Not provided')}</div>
+                        <div style="margin-bottom: 16px;">
+                            <div style="font-size: 12px; font-weight: 600; color: #0369a1; text-transform: uppercase; margin-bottom: 6px;">Email</div>
+                            <div style="font-size: 16px; color: #1f2937;">${escapeHtml(state.customerEmail || 'Not provided')}</div>
                         </div>
                         
-                        <div style="background: #f0f9ff; border: 1px solid #bfdbfe; border-radius: 8px; padding: 12px; margin-bottom: 12px;">
-                            <div style="font-size: 11px; font-weight: 600; color: #0369a1; text-transform: uppercase; margin-bottom: 4px;">Phone</div>
-                            <div style="font-size: 16px; color: #1f2937; font-weight: 500;">${escapeHtml(state.customerPhone || 'Not provided')}</div>
-                        </div>
-                        
-                        <div style="background: #fef3c7; border: 1px solid #fcd34d; border-radius: 6px; padding: 12px; margin-bottom: 20px; font-size: 14px; color: #92400e;">
-                            The contractor will use this information to contact you directly.
+                        <div style="margin-bottom: 24px;">
+                            <div style="font-size: 12px; font-weight: 600; color: #0369a1; text-transform: uppercase; margin-bottom: 6px;">Phone</div>
+                            <div style="font-size: 16px; color: #1f2937;">${escapeHtml(state.customerPhone || 'Not provided')}</div>
                         </div>
                         
                         <div style="display: flex; gap: 12px;">
-                            <button onclick="cancelQuote()" style="flex: 1; padding: 12px; background: #e5e7eb; color: #1f2937; font-weight: 600; border: none; border-radius: 8px; cursor: pointer;">Cancel</button>
-                            <button onclick="confirmQuote()" style="flex: 1; padding: 12px; background: #2563eb; color: white; font-weight: 600; border: none; border-radius: 8px; cursor: pointer;">Send Request</button>
+                            <button onclick="cancelQuote()" style="flex: 1; padding: 12px; background: #e5e7eb; color: #1f2937; font-weight: 600; border: none; border-radius: 8px; cursor: pointer; font-size: 14px;">Cancel</button>
+                            <button onclick="confirmQuote()" style="flex: 1; padding: 12px; background: #2563eb; color: white; font-weight: 600; border: none; border-radius: 8px; cursor: pointer; font-size: 14px;">Send Request</button>
                         </div>
                     </div>
                 `;
@@ -439,7 +435,6 @@
         }
 
         async function uploadFile(file) {
-            // Save customer info to state BEFORE uploading
             state.customerName = document.getElementById('customerName').value || 'Unknown';
             state.customerEmail = document.getElementById('customerEmail').value;
             state.customerPhone = document.getElementById('customerPhone').value;
@@ -524,7 +519,6 @@
 }
 
         async function requestQuote(questionId, contractorId) {
-            // Show confirmation modal instead of sending directly
             state.showConfirmModal = true;
             state.pendingQuote = { questionId, contractorId };
             render();

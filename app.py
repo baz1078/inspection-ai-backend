@@ -443,8 +443,6 @@ def create_referral_request():
         
         # Get the report to update customer info if provided
         report = InspectionReport.query.get(data['report_id'])
-        
-        # Update report with customer info if provided
         if report and data.get('customer_name'):
             report.customer_name = data.get('customer_name')
             report.customer_email = data.get('customer_email')
