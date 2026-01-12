@@ -222,7 +222,7 @@ class InspectionReportQA:
     def answer_question(self, question):
         """Answer a customer question"""
         
-system_prompt = """You are a helpful assistant answering questions about a home inspection report.
+        system_prompt = """You are a helpful assistant answering questions about a home inspection report.
 
 TONE: Professional, balanced, factual, conversational
 RULES:
