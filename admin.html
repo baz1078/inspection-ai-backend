@@ -205,9 +205,9 @@
                     <h2 class="text-xl font-semibold text-gray-900 mb-6">Lead Tracking</h2>
 
                     <div class="bg-white rounded-12 border border-gray-200">
-                        <div class="table-row" style="background: #f3f4f6; font-weight: 600; color: #374151; grid-template-columns: 2fr 1.5fr 1fr 1.5fr 1fr 1.2fr;">
+                        <div class="table-row" style="background: #f3f4f6; font-weight: 600; color: #374151;">
                             <div>Customer Name</div>
-                            <div>Contact Info</div>
+                            <div>Contact</div>
                             <div>Contractor</div>
                             <div>Issue</div>
                             <div>Status</div>
@@ -404,11 +404,11 @@
                 for (const l of data.leads) {
                     const contactInfo = l.customer_email !== 'N/A' ? l.customer_email : l.customer_phone;
                     html += `
-                        <div class="table-row" style="grid-template-columns: 2fr 1.5fr 1fr 1.5fr 1fr 1.2fr;">
+                        <div class="table-row">
                             <div><strong>${l.customer_name}</strong></div>
                             <div><small style="color: #666;">${contactInfo}</small></div>
                             <div>${l.contractor_name}</div>
-                            <div><span style="background: #fef08a; padding: 2px 6px; border-radius: 4px; font-size: 12px;">${l.issue_type}</span></div>
+                            <div>${l.issue_type}</div>
                             <div><span class="px-2 py-1 rounded text-xs bg-blue-100 text-blue-800">${l.status}</span></div>
                             <div><button onclick="updateLeadStatus('${l.id}')" class="button-primary button-small">Update</button></div>
                         </div>

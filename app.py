@@ -441,7 +441,7 @@ def create_referral_request():
     try:
         data = request.get_json()
         
-        # Get the report to add customer info if needed
+        # Get the report to update customer info if provided
         report = InspectionReport.query.get(data['report_id'])
         
         # Update report with customer info if provided
