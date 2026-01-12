@@ -9,6 +9,9 @@ class InspectionReport(db.Model):
     
     id = db.Column(db.String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
     address = db.Column(db.String(255), nullable=False)
+    customer_name = db.Column(db.String(255))
+    customer_email = db.Column(db.String(255))
+    customer_phone = db.Column(db.String(20))
     inspector_name = db.Column(db.String(255))
     inspection_date = db.Column(db.DateTime, default=datetime.utcnow)
     report_type = db.Column(db.String(50))

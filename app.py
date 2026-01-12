@@ -114,6 +114,9 @@ def upload_report():
         # Create database record
         report = InspectionReport(
             address=request.form.get('address', 'Unknown Address'),
+            customer_name=request.form.get('customer_name', 'Unknown'),
+            customer_email=request.form.get('customer_email', ''),
+            customer_phone=request.form.get('customer_phone', ''),
             inspector_name=request.form.get('inspector_name', 'Inspector'),
             inspection_date=datetime.utcnow(),
             report_type=request.form.get('report_type', 'home_inspection'),

@@ -203,6 +203,16 @@
                                     </div>
                                 </div>
 
+                                <div class="mb-12 bg-white/10 backdrop-blur-sm rounded-2xl p-8 border border-white/20">
+                                    <h3 class="text-white font-semibold text-lg mb-6">Your Information</h3>
+    
+                                    <div class="grid md:grid-cols-3 gap-4">
+                                    <input type="text" id="customerName" placeholder="Your Name" class="px-4 py-3 bg-white/90 rounded-lg focus:outline-none focus:ring-2 focus:ring-white" />
+                                    <input type="email" id="customerEmail" placeholder="Email" class="px-4 py-3 bg-white/90 rounded-lg focus:outline-none focus:ring-2 focus:ring-white" />
+                                    <input type="tel" id="customerPhone" placeholder="Phone" class="px-4 py-3 bg-white/90 rounded-lg focus:outline-none focus:ring-2 focus:ring-white" />
+                                      </div>
+                                </div>
+                                
                                 <div class="drop-zone border-2 border-white/30 rounded-3xl p-20 text-center cursor-pointer" id="dropZone">
                                     <div class="upload-icon" style="font-size: 72px; margin-bottom: 20px; display: block;">📄</div>
                                     <p class="text-gray-900 font-bold text-2xl mb-2">Drop your report here</p>
@@ -392,6 +402,9 @@
             const formData = new FormData();
             formData.append('file', file);
             formData.append('address', file.name);
+            formData.append('customer_name', document.getElementById('customerName').value || 'Unknown');
+            formData.append('customer_email', document.getElementById('customerEmail').value);
+            formData.append('customer_phone', document.getElementById('customerPhone').value);
             formData.append('inspector_name', 'Inspector');
             formData.append('report_type', 'home_inspection');
             try {
