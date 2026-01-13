@@ -54,16 +54,16 @@ MAX_CACHE_SIZE = 10
 def extract_issue_type(question: str) -> str:
     """Extract issue type from question"""
     keywords = {
-        'electrical': ['electrical', 'outlet', 'wire', 'breaker', 'amperage', 'power', 'panel', 'gfci', 'wiring'],
-        'roofing': ['roof', 'shingles', 'leak', 'gutter', 'chimney', 'flashing'],
-        'plumbing': ['plumb', 'drain', 'water line', 'trap', 'pipe', 'faucet', 'leak', 'sewer'],
-        'hvac': ['hvac', 'heating', 'cooling', 'furnace', 'ac', 'boiler', 'thermostat', 'duct'],
-        'structural': ['foundation', 'crack', 'structural', 'settle', 'beam', 'wall', 'joist'],
-        'siding': ['siding', 'exterior', 'cladding', 'fascia', 'trim', 'deck'],
-        'mold': ['mold', 'mildew', 'moisture', 'fungal'],
-        'radon': ['radon', 'gas', 'testing'],
-        'pest': ['pest', 'termite', 'insect', 'rodent'],
-        'general': ['contractor', 'repair', 'fix'],
+        'electrical': ['electrical', 'electric', 'outlet', 'wire', 'breaker', 'amperage', 'power', 'panel', 'gfci', 'wiring', 'light', 'switch', 'socket'],
+        'roofing': ['roof', 'shingles', 'shingle', 'leak', 'gutter', 'chimney', 'flashing', 'slope', 'top layer'],
+        'plumbing': ['plumb', 'drain', 'water', 'pipe', 'faucet', 'leak', 'sewer', 'toilet', 'sink', 'shower', 'bath', 'tub', 'trap', 'line'],
+        'hvac': ['hvac', 'heating', 'cooling', 'furnace', 'ac', 'boiler', 'thermostat', 'duct', 'heat', 'cool', 'air', 'heater', 'conditioner'],
+        'structural': ['foundation', 'crack', 'structural', 'settle', 'beam', 'wall', 'joist', 'support', 'basement', 'floor', 'post'],
+        'siding': ['siding', 'exterior', 'cladding', 'fascia', 'trim', 'deck', 'clapboard', 'vinyl', 'metal'],
+        'mold': ['mold', 'mildew', 'moisture', 'fungal', 'wet', 'damp', 'water damage'],
+        'radon': ['radon', 'gas', 'testing', 'test'],
+        'pest': ['pest', 'termite', 'insect', 'rodent', 'bug', 'ant', 'mouse', 'rat', 'infestation'],
+        'general': ['contractor', 'repair', 'fix', 'issue', 'problem'],
     }
     
     q_lower = question.lower()
@@ -472,7 +472,7 @@ def create_referral_request():
         # GENERATE PUNCHLIST: Create filtered issue list for this contractor specialty
         print(f"Generating punchlist for {question.issue_type}...")
         punchlist = generate_punchlist(
-            report.extracted_text,
+            question.answer,
             question.issue_type,
             question.question
         )
