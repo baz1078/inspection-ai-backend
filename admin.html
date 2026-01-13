@@ -188,15 +188,20 @@
                         <button onclick="openAddContractorModal()" class="button-primary button-small">+ Add Contractor</button>
                     </div>
 
-                    <div class="bg-white rounded-12 border border-gray-200">
-                        <div class="table-row" style="background: #f3f4f6; font-weight: 600; color: #374151;">
-                            <div>Name</div>
-                            <div>Specialty</div>
-                            <div>Location</div>
-                            <div>Rating</div>
-                            <div>Actions</div>
-                        </div>
-                        <div id="contractors-list"></div>
+                    <div class="bg-white rounded-12 border border-gray-200 overflow-x-auto">
+                        <table class="w-full" style="border-collapse: collapse;">
+                            <thead style="background: #f3f4f6;">
+                                <tr>
+                                    <th style="padding: 12px; text-align: left; font-weight: 600; color: #374151; border-bottom: 1px solid #e5e7eb;">Name</th>
+                                    <th style="padding: 12px; text-align: left; font-weight: 600; color: #374151; border-bottom: 1px solid #e5e7eb;">Specialty</th>
+                                    <th style="padding: 12px; text-align: left; font-weight: 600; color: #374151; border-bottom: 1px solid #e5e7eb;">Location</th>
+                                    <th style="padding: 12px; text-align: left; font-weight: 600; color: #374151; border-bottom: 1px solid #e5e7eb;">Rating</th>
+                                    <th style="padding: 12px; text-align: left; font-weight: 600; color: #374151; border-bottom: 1px solid #e5e7eb;">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="contractors-list">
+                            </tbody>
+                        </table>
                     </div>
                 </div>
 
@@ -204,15 +209,20 @@
                 <div id="leads-tab" class="tab-content hidden">
                     <h2 class="text-xl font-semibold text-gray-900 mb-6">Lead Tracking</h2>
 
-                    <div class="bg-white rounded-12 border border-gray-200">
-                        <div class="table-row" style="background: #f3f4f6; font-weight: 600; color: #374151;">
-                            <div>Contractor</div>
-                            <div>Issue</div>
-                            <div>Status</div>
-                            <div>Date</div>
-                            <div>Actions</div>
-                        </div>
-                        <div id="leads-list"></div>
+                    <div class="bg-white rounded-12 border border-gray-200 overflow-x-auto">
+                        <table class="w-full" style="border-collapse: collapse;">
+                            <thead style="background: #f3f4f6;">
+                                <tr>
+                                    <th style="padding: 12px; text-align: left; font-weight: 600; color: #374151; border-bottom: 1px solid #e5e7eb;">Contractor</th>
+                                    <th style="padding: 12px; text-align: left; font-weight: 600; color: #374151; border-bottom: 1px solid #e5e7eb;">Issue</th>
+                                    <th style="padding: 12px; text-align: left; font-weight: 600; color: #374151; border-bottom: 1px solid #e5e7eb;">Status</th>
+                                    <th style="padding: 12px; text-align: left; font-weight: 600; color: #374151; border-bottom: 1px solid #e5e7eb;">Date</th>
+                                    <th style="padding: 12px; text-align: left; font-weight: 600; color: #374151; border-bottom: 1px solid #e5e7eb;">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="leads-list">
+                            </tbody>
+                        </table>
                     </div>
                 </div>
 
@@ -220,16 +230,21 @@
                 <div id="analytics-tab" class="tab-content hidden">
                     <h2 class="text-xl font-semibold text-gray-900 mb-6">Contractor Analytics</h2>
 
-                    <div class="bg-white rounded-12 border border-gray-200">
-                        <div class="table-row" style="background: #f3f4f6; font-weight: 600; color: #374151;">
-                            <div>Contractor</div>
-                            <div>Specialty</div>
-                            <div>Total Leads</div>
-                            <div>Converted</div>
-                            <div>Conv. Rate</div>
-                            <div>Rating</div>
-                        </div>
-                        <div id="analytics-list"></div>
+                    <div class="bg-white rounded-12 border border-gray-200 overflow-x-auto">
+                        <table class="w-full" style="border-collapse: collapse;">
+                            <thead style="background: #f3f4f6;">
+                                <tr>
+                                    <th style="padding: 12px; text-align: left; font-weight: 600; color: #374151; border-bottom: 1px solid #e5e7eb;">Contractor</th>
+                                    <th style="padding: 12px; text-align: left; font-weight: 600; color: #374151; border-bottom: 1px solid #e5e7eb;">Specialty</th>
+                                    <th style="padding: 12px; text-align: left; font-weight: 600; color: #374151; border-bottom: 1px solid #e5e7eb;">Total Leads</th>
+                                    <th style="padding: 12px; text-align: left; font-weight: 600; color: #374151; border-bottom: 1px solid #e5e7eb;">Converted</th>
+                                    <th style="padding: 12px; text-align: left; font-weight: 600; color: #374151; border-bottom: 1px solid #e5e7eb;">Conv. Rate</th>
+                                    <th style="padding: 12px; text-align: left; font-weight: 600; color: #374151; border-bottom: 1px solid #e5e7eb;">Rating</th>
+                                </tr>
+                            </thead>
+                            <tbody id="analytics-list">
+                            </tbody>
+                        </table>
                     </div>
                 </div>
             </div>
@@ -376,19 +391,19 @@
                 let html = '';
                 for (const c of data.contractors) {
                     html += `
-                        <div class="table-row">
-                            <div>${c.name}</div>
-                            <div>${c.specialty}</div>
-                            <div>${c.city}, ${c.state}</div>
-                            <div>⭐ ${c.rating}</div>
-                            <div class="flex gap-2">
+                        <tr style="border-bottom: 1px solid #f3f4f6;">
+                            <td style="padding: 12px;">${c.name}</td>
+                            <td style="padding: 12px;">${c.specialty}</td>
+                            <td style="padding: 12px;">${c.city}, ${c.state}</td>
+                            <td style="padding: 12px;">⭐ ${c.rating}</td>
+                            <td style="padding: 12px;">
                                 <button onclick="editContractor('${c.id}')" class="button-primary button-small">Edit</button>
-                                <button onclick="deleteContractor('${c.id}')" class="button-danger button-small">Delete</button>
-                            </div>
-                        </div>
+                                <button onclick="deleteContractor('${c.id}')" class="button-danger button-small" style="margin-left: 4px;">Delete</button>
+                            </td>
+                        </tr>
                     `;
                 }
-                document.getElementById('contractors-list').innerHTML = html || '<div class="p-8 text-center text-gray-600">No contractors yet</div>';
+                document.getElementById('contractors-list').innerHTML = html || '<tr><td colspan="5" style="padding: 32px; text-align: center; color: #6b7280;">No contractors yet</td></tr>';
             } catch (e) {
                 console.error('Error loading contractors:', e);
             }
@@ -402,16 +417,16 @@
                 let html = '';
                 for (const l of data.leads) {
                     html += `
-                        <div class="table-row">
-                            <div>${l.contractor_name}</div>
-                            <div>${l.issue_type}</div>
-                            <div><span class="px-2 py-1 rounded text-xs bg-blue-100 text-blue-800">${l.status}</span></div>
-                            <div>${new Date(l.created_at).toLocaleDateString()}</div>
-                            <div><button onclick="updateLeadStatus('${l.id}')" class="button-primary button-small">Update</button></div>
-                        </div>
+                        <tr style="border-bottom: 1px solid #f3f4f6;">
+                            <td style="padding: 12px;">${l.contractor_name}</td>
+                            <td style="padding: 12px;">${l.issue_type}</td>
+                            <td style="padding: 12px;"><span class="px-2 py-1 rounded text-xs bg-blue-100 text-blue-800">${l.status}</span></td>
+                            <td style="padding: 12px;">${new Date(l.created_at).toLocaleDateString()}</td>
+                            <td style="padding: 12px;"><button onclick="updateLeadStatus('${l.id}')" class="button-primary button-small">Update</button></td>
+                        </tr>
                     `;
                 }
-                document.getElementById('leads-list').innerHTML = html || '<div class="p-8 text-center text-gray-600">No leads yet</div>';
+                document.getElementById('leads-list').innerHTML = html || '<tr><td colspan="5" style="padding: 32px; text-align: center; color: #6b7280;">No leads yet</td></tr>';
             } catch (e) {
                 console.error('Error loading leads:', e);
             }
@@ -425,17 +440,17 @@
                 let html = '';
                 for (const c of data.contractors) {
                     html += `
-                        <div class="table-row">
-                            <div>${c.name}</div>
-                            <div>${c.specialty}</div>
-                            <div>${c.total_leads}</div>
-                            <div>${c.converted_leads}</div>
-                            <div>${c.conversion_rate.toFixed(1)}%</div>
-                            <div>⭐ ${c.rating}</div>
-                        </div>
+                        <tr style="border-bottom: 1px solid #f3f4f6;">
+                            <td style="padding: 12px;">${c.name}</td>
+                            <td style="padding: 12px;">${c.specialty}</td>
+                            <td style="padding: 12px;">${c.total_leads}</td>
+                            <td style="padding: 12px;">${c.converted_leads}</td>
+                            <td style="padding: 12px;">${c.conversion_rate.toFixed(1)}%</td>
+                            <td style="padding: 12px;">⭐ ${c.rating}</td>
+                        </tr>
                     `;
                 }
-                document.getElementById('analytics-list').innerHTML = html || '<div class="p-8 text-center text-gray-600">No data yet</div>';
+                document.getElementById('analytics-list').innerHTML = html || '<tr><td colspan="6" style="padding: 32px; text-align: center; color: #6b7280;">No data yet</td></tr>';
             } catch (e) {
                 console.error('Error loading analytics:', e);
             }
