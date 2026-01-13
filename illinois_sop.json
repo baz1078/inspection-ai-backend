@@ -1,95 +1,350 @@
 {
   "legal_source": "Ill. Admin. Code tit. 68, § 1410.200 - Standards of Practice",
+  "statute_date": "Amended 2/2/2024",
+  "last_updated": "2026-01-13",
+  
   "key_definitions": {
-    "inspect": "Visual examination of readily accessible systems using normal operating controls and opening readily accessible panels. NO dismantling, NO destructive measures, NO risk to persons or property.",
-    "readily_accessible": "Available for visual inspection WITHOUT moving personal property, dismantling, destructive measures, or risk to persons or property.",
-    "dismantle": "To take apart or remove any component that would not be taken apart by a homeowner in normal routine maintenance."
+    "inspect": "To visually examine readily accessible systems and components using normal operating controls and opening readily accessible panels",
+    "readily_accessible": "Available for visual inspection WITHOUT moving personal property, dismantling, destructive measures, or risk to persons or property",
+    "readily_operable_access_panel": "A panel provided for homeowner inspection and maintenance that is within normal reach, can be removed by one person, and is not sealed in place",
+    "representative_number": "One component per room for multiple similar interior components (windows, doors, outlets); one component on each side for exterior components",
+    "significantly_deficient": "Unsafe or not functioning",
+    "dismantle": "To take apart or remove any component that would not be taken apart by a homeowner in normal routine maintenance"
   },
-  "inspector_limitations": {
-    "not_required_to": [
-      "Determine condition of components NOT readily accessible",
-      "Operate systems that are shut down or don't turn on with normal controls",
-      "Enter or access areas that may be unsafe or not readily accessible",
+
+  "structural_system_and_foundation": {
+    "section": "Ill. Admin. Code tit. 68, § 1410.200(g)",
+    "required_inspections": [
+      "Structural components",
+      "Foundation",
+      "Framing"
+    ],
+    "required_descriptions": [
+      "Foundation type and construction",
+      "Methods used to inspect under-floor crawl space or basement area",
+      "Methods used to inspect attic",
+      "Methods used to inspect floors, walls, ceilings, framing, roof"
+    ],
+    "required_reports": [
+      "Visible signs of water and moisture penetration into building",
+      "Signs of condensation on building components",
+      "Infestation that significantly impacts structure or integrity of home"
+    ],
+    "customer_question_examples": [
+      "Why didn't you crawl under the house?",
+      "Is the foundation safe?",
+      "Why didn't you give a structural engineer report?"
+    ],
+    "responses": {
+      "crawl_space_not_accessible": "Per Illinois law, inspectors only inspect readily accessible crawl spaces. If entry is unsafe, blocked, or creates risk to the inspector, it is not required. Your inspector disclosed this in the report.",
+      "foundation_not_unsafe": "Home inspection reports visible conditions but does not make engineering judgments about safety. For structural safety evaluation, hire a licensed structural engineer.",
+      "foundation_settling_normal": "Visible foundation conditions are reported. Whether settling is concerning requires professional engineering evaluation beyond home inspection scope."
+    }
+  },
+
+  "exterior": {
+    "section": "Ill. Admin. Code tit. 68, § 1410.200(h)",
+    "required_inspections": [
+      "Exterior wall covering",
+      "Exposed foundation",
+      "Flashing and trim",
+      "All exterior doors and windows",
+      "Siding",
+      "Attached decks, balconies, stoops, steps, porches, landings, and railings",
+      "Eaves, soffits, fascia or other exposed trim (if readily accessible from ground level)",
+      "Vegetation, grading, surface drainage, retaining walls on property",
+      "Walkways, patios, driveways leading to dwelling entrances"
+    ],
+    "required_descriptions": [
+      "Exterior wall covering type"
+    ],
+    "required_reports": [
+      "If any exterior component is likely to adversely affect the building"
+    ],
+    "customer_question_examples": [
+      "Why didn't you inspect the roof edge?",
+      "Why didn't you check the gutters?",
+      "Why didn't you go on the deck?"
+    ],
+    "responses": {
+      "deck_safety": "Deck inspection is required. However, if deck is unsafe or creates risk to inspector, steps may be limited and documented in report.",
+      "gutter_inspection": "Gutters are part of roof drainage system. Visual inspection from ground is required. Cleaning debris or disassembly is not required."
+    }
+  },
+
+  "roof_system": {
+    "section": "Ill. Admin. Code tit. 68, § 1410.200(i)",
+    "required_inspections": [
+      "Roof covering",
+      "Roof drainage systems",
+      "Flashings",
+      "Skylights",
+      "Chimneys",
+      "Roof penetrations"
+    ],
+    "required_descriptions": [
+      "Roof covering type"
+    ],
+    "required_reports": [
+      "Methods used to inspect roof (e.g., from ground, ladder, attic)"
+    ],
+    "customer_question_examples": [
+      "Why didn't you walk on the roof?",
+      "Why didn't you climb on the roof?",
+      "How can you inspect the roof without getting on it?"
+    ],
+    "responses": {
+      "roof_not_walked": "Per Illinois law, roof inspection is required. However, walking on the roof is NOT required. Visual inspection from ground level using binoculars, ladder, or from attic satisfies inspection requirement. If roof is brittle, damaged, or unsafe (creating risk to person), walking on it is not appropriate. Your inspector used safe methods to inspect roof condition.",
+      "climbing_not_required": "Illinois law requires inspection of roof condition. Climbing on roof creates risk to person and is not required. Your inspector reported the inspection method used (ground level inspection) in the report.",
+      "height_visibility_safety": "Inspectors make professional decisions to avoid safety risks while meeting inspection requirements. Visual inspection from safe distance is valid per Illinois standards."
+    }
+  },
+
+  "plumbing_system": {
+    "section": "Ill. Admin. Code tit. 68, § 1410.200(j)",
+    "required_inspections": [
+      "Interior water supply and distribution systems (fixtures, faucets, piping, drains, waste, vent systems)",
+      "Water heating equipment",
+      "Fuel storage and distribution systems",
+      "Drainage sumps, sump pump and related piping"
+    ],
+    "required_descriptions": [
+      "Interior water supply and distribution systems in detail",
+      "Water heating equipment in detail",
+      "Fuel storage and distribution in detail",
+      "Drainage sumps, sump pump and related piping in detail"
+    ],
+    "required_reports": [
+      "Location of main water and main shut-off valves",
+      "Water service entry location",
+      "Water distribution piping materials",
+      "Type of water heating equipment",
+      "Capacity of water heating equipment",
+      "Leaks"
+    ],
+    "customer_question_examples": [
+      "Why didn't you test water quality?",
+      "Why didn't you check water pressure?",
+      "Did you test the water for contamination?"
+    ],
+    "responses": {
+      "water_quality": "Water quality testing is NOT part of home inspection per Illinois standards. Inspection includes visual examination of supply and distribution systems. For water quality testing, hire a laboratory or environmental specialist.",
+      "water_pressure": "Water pressure testing is beyond home inspection scope. Inspection includes visual examination of components and operation of normal controls. For detailed plumbing evaluation, hire a licensed plumber.",
+      "well_water": "If property is on well water, water quality testing is recommended but not required by inspection standards. Customer should contact local health department about testing requirements."
+    }
+  },
+
+  "electrical_system": {
+    "section": "Ill. Admin. Code tit. 68, § 1410.200(k)",
+    "required_inspections": [
+      "Service drop",
+      "Service entrance conductors, cables, and raceways",
+      "Service equipment and main disconnects",
+      "Service grounding",
+      "INTERIOR COMPONENTS OF SERVICE PANELS AND SUBPANELS",
+      "Conductors",
+      "Overcurrent protection devices",
+      "Representative number of installed lighting fixtures, switches, and receptacles",
+      "Ground fault circuit interrupters"
+    ],
+    "required_descriptions": [
+      "Amperage and voltage rating of service",
+      "Location of main disconnects and subpanels",
+      "Wiring methods used"
+    ],
+    "required_reports": [
+      "Presence of solid conductor aluminum branch circuit wiring",
+      "Non-compliance with Carbon Monoxide Alarm Detector Act (430 ILCS 135)",
+      "Non-compliance with Smoke Detector Act (425 ILCS 60)"
+    ],
+    "customer_question_examples": [
+      "Why didn't you open the electrical panel?",
+      "Why didn't you open the breaker panel?",
+      "Shouldn't you have opened the main panel to check it?",
+      "Did you test all the outlets?"
+    ],
+    "responses": {
+      "panel_opening_required": "Per Illinois law (Ill. Admin. Code tit. 68, § 1410.200(k)), inspectors are REQUIRED to inspect interior components of service panels and subpanels. Your inspector opened the panel and inspected all required components. This is a legal requirement, not optional.",
+      "panel_interior_inspection": "Illinois law specifically requires inspection of interior components of electrical panels and subpanels. Your inspector followed the law and professional standards by opening the panel and documenting the service size, wiring, breakers, and grounding.",
+      "representative_outlets": "Illinois law requires inspection of a representative number of outlets (not all). Your inspector tested outlets throughout the house per standard practice.",
+      "gfci_testing": "Ground fault circuit interrupters are required to be inspected per Illinois law. These were tested during the inspection."
+    }
+  },
+
+  "heating_system": {
+    "section": "Ill. Admin. Code tit. 68, § 1410.200(l)",
+    "required_inspections": [
+      "Permanently installed heating equipment",
+      "Fans",
+      "Pumps",
+      "Ducts",
+      "Piping",
+      "Operating controls",
+      "Supports",
+      "Registers",
+      "Radiators",
+      "Convectors",
+      "Visible vent systems, flues, and chimneys"
+    ],
+    "required_descriptions": [
+      "Energy source (gas, electric, oil, etc.)",
+      "Heating equipment type",
+      "Heating method by distinguishing characteristics"
+    ],
+    "customer_question_examples": [
+      "Why didn't you test the heating efficiency?",
+      "How can you say the furnace is working if you didn't test it thoroughly?",
+      "Should I get a specialist to evaluate heating?"
+    ],
+    "responses": {
+      "heating_efficiency": "Home inspection includes operation of heating system using normal controls. Efficiency testing and detailed performance evaluation are beyond home inspection scope. For efficiency audit, hire a licensed HVAC technician.",
+      "heating_operation": "Inspector tested heating system operation with normal controls per Illinois requirement. Further evaluation of efficiency or repairs requires HVAC specialist.",
+      "furnace_age": "Inspector documented furnace type and condition. For detailed evaluation or recommendations about replacement or repair, consult licensed HVAC contractor."
+    }
+  },
+
+  "cooling_system": {
+    "section": "Ill. Admin. Code tit. 68, § 1410.200(m)",
+    "required_inspections": [
+      "Permanently installed central and through-wall cooling equipment",
+      "Operating controls"
+    ],
+    "required_descriptions": [
+      "Energy source",
+      "Cooling method by distinguishing characteristics"
+    ],
+    "customer_question_examples": [
+      "Why didn't you test the air conditioning thoroughly?",
+      "Did you test cooling efficiency?",
+      "Should I get the AC serviced?"
+    ],
+    "responses": {
+      "ac_efficiency": "Air conditioning system was tested for operation per Illinois requirement. Efficiency testing and performance evaluation are beyond home inspection scope. For AC service or efficiency testing, hire licensed HVAC contractor.",
+      "ac_operation": "Inspector tested AC operation using normal controls. If system is shut down, not functioning, or needs service, hire licensed HVAC technician.",
+      "ac_capacity": "Cooling system inspection includes operation and condition assessment. For capacity evaluation or upgrade recommendations, consult HVAC specialist."
+    }
+  },
+
+  "interior": {
+    "section": "Ill. Admin. Code tit. 68, § 1410.200(n)",
+    "required_inspections": [
+      "Walls",
+      "Ceilings",
+      "Floors",
+      "Steps",
+      "Stairways",
+      "Balconies and railings",
+      "Countertops",
+      "Installed cabinets",
+      "Household appliances included with property",
+      "Doors",
+      "Windows",
+      "Garage doors",
+      "Garage door operators"
+    ],
+    "required_reports": [
+      "Visible signs of water and moisture penetration into building",
+      "Signs of condensation on building components"
+    ],
+    "customer_question_examples": [
+      "Why didn't you test every window?",
+      "Did you check all the doors?",
+      "Why didn't you operate the garage door multiple times?"
+    ],
+    "responses": {
+      "representative_number": "Inspector tested a representative number of similar components (windows, doors, outlets) per Illinois standards. Not every individual item requires separate testing.",
+      "interior_condition": "Interior inspection documents condition of visible components. Cosmetic or minor functional issues may not be reported if they don't significantly affect safety or operation."
+    }
+  },
+
+  "insulation_and_ventilation": {
+    "section": "Ill. Admin. Code tit. 68, § 1410.200(o)",
+    "required_inspections": [
+      "Insulation and vapor retarders in unfinished spaces",
+      "Ventilation of attics and foundation areas",
+      "Mechanical ventilation systems (attics, kitchens, bathrooms, laundry)"
+    ],
+    "required_descriptions": [
+      "Insulation and vapor retarders in unfinished spaces",
+      "Absence of insulation in unfinished spaces at conditioned surfaces"
+    ],
+    "customer_question_examples": [
+      "Why didn't you measure insulation thickness?",
+      "Did you check if insulation is adequate?",
+      "Why is the attic not better insulated?"
+    ],
+    "responses": {
+      "insulation_adequacy": "Inspector documents insulation presence and general condition. Determining adequacy for specific climate or energy efficiency requires energy audit beyond home inspection scope.",
+      "insulation_measurement": "Insulation inspection is visual. Detailed thickness measurement is beyond home inspection scope. For energy efficiency recommendations, hire energy auditor."
+    }
+  },
+
+  "fireplaces_and_solid_fuel": {
+    "section": "Ill. Admin. Code tit. 68, § 1410.200(p)",
+    "required_inspections": [
+      "System components",
+      "Vent systems",
+      "Flues",
+      "Chimneys"
+    ],
+    "required_descriptions": [
+      "Fireplaces, solid fuel burning appliances, and chimneys description"
+    ],
+    "required_reports": [
+      "Significant damage or deterioration that is visible"
+    ],
+    "customer_question_examples": [
+      "Is the chimney safe to use?",
+      "Should the fireplace be cleaned?",
+      "Does the chimney work?"
+    ],
+    "responses": {
+      "chimney_safety": "Inspector documents visible chimney condition. For detailed chimney evaluation, cleaning, or safety certification, hire licensed chimney sweep or chimney specialist.",
+      "fireplace_use": "Inspector documents fireplace condition and notes any visible damage. For safe operation, obtain chimney cleaning and inspection from licensed chimney professional.",
+      "fireplace_operation": "Fireplace operation was assessed visually. For detailed evaluation of draft, functionality, or safety, hire chimney specialist or fireplace professional."
+    }
+  },
+
+  "inspector_limitations_per_law": {
+    "section": "Ill. Admin. Code tit. 68, § 1410.200(d)(8)",
+    "inspector_not_required_to": [
+      "Determine condition of any component or system that is NOT readily accessible",
+      "Determine service life expectancy of any component or system",
+      "Determine cause for need of replacement of any system or component",
+      "Operate any system that is shut down or does not turn on with normal operating controls",
+      "Enter or access any area that may be unsafe or not readily accessible",
       "Perform engineering or environmental services",
       "Report on future conditions",
-      "Offer warranties, guarantees, or insurance policies",
-      "Climb on roofs (creates risk to person)",
-      "Open electrical panels/breakers (dismantling + shock hazard)",
-      "Test water quality (beyond visual inspection)",
-      "Access crawl spaces if unsafe or not readily accessible",
-      "Perform load testing beyond standard testing",
-      "Dismantle components for inspection"
+      "Offer warranties, guarantees, or insurance policies of any kind"
     ]
   },
-  "roof_inspection": {
-    "required": "Visual inspection of roof coverings, flashing, and drainage",
-    "not_required": "Climbing on roof, walking on roof, load testing",
-    "reason": "Walking on brittle/damaged roofs creates risk to person and property damage per IL law. Visual inspection from ground/ladder is sufficient.",
-    "customer_question": "Why didn't the inspector walk on the roof?",
-    "legal_basis": "Readily accessible means without risk to persons or property. Illinois law does not require inspectors to risk safety."
+
+  "general_guidelines": {
+    "inspection_scope": "Home inspection is a visual examination of readily accessible systems and components using normal operating controls and opening readily accessible panels",
+    "what_not_included": [
+      "Water quality testing",
+      "Mold testing or identification",
+      "Radon testing",
+      "Pest inspection (beyond signs visible to naked eye)",
+      "Engineering services",
+      "Environmental services",
+      "Efficiency testing",
+      "Load testing",
+      "Performance testing beyond normal operation",
+      "Specialized services requiring licensed technicians"
+    ],
+    "when_to_hire_specialists": {
+      "structural_engineer": "For structural safety evaluation or engineering questions",
+      "licensed_electrician": "For detailed electrical service, upgrades, repairs, panel interior work",
+      "licensed_plumber": "For detailed plumbing evaluation, pressure testing, repairs",
+      "hvac_contractor": "For heating/cooling efficiency, repairs, service, replacement",
+      "chimney_specialist": "For chimney cleaning, detailed evaluation, safety certification",
+      "water_lab": "For water quality testing",
+      "environmental_specialist": "For mold testing, radon testing, environmental hazards",
+      "pest_specialist": "For detailed pest inspection and identification",
+      "energy_auditor": "For insulation adequacy and energy efficiency evaluation"
+    }
   },
-  "electrical_panel": {
-    "required": "Visual inspection of electrical panel and condition of wiring visible",
-    "not_required": "Opening main breaker, dismantling panel components, load testing",
-    "reason": "Opening breaker = dismantling (not allowed) + electrical shock hazard. Visual inspection only per IL law.",
-    "customer_question": "Why didn't the inspector open the electrical panel?",
-    "legal_basis": "IL law prohibits dismantling and requires inspections without risk to persons. Opening main breaker violates both rules."
-  },
-  "water_testing": {
-    "required": "Visual inspection of water-using components",
-    "not_required": "Water quality testing, pressure testing, testing on demand",
-    "reason": "Water testing is not part of visual inspection standard. Beyond scope of home inspection per IL law.",
-    "customer_question": "Why didn't you test the water quality?",
-    "legal_basis": "Home inspection = visual examination. Testing = technical/exhaustive service, not required."
-  },
-  "electrical_outlets": {
-    "required": "Visual inspection and operation of representative number of outlets using normal controls",
-    "not_required": "Load testing, GFCI/AFCI testing beyond visual operation, specialized testing",
-    "reason": "Standard visual operation is required. Advanced testing is beyond home inspection scope.",
-    "customer_question": "Why didn't you thoroughly test all outlets?",
-    "legal_basis": "Home inspection uses normal operating controls only per IL law. Advanced testing = engineering service."
-  },
-  "hvac_efficiency": {
-    "required": "Visual inspection and operation test of heating/cooling systems",
-    "not_required": "Efficiency rating, energy audit, performance testing, cooling capacity measurement",
-    "reason": "Efficiency testing is engineering service, not home inspection per IL law.",
-    "customer_question": "Why didn't you test the air conditioning efficiency?",
-    "legal_basis": "Home inspection = visual examination and operation. Efficiency = engineering service beyond scope."
-  },
-  "structural_evaluation": {
-    "required": "Visual inspection of structural components",
-    "not_required": "Engineering assessment, soil evaluation, structural safety determination",
-    "reason": "Structural engineering is specialized service, not home inspection per IL law.",
-    "customer_question": "Is the foundation safe? Should I get a structural engineer?",
-    "legal_basis": "Home inspection does not include engineering services per IL law. For safety determination, hire licensed structural engineer."
-  },
-  "crawl_space": {
-    "required": "Visual inspection of accessible crawl spaces",
-    "not_required": "Entering unsafe crawl spaces, areas with hazardous materials, unsafe conditions",
-    "reason": "IL law specifically exempts areas that are unsafe or not readily accessible.",
-    "customer_question": "Why didn't you inspect the crawl space?",
-    "legal_basis": "Crawl space may be unsafe or not readily accessible. IL law does not require entering such areas."
-  },
-  "mold_assessment": {
-    "required": "Visual inspection for water damage and mold presence",
-    "not_required": "Mold testing, mold identification, environmental assessment",
-    "reason": "Mold testing is environmental service, not home inspection per IL law.",
-    "customer_question": "Should I get mold testing?",
-    "legal_basis": "Home inspection = visual. Mold testing = environmental service beyond inspection scope."
-  },
-  "pest_inspection": {
-    "required": "Visual inspection for signs of pest activity",
-    "not_required": "Detailed pest inspection, identification, treatment recommendations",
-    "reason": "Detailed pest inspection is specialized service per IL law.",
-    "customer_question": "Should I get a pest inspection?",
-    "legal_basis": "Home inspection includes visual signs only. Detailed pest inspection = specialized service."
-  },
-  "radon_testing": {
-    "required": "Visual inspection of potential radon entry points",
-    "not_required": "Radon gas testing or measurement",
-    "reason": "Radon testing is environmental service, not home inspection per IL law.",
-    "customer_question": "Did you test for radon?",
-    "legal_basis": "Radon testing is environmental service beyond home inspection scope per IL law."
-  },
-  "general_disclaimer": "Per Illinois law, home inspection is a visual examination of readily accessible systems using normal operating controls. It does not include engineering, environmental, or specialized services. For such services, homeowners should hire licensed specialists."
+
+  "disclaimer": "This information is based on Illinois Home Inspection Standards (Ill. Admin. Code tit. 68, § 1410.200, amended 2/2/2024). This is general information for educational purposes and does not constitute legal advice. For specific compliance questions or legal interpretation, consult an attorney. Home inspectors follow these standards as minimum requirements; individual inspectors may exceed these standards."
 }
