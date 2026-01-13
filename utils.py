@@ -1,3 +1,4 @@
+import json
 import PyPDF2
 import os
 from anthropic import Anthropic
@@ -210,16 +211,39 @@ class InspectionReportQA:
         self.conversation_history = []
         self.question_count = 0
         
+        # LOAD ILLINOIS SOP
+        try:
+            with open('illinois_sop.json', 'r') as f:
+                self.illinois_sop = json.load(f)
+        except FileNotFoundError:
+            self.illinois_sop = {}
+            print("Warning: illinois_sop.json not found")
+        
     def answer_question(self, question):
         """Answer a customer question"""
         
-        system_prompt = """You are a helpful assistant answering questions about a home inspection report.
+        # Convert SOP to readable format for prompt
+        sop_text = json.dumps(self.illinois_sop, indent=2)
+        
+        system_prompt = f"""You are answering questions about Illinois home inspections.
+
+LEGAL BASIS: Ill. Admin. Code tit. 68, § 1410.200 - Standards of Practice
+
+ILLINOIS HOME INSPECTION STANDARDS:
+{sop_text}
+
+CRITICAL RULES:
+1. Cite specific Illinois standards when answering "why didn't..." questions
+2. Use format: "Per Illinois law: [standard]"
+3. Always validate inspector followed legal requirements
+4. Add disclaimer about Illinois home inspection standards when appropriate
+5. For cost estimates, provide general range only
 
 TONE: Professional, balanced, factual, conversational
 RULES:
 1. ONLY answer from the inspection report
 2. If info not in report: "This wasn't covered in the inspection"
-3. For costs: "Get quotes from licensed professionals"
+3. For costs: Provide general range only (e.g., "typically $100-300")
 4. Use **bold** ONLY for these headers: Issue:, Finding:, What this means:, Action recommended:
 5. NO other markdown - use plain text
 6. NO financial advice
@@ -230,6 +254,11 @@ FORMAT: Use short paragraphs with headers like:
 **Finding:** [what was found]
 **What this means:** [explanation]
 **Action recommended:** [what to do]
+
+DISCLAIMER (add when appropriate):
+"Note: This is based on Illinois home inspection standards 
+(Ill. Admin. Code tit. 68, § 1410.200). For professional guidance, 
+consult licensed specialists in your area."
 """
         
         if self.question_count == 0:

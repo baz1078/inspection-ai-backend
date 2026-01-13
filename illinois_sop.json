@@ -1,0 +1,95 @@
+{
+  "legal_source": "Ill. Admin. Code tit. 68, § 1410.200 - Standards of Practice",
+  "key_definitions": {
+    "inspect": "Visual examination of readily accessible systems using normal operating controls and opening readily accessible panels. NO dismantling, NO destructive measures, NO risk to persons or property.",
+    "readily_accessible": "Available for visual inspection WITHOUT moving personal property, dismantling, destructive measures, or risk to persons or property.",
+    "dismantle": "To take apart or remove any component that would not be taken apart by a homeowner in normal routine maintenance."
+  },
+  "inspector_limitations": {
+    "not_required_to": [
+      "Determine condition of components NOT readily accessible",
+      "Operate systems that are shut down or don't turn on with normal controls",
+      "Enter or access areas that may be unsafe or not readily accessible",
+      "Perform engineering or environmental services",
+      "Report on future conditions",
+      "Offer warranties, guarantees, or insurance policies",
+      "Climb on roofs (creates risk to person)",
+      "Open electrical panels/breakers (dismantling + shock hazard)",
+      "Test water quality (beyond visual inspection)",
+      "Access crawl spaces if unsafe or not readily accessible",
+      "Perform load testing beyond standard testing",
+      "Dismantle components for inspection"
+    ]
+  },
+  "roof_inspection": {
+    "required": "Visual inspection of roof coverings, flashing, and drainage",
+    "not_required": "Climbing on roof, walking on roof, load testing",
+    "reason": "Walking on brittle/damaged roofs creates risk to person and property damage per IL law. Visual inspection from ground/ladder is sufficient.",
+    "customer_question": "Why didn't the inspector walk on the roof?",
+    "legal_basis": "Readily accessible means without risk to persons or property. Illinois law does not require inspectors to risk safety."
+  },
+  "electrical_panel": {
+    "required": "Visual inspection of electrical panel and condition of wiring visible",
+    "not_required": "Opening main breaker, dismantling panel components, load testing",
+    "reason": "Opening breaker = dismantling (not allowed) + electrical shock hazard. Visual inspection only per IL law.",
+    "customer_question": "Why didn't the inspector open the electrical panel?",
+    "legal_basis": "IL law prohibits dismantling and requires inspections without risk to persons. Opening main breaker violates both rules."
+  },
+  "water_testing": {
+    "required": "Visual inspection of water-using components",
+    "not_required": "Water quality testing, pressure testing, testing on demand",
+    "reason": "Water testing is not part of visual inspection standard. Beyond scope of home inspection per IL law.",
+    "customer_question": "Why didn't you test the water quality?",
+    "legal_basis": "Home inspection = visual examination. Testing = technical/exhaustive service, not required."
+  },
+  "electrical_outlets": {
+    "required": "Visual inspection and operation of representative number of outlets using normal controls",
+    "not_required": "Load testing, GFCI/AFCI testing beyond visual operation, specialized testing",
+    "reason": "Standard visual operation is required. Advanced testing is beyond home inspection scope.",
+    "customer_question": "Why didn't you thoroughly test all outlets?",
+    "legal_basis": "Home inspection uses normal operating controls only per IL law. Advanced testing = engineering service."
+  },
+  "hvac_efficiency": {
+    "required": "Visual inspection and operation test of heating/cooling systems",
+    "not_required": "Efficiency rating, energy audit, performance testing, cooling capacity measurement",
+    "reason": "Efficiency testing is engineering service, not home inspection per IL law.",
+    "customer_question": "Why didn't you test the air conditioning efficiency?",
+    "legal_basis": "Home inspection = visual examination and operation. Efficiency = engineering service beyond scope."
+  },
+  "structural_evaluation": {
+    "required": "Visual inspection of structural components",
+    "not_required": "Engineering assessment, soil evaluation, structural safety determination",
+    "reason": "Structural engineering is specialized service, not home inspection per IL law.",
+    "customer_question": "Is the foundation safe? Should I get a structural engineer?",
+    "legal_basis": "Home inspection does not include engineering services per IL law. For safety determination, hire licensed structural engineer."
+  },
+  "crawl_space": {
+    "required": "Visual inspection of accessible crawl spaces",
+    "not_required": "Entering unsafe crawl spaces, areas with hazardous materials, unsafe conditions",
+    "reason": "IL law specifically exempts areas that are unsafe or not readily accessible.",
+    "customer_question": "Why didn't you inspect the crawl space?",
+    "legal_basis": "Crawl space may be unsafe or not readily accessible. IL law does not require entering such areas."
+  },
+  "mold_assessment": {
+    "required": "Visual inspection for water damage and mold presence",
+    "not_required": "Mold testing, mold identification, environmental assessment",
+    "reason": "Mold testing is environmental service, not home inspection per IL law.",
+    "customer_question": "Should I get mold testing?",
+    "legal_basis": "Home inspection = visual. Mold testing = environmental service beyond inspection scope."
+  },
+  "pest_inspection": {
+    "required": "Visual inspection for signs of pest activity",
+    "not_required": "Detailed pest inspection, identification, treatment recommendations",
+    "reason": "Detailed pest inspection is specialized service per IL law.",
+    "customer_question": "Should I get a pest inspection?",
+    "legal_basis": "Home inspection includes visual signs only. Detailed pest inspection = specialized service."
+  },
+  "radon_testing": {
+    "required": "Visual inspection of potential radon entry points",
+    "not_required": "Radon gas testing or measurement",
+    "reason": "Radon testing is environmental service, not home inspection per IL law.",
+    "customer_question": "Did you test for radon?",
+    "legal_basis": "Radon testing is environmental service beyond home inspection scope per IL law."
+  },
+  "general_disclaimer": "Per Illinois law, home inspection is a visual examination of readily accessible systems using normal operating controls. It does not include engineering, environmental, or specialized services. For such services, homeowners should hire licensed specialists."
+}
