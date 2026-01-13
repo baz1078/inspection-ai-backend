@@ -1,0 +1,189 @@
+═══════════════════════════════════════════════════════════════════
+  INSPECTION AI BACKEND - QUICK START GUIDE
+═══════════════════════════════════════════════════════════════════
+
+YOU NOW HAVE A COMPLETE BACKEND READY TO RUN.
+
+Here's what was built:
+─────────────────────────────────────────────────────────────────
+✓ Flask backend (handles PDF upload, processing, storage)
+✓ Claude API integration (AI Q&A system)
+✓ PDF text extraction (handles large files)
+✓ Database (stores reports & conversations)
+✓ 7 API endpoints (upload, ask, list, etc.)
+✓ Production-ready error handling
+✓ Test script (validate everything works)
+
+═══════════════════════════════════════════════════════════════════
+  SETUP (5 MINUTES)
+═══════════════════════════════════════════════════════════════════
+
+STEP 1: Get API Key
+───────────────────
+1. Go to: https://console.anthropic.com/
+2. Create account (free)
+3. Get your API key (it's in the dashboard)
+
+STEP 2: Create .env File
+────────────────────────
+In inspection-ai-backend directory:
+
+  cp .env.example .env
+  
+Edit .env and add your API key:
+
+  ANTHROPIC_API_KEY=sk-ant-xxxxxxxxxxxxx
+  FLASK_ENV=development
+
+STEP 3: Install Dependencies
+─────────────────────────────
+  pip install -r requirements.txt --break-system-packages
+
+STEP 4: Run Backend
+───────────────────
+  python app.py
+
+You should see:
+  * Running on http://127.0.0.1:5000
+  * Database initialized
+
+═══════════════════════════════════════════════════════════════════
+  TEST IT (2 MINUTES)
+═══════════════════════════════════════════════════════════════════
+
+In a NEW terminal window, run:
+
+  python test_backend.py
+
+This will:
+✓ Check health
+✓ Upload the Clearview report
+✓ Generate AI summary
+✓ Ask 3 test questions
+✓ Show all conversations
+✓ List all reports
+
+Watch it work!
+
+═══════════════════════════════════════════════════════════════════
+  WHAT YOU HAVE
+═══════════════════════════════════════════════════════════════════
+
+API ENDPOINTS:
+
+POST /api/upload
+  ↳ Upload a PDF inspection report
+  ↳ Returns: report_id, share_token, summary
+
+POST /api/ask/<report_id>
+  ↳ Ask a question about the report
+  ↳ Returns: answer (from report only)
+
+GET /api/conversations/<report_id>
+  ↳ Get all Q&A for a report
+
+GET /api/reports
+  ↳ List all uploaded reports (admin)
+
+GET /api/shared/<share_token>
+  ↳ Get report info via share token (customer portal)
+
+GET /health
+  ↳ Verify backend is running
+
+═══════════════════════════════════════════════════════════════════
+  NEXT: BUILD FRONTEND
+═══════════════════════════════════════════════════════════════════
+
+Once backend is tested and working, we'll build:
+
+1. CUSTOMER PORTAL
+   - Unique link per inspection
+   - Chat interface for Q&A
+   - Audio player for summary
+
+2. ADMIN DASHBOARD
+   - Upload reports
+   - View all inspections
+   - Manage customers
+
+3. REALTOR INTEGRATION
+   - Send links to realtors
+   - Track who's using it
+
+4. AUDIO SUMMARIES
+   - Generate audio from summary text
+   - Play in customer portal
+
+═══════════════════════════════════════════════════════════════════
+  IMPORTANT NOTES
+═══════════════════════════════════════════════════════════════════
+
+DATABASE:
+  - Uses SQLite by default (file: inspection_reports.db)
+  - Automatically created on first run
+  - Perfect for testing, good for 100+ reports
+
+COSTS:
+  - Claude API: ~$0.15-0.25 per inspection (CHEAP)
+  - Hosting: $10-20/month
+  - Total: ~$50/month for 100 inspections
+
+FILE SIZES:
+  - Can handle PDFs up to 100MB
+  - Larger files take longer to process first time
+  - Q&A after processing is instant
+
+AI GUARDRAILS:
+  - AI ONLY answers from the report
+  - Will NOT make up information
+  - Will redirect if question not in report
+  - Professional tone, liability-safe
+
+═══════════════════════════════════════════════════════════════════
+  TROUBLESHOOTING
+═══════════════════════════════════════════════════════════════════
+
+ERROR: "ModuleNotFoundError: No module named 'anthropic'"
+FIX: pip install anthropic --break-system-packages
+
+ERROR: "ANTHROPIC_API_KEY not set"
+FIX: Check .env file has your key, then restart backend
+
+ERROR: "Cannot connect to backend"
+FIX: Make sure "python app.py" is running, check port 5000
+
+ERROR: "PDF extraction fails"
+FIX: Try a different PDF, make sure it's readable
+
+═══════════════════════════════════════════════════════════════════
+  FILE STRUCTURE
+═══════════════════════════════════════════════════════════════════
+
+inspection-ai-backend/
+├── app.py                   ← Main Flask app
+├── models.py                ← Database models
+├── config.py                ← Configuration
+├── utils.py                 ← PDF + Claude integration
+├── requirements.txt         ← Dependencies
+├── test_backend.py          ← Test script
+├── .env.example             ← Copy to .env
+├── .env                     ← Your secrets (create this)
+├── README.md                ← Full documentation
+├── uploads/                 ← Stored PDFs (created on upload)
+├── inspection_reports.db    ← Database (created on first run)
+└── .gitignore               ← Git ignore
+
+═══════════════════════════════════════════════════════════════════
+  READY?
+═══════════════════════════════════════════════════════════════════
+
+1. Get API key: https://console.anthropic.com/
+2. Create .env file with key
+3. Run: python app.py
+4. Test: python test_backend.py
+5. Report back with results
+
+Let's go.
+
+═══════════════════════════════════════════════════════════════════

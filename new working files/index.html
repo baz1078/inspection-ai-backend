@@ -1,0 +1,586 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Assure Inspections AI - Know Your Home</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        * {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', sans-serif;
+        }
+        body { 
+            background: #ffffff; 
+        }
+        .hero-gradient {
+            background: linear-gradient(135deg, #0EA5E9 0%, #0369A1 50%, #1E3A8A 100%);
+        }
+        .chat-container {
+            scroll-behavior: smooth;
+        }
+        .message {
+            animation: slideUp 0.3s ease-out;
+        }
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(8px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        @keyframes float {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-8px); }
+        }
+        .user-msg {
+            display: flex;
+            justify-content: flex-end;
+            margin-bottom: 12px;
+        }
+        .user-msg .text {
+            background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+            color: white;
+            padding: 12px 16px;
+            border-radius: 18px;
+            max-width: 75%;
+            word-wrap: break-word;
+            line-height: 1.5;
+            font-size: 15px;
+        }
+        .ai-msg {
+            display: flex;
+            justify-content: flex-start;
+            margin-bottom: 12px;
+        }
+        .ai-msg .text {
+            background: white;
+            color: #1f2937;
+            padding: 12px 16px;
+            border-radius: 18px;
+            max-width: 85%;
+            word-wrap: break-word;
+            line-height: 1.6;
+            font-size: 15px;
+            border: 1px solid #e5e7eb;
+        }
+        .contractor-card {
+            background: white;
+            border: 1px solid #e5e7eb;
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 12px;
+            transition: all 0.3s ease;
+        }
+        .contractor-card:hover {
+            border-color: #3b82f6;
+            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.1);
+        }
+        .loader {
+            display: inline-flex;
+            gap: 4px;
+        }
+        .dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #3b82f6;
+            animation: bounce 1.4s infinite;
+        }
+        .dot:nth-child(2) {
+            animation-delay: 0.2s;
+        }
+        .dot:nth-child(3) {
+            animation-delay: 0.4s;
+        }
+        @keyframes bounce {
+            0%, 80%, 100% {
+                opacity: 0.4;
+            }
+            40% {
+                opacity: 1;
+            }
+        }
+        .drop-zone {
+            transition: all 0.3s ease;
+            background: rgba(255, 255, 255, 0.95);
+        }
+        .drop-zone:hover {
+            background: white;
+            border-color: white;
+            transform: translateY(-2px);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
+        }
+        .feature-card {
+            transition: all 0.3s ease;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            backdrop-filter: blur(10px);
+            color: white;
+        }
+        .feature-card:hover {
+            background: rgba(255, 255, 255, 0.15);
+            transform: translateY(-4px);
+            border-color: rgba(255, 255, 255, 0.4);
+        }
+        .upload-icon {
+            animation: float 3s ease-in-out infinite;
+        }
+        .logo-large {
+            max-height: 60px;
+        }
+        .referral-cta {
+            background: linear-gradient(135deg, #dbeafe 0%, #e0f2fe 100%);
+            border-left: 4px solid #0ea5e9;
+            padding: 16px;
+            border-radius: 8px;
+            margin: 16px 0;
+        }
+    </style>
+</head>
+<body class="bg-white">
+    <div id="app"></div>
+
+    <script>
+        const API_URL = 'https://inspection-ai-backend-det9.onrender.com';
+        let state = {
+            screen: 'upload',
+            reportId: null,
+            summary: null,
+            address: null,
+            messages: [],
+            uploading: false,
+            loading: false,
+            currentQuestionId: null,
+            customerName: '',
+            customerEmail: '',
+            customerPhone: '',
+            showConfirmModal: false,
+            pendingQuote: null
+        };
+
+        function render() {
+            const app = document.getElementById('app');
+            
+            if (state.screen === 'upload') {
+                app.innerHTML = `
+                    <div class="min-h-screen hero-gradient flex flex-col relative overflow-hidden">
+                        <div class="absolute top-0 right-0 w-96 h-96 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-pulse" style="background: rgba(255,255,255,0.3);"></div>
+                        
+                        <div class="relative z-10 border-b border-white/10 backdrop-blur-sm">
+                            <div class="max-w-5xl mx-auto px-6 py-6">
+                                <img src="assure-logo.jpg" alt="Assure Inspections" class="logo-large" />
+                            </div>
+                        </div>
+
+                        <div class="relative z-10 flex-1 flex flex-col justify-center">
+                            <div class="max-w-5xl mx-auto px-6 w-full">
+                                <div class="mb-20">
+                                    <h1 class="text-8xl font-black text-white mb-4 leading-tight tracking-tight">Really,<br>Know Your Home</h1>
+                                    <p class="text-2xl text-blue-100 max-w-2xl">Get instant answers about your inspection report with AI-powered insights</p>
+                                </div>
+
+                                <div class="grid md:grid-cols-3 gap-8 mb-20">
+                                    <div class="feature-card rounded-2xl p-8">
+                                        <div class="w-14 h-14 bg-white/20 rounded-xl flex items-center justify-center mb-4">
+                                            <span style="font-size: 28px;">📋</span>
+                                        </div>
+                                        <h3 class="font-semibold text-white text-lg mb-2">Upload Your Report</h3>
+                                        <p class="text-blue-100 text-sm">Drag and drop your PDF inspection report</p>
+                                    </div>
+                                    
+                                    <div class="feature-card rounded-2xl p-8">
+                                        <div class="w-14 h-14 bg-white/20 rounded-xl flex items-center justify-center mb-4">
+                                            <span style="font-size: 28px;">✨</span>
+                                        </div>
+                                        <h3 class="font-semibold text-white text-lg mb-2">AI Summary</h3>
+                                        <p class="text-blue-100 text-sm">Professional overview generated instantly</p>
+                                    </div>
+                                    
+                                    <div class="feature-card rounded-2xl p-8">
+                                        <div class="w-14 h-14 bg-white/20 rounded-xl flex items-center justify-center mb-4">
+                                            <span style="font-size: 28px;">💬</span>
+                                        </div>
+                                        <h3 class="font-semibold text-white text-lg mb-2">Ask Questions</h3>
+                                        <p class="text-blue-100 text-sm">Get instant answers about any finding</p>
+                                    </div>
+                                </div>
+
+                                <div class="mb-12 bg-white/10 backdrop-blur-sm rounded-2xl p-8 border border-white/20">
+                                    <h3 class="text-white font-semibold text-lg mb-6">Your Information</h3>
+    
+                                    <div class="grid md:grid-cols-3 gap-4">
+                                    <input type="text" id="customerName" placeholder="Your Name" class="px-4 py-3 bg-white/90 rounded-lg focus:outline-none focus:ring-2 focus:ring-white" />
+                                    <input type="email" id="customerEmail" placeholder="Email" class="px-4 py-3 bg-white/90 rounded-lg focus:outline-none focus:ring-2 focus:ring-white" />
+                                    <input type="tel" id="customerPhone" placeholder="Phone" class="px-4 py-3 bg-white/90 rounded-lg focus:outline-none focus:ring-2 focus:ring-white" />
+                                      </div>
+                                </div>
+                                
+                                <div class="drop-zone border-2 border-white/30 rounded-3xl p-20 text-center cursor-pointer" id="dropZone">
+                                    <div class="upload-icon" style="font-size: 72px; margin-bottom: 20px; display: block;">📄</div>
+                                    <p class="text-gray-900 font-bold text-2xl mb-2">Drop your report here</p>
+                                    <p class="text-gray-600 text-lg">or click to select a PDF file</p>
+                                </div>
+
+                                <input type="file" id="fileInput" accept=".pdf" hidden />
+
+                                ${state.uploading ? `
+                                    <div class="mt-12 text-center">
+                                        <div class="inline-flex flex-col items-center">
+                                            <div class="loader mb-4">
+                                                <div class="dot"></div>
+                                                <div class="dot"></div>
+                                                <div class="dot"></div>
+                                            </div>
+                                            <p class="text-white font-medium">Processing your report...</p>
+                                        </div>
+                                    </div>
+                                ` : ''}
+                            </div>
+                        </div>
+
+                        <div class="relative z-10 border-t border-white/10 backdrop-blur-sm py-8">
+                            <div class="max-w-5xl mx-auto px-6 text-center">
+                                <p class="text-blue-100 text-sm">Trusted home inspections in Illinois • IIRC Certified</p>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                
+                document.getElementById('dropZone').addEventListener('click', () => document.getElementById('fileInput').click());
+                document.getElementById('fileInput').addEventListener('change', (e) => {
+                    if (e.target.files[0]) uploadFile(e.target.files[0]);
+                });
+                document.getElementById('dropZone').addEventListener('drop', (e) => {
+                    e.preventDefault();
+                    if (e.dataTransfer.files[0]) uploadFile(e.dataTransfer.files[0]);
+                });
+                document.getElementById('dropZone').addEventListener('dragover', (e) => e.preventDefault());
+            } else {
+                app.innerHTML = `
+                    <div class="h-screen bg-white flex flex-col">
+                        <div class="bg-white border-b border-gray-200 shadow-sm">
+                            <div class="max-w-4xl mx-auto px-6 py-4 flex justify-between items-center">
+                                <div class="flex items-center gap-3">
+                                    <img src="assure-logo.jpg" alt="Assure" class="h-8" />
+                                    <div>
+                                        <p class="text-xs text-gray-500">Report</p>
+                                        <p class="text-sm font-semibold text-gray-900">${state.address}</p>
+                                    </div>
+                                </div>
+                                <button class="px-6 py-2 text-sm font-semibold text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition" onclick="resetApp()">New Report</button>
+                            </div>
+                        </div>
+
+                        <div class="flex-1 overflow-y-auto chat-container">
+                            <div class="max-w-4xl mx-auto px-6 py-8">
+                                <div class="bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl p-8 mb-12 border border-blue-200">
+                                    <h2 class="font-semibold text-gray-900 text-lg mb-4">Summary</h2>
+                                    <div class="text-gray-700 space-y-4" style="line-height: 1.8;">
+                                        ${state.summary.split('\n\n').map(para => {
+                                            let cleanPara = escapeHtml(para);
+                                            cleanPara = cleanPara.replace(/\*\*(.*?)\*\*/g, '<strong class="font-semibold text-gray-900">$1</strong>');
+                                            cleanPara = cleanPara.replace(/\*(.*?)\*/g, '<em class="italic">$1</em>');
+                                            return `<p>${cleanPara}</p>`;
+                                        }).join('')}
+                                    </div>
+                                </div>
+
+                                <div class="space-y-4 mb-8">
+                                    ${state.messages.length === 0 ? '<p class="text-gray-400 text-center py-12 text-lg">Ask any question about this report</p>' : ''}
+                                    ${state.messages.map(msg => {
+                                        if (msg.type === 'user') {
+                                            return `<div class="message user-msg"><div class="text">${escapeHtml(msg.text)}</div></div>`;
+                                        } else if (msg.type === 'ai') {
+                                            let formattedText = escapeHtml(msg.text);
+                                            formattedText = formattedText.replace(/\*\*(.*?)\*\*/g, '<strong class="font-semibold">$1</strong>');
+                                            formattedText = formattedText.replace(/\*(.*?)\*/g, '<em class="italic">$1</em>');
+                                            formattedText = formattedText.replace(/\n/g, '<br>');
+                                            return `<div class="message ai-msg"><div class="text">${formattedText}</div></div>`;
+                                        } else if (msg.type === 'referral-cta') {
+                                            return `<div class="message ai-msg">
+                                                <div class="w-full">
+                                                    <div class="referral-cta">
+                                                        <p class="font-semibold text-gray-900 mb-3">💡 Would you like referrals?</p>
+                                                        <p class="text-gray-700 text-sm mb-4">We work with trusted contractors in your area who have completed similar work and come highly recommended by Assure Inspections.</p>
+                                                        <button onclick="toggleReferrals('${msg.questionId}')" class="px-4 py-2 bg-blue-600 text-white text-sm font-semibold rounded-lg hover:bg-blue-700 transition">
+                                                            View Vetted Contractors
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            </div>`;
+                                        } else if (msg.type === 'referrals') {
+                                            return `<div class="message ai-msg">
+                                                <div class="w-full">
+                                                    <div class="text" style="max-width: 100%; padding: 0; border: none; background: transparent;">
+                                                        <div class="mb-4">
+                                                            <p class="font-semibold text-gray-900 mb-4">Vetted Contractors We Trust</p>
+                                                            ${msg.contractors.length > 0 ? msg.contractors.map(c => `
+                                                                <div class="contractor-card">
+                                                                    <div class="flex justify-between items-start mb-3">
+                                                                        <div>
+                                                                            <h4 class="font-semibold text-gray-900">${escapeHtml(c.name)}</h4>
+                                                                            <p class="text-sm text-gray-600">${escapeHtml(c.city)}, ${c.state}</p>
+                                                                        </div>
+                                                                        <div class="text-right">
+                                                                            <div class="font-semibold text-gray-900">⭐ ${c.rating}</div>
+                                                                            <p class="text-xs text-gray-500">${c.review_count} reviews</p>
+                                                                        </div>
+                                                                    </div>
+                                                                    
+                                                                    <div class="flex gap-2 mb-3 text-xs">
+                                                                        ${c.is_licensed ? '<span class="bg-green-100 text-green-800 px-2 py-1 rounded">Licensed</span>' : ''}
+                                                                        ${c.is_bonded ? '<span class="bg-green-100 text-green-800 px-2 py-1 rounded">Bonded</span>' : ''}
+                                                                        ${c.is_insured ? '<span class="bg-green-100 text-green-800 px-2 py-1 rounded">Insured</span>' : ''}
+                                                                    </div>
+                                                                    
+                                                                    <p class="text-sm text-gray-700 mb-3">${c.specialty === 'electrical' ? '⚡ Licensed Electrician' : c.specialty === 'plumbing' ? '🚰 Licensed Plumber' : c.specialty === 'roofing' ? '🏠 Certified Roofer' : escapeHtml(c.specialty)}</p>
+                                                                    
+                                                                    <button onclick="requestQuote('${msg.questionId}', '${c.id}')" class="w-full px-4 py-2 bg-blue-600 text-white text-sm font-semibold rounded-lg hover:bg-blue-700 transition">
+                                                                        Request Quote
+                                                                    </button>
+                                                                </div>
+                                                            `).join('') : '<p class="text-gray-600">No contractors available in your area yet.</p>'}
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>`;
+                                        }
+                                    }).join('')}
+                                    ${state.loading ? `
+                                        <div class="message ai-msg">
+                                            <div class="text">
+                                                <div class="loader">
+                                                    <div class="dot"></div>
+                                                    <div class="dot"></div>
+                                                    <div class="dot"></div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ` : ''}
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="bg-white border-t border-gray-200 shadow-lg">
+                            <div class="max-w-4xl mx-auto px-6 py-4">
+                                <div class="flex gap-3">
+                                    <input 
+                                        type="text" 
+                                        id="question" 
+                                        placeholder="Ask a question about the report..." 
+                                        class="flex-1 px-4 py-3 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition" 
+                                        onkeypress="if(event.key==='Enter' && !event.shiftKey) { event.preventDefault(); askQuestion(); }"
+                                    />
+                                    <button 
+                                        class="px-8 py-3 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition disabled:opacity-50 disabled:cursor-not-allowed" 
+                                        onclick="askQuestion()"
+                                        id="askBtn"
+                                    >
+                                        ${state.loading ? 'Thinking...' : 'Ask'}
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                
+                setTimeout(() => {
+                    const container = document.querySelector('.chat-container');
+                    if (container) {
+                        container.scrollTop = container.scrollHeight;
+                    }
+                }, 100);
+            }
+
+            // RENDER MODAL IF ACTIVE
+            if (state.showConfirmModal && state.pendingQuote) {
+                const modalOverlay = document.createElement('div');
+                modalOverlay.style.cssText = 'position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 1000;';
+                modalOverlay.innerHTML = `
+                    <div style="background: white; border-radius: 12px; padding: 24px; max-width: 500px; width: 90%; box-shadow: 0 20px 60px rgba(0,0,0,0.3);">
+                        <h2 style="font-size: 20px; font-weight: 600; color: #1f2937; margin-bottom: 16px;">Confirm Quote Request</h2>
+                        <p style="color: #6b7280; margin-bottom: 24px;">Please confirm your information before we send this to the contractor:</p>
+                        
+                        <div style="margin-bottom: 16px;">
+                            <label style="font-size: 12px; font-weight: 600; color: #0369a1; text-transform: uppercase; margin-bottom: 6px; display: block;">Your Name</label>
+                            <input type="text" id="modalName" value="${escapeHtml(state.customerName)}" style="width: 100%; padding: 10px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 14px; box-sizing: border-box;">
+                        </div>
+                        
+                        <div style="margin-bottom: 16px;">
+                            <label style="font-size: 12px; font-weight: 600; color: #0369a1; text-transform: uppercase; margin-bottom: 6px; display: block;">Email</label>
+                            <input type="email" id="modalEmail" value="${escapeHtml(state.customerEmail || '')}" style="width: 100%; padding: 10px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 14px; box-sizing: border-box;">
+                        </div>
+                        
+                        <div style="margin-bottom: 24px;">
+                            <label style="font-size: 12px; font-weight: 600; color: #0369a1; text-transform: uppercase; margin-bottom: 6px; display: block;">Phone</label>
+                            <input type="tel" id="modalPhone" value="${escapeHtml(state.customerPhone || '')}" style="width: 100%; padding: 10px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 14px; box-sizing: border-box;">
+                        </div>
+                        
+                        <div style="display: flex; gap: 12px;">
+                            <button onclick="cancelQuote()" style="flex: 1; padding: 12px; background: #e5e7eb; color: #1f2937; font-weight: 600; border: none; border-radius: 8px; cursor: pointer; font-size: 14px;">Cancel</button>
+                            <button onclick="confirmQuote()" style="flex: 1; padding: 12px; background: #2563eb; color: white; font-weight: 600; border: none; border-radius: 8px; cursor: pointer; font-size: 14px;">Send Request</button>
+                        </div>
+                    </div>
+                `;
+                document.body.appendChild(modalOverlay);
+            }
+        }
+
+        function escapeHtml(text) {
+            const map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' };
+            return text.replace(/[&<>"']/g, m => map[m]);
+        }
+
+        async function uploadFile(file) {
+            state.customerName = document.getElementById('customerName').value || 'Unknown';
+            state.customerEmail = document.getElementById('customerEmail').value;
+            state.customerPhone = document.getElementById('customerPhone').value;
+            
+            state.uploading = true;
+            render();
+            const formData = new FormData();
+            formData.append('file', file);
+            formData.append('address', file.name);
+            formData.append('customer_name', state.customerName);
+            formData.append('customer_email', state.customerEmail);
+            formData.append('customer_phone', state.customerPhone);
+            formData.append('inspector_name', 'Inspector');
+            formData.append('report_type', 'home_inspection');
+            try {
+                const res = await fetch(`${API_URL}/api/upload`, { method: 'POST', body: formData });
+                if (res.ok) {
+                    const data = await res.json();
+                    state.reportId = data.report_id;
+                    state.summary = data.summary;
+                    state.address = data.address;
+                    state.screen = 'chat';
+                    state.messages = [];
+                } else {
+                    alert('Upload failed. Make sure backend is running on localhost:5000');
+                }
+            } catch (e) {
+                alert('Error: Cannot connect to backend. Is it running on localhost:5000?');
+            }
+            state.uploading = false;
+            render();
+        }
+
+        async function askQuestion() {
+            const q = document.getElementById('question').value.trim();
+            if (!q || state.loading) return;
+            document.getElementById('question').value = '';
+            state.messages.push({ type: 'user', text: q });
+            state.loading = true;
+            render();
+            
+            try {
+                const res = await fetch(`${API_URL}/api/ask/${state.reportId}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ question: q })
+                });
+                if (res.ok) {
+                    const data = await res.json();
+                    state.messages.push({ type: 'ai', text: data.answer });
+                    state.currentQuestionId = data.conversation_id;
+                    
+                    // Add referral CTA if there are referrals
+                if (data.referrals && data.referrals.length > 0) {
+                    state.messages.push({ 
+                        type: 'referral-cta', 
+                        questionId: data.conversation_id,
+                        contractors: data.referrals
+                    });
+                }
+                } else {
+                    state.messages.push({ type: 'ai', text: 'Error getting response. Try again.' });
+                }
+            } catch (e) {
+                state.messages.push({ type: 'ai', text: 'Connection error. Backend running?' });
+            }
+            state.loading = false;
+            render();
+        }
+
+        function toggleReferrals(questionId) {
+    state.messages.push({ 
+        type: 'referrals', 
+        contractors: state.messages.find(m => m.questionId === questionId)?.contractors || [],
+        questionId: questionId
+    });
+    render();
+    setTimeout(() => {
+        const container = document.querySelector('.chat-container');
+        if (container) container.scrollTop = container.scrollHeight;
+    }, 100);
+}
+
+        async function requestQuote(questionId, contractorId) {
+            state.showConfirmModal = true;
+            state.pendingQuote = { questionId, contractorId };
+            render();
+        }
+
+        async function confirmQuote() {
+            const { questionId, contractorId } = state.pendingQuote;
+            
+            // READ FROM MODAL INPUT FIELDS
+            const modalName = document.getElementById('modalName');
+            const modalEmail = document.getElementById('modalEmail');
+            const modalPhone = document.getElementById('modalPhone');
+            
+            if (!modalName || !modalEmail || !modalPhone) {
+                alert('Error: Modal fields not found');
+                return;
+            }
+            
+            // UPDATE STATE WITH VALUES FROM INPUTS
+            state.customerName = modalName.value;
+            state.customerEmail = modalEmail.value;
+            state.customerPhone = modalPhone.value;
+            
+            try {
+                const res = await fetch(`${API_URL}/api/referral-request`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        report_id: state.reportId,
+                        question_id: questionId,
+                        contractor_id: contractorId,
+                        customer_name: state.customerName,
+                        customer_email: state.customerEmail,
+                        customer_phone: state.customerPhone
+                    })
+                });
+                if (res.ok) {
+                    alert('Request sent! The contractor will reach out to you soon.');
+                    state.showConfirmModal = false;
+                    state.pendingQuote = null;
+                    render();
+                } else {
+                    const error = await res.json();
+                    alert('Error: ' + (error.error || 'Failed to send request'));
+                }
+            } catch (e) {
+                alert('Error: ' + e.message);
+            }
+        }
+
+        function cancelQuote() {
+            state.showConfirmModal = false;
+            state.pendingQuote = null;
+            render();
+        }
+
+        function resetApp() {
+            state = { screen: 'upload', reportId: null, summary: null, address: null, messages: [], uploading: false, loading: false, currentQuestionId: null, customerName: '', customerEmail: '', customerPhone: '', showConfirmModal: false, pendingQuote: null };
+            render();
+        }
+
+        render();
+    </script>
+</body>
+</html>
