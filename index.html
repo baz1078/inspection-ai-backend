@@ -397,7 +397,12 @@
 
             // RENDER MODAL IF ACTIVE
             if (state.showConfirmModal && state.pendingQuote) {
+                // Remove any existing modals first
+                const existingModals = document.querySelectorAll('[data-modal-overlay]');
+                existingModals.forEach(m => m.remove());
+                
                 const modalOverlay = document.createElement('div');
+                modalOverlay.setAttribute('data-modal-overlay', 'true');
                 modalOverlay.style.cssText = 'position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 1000;';
                 modalOverlay.innerHTML = `
                     <div style="background: white; border-radius: 12px; padding: 24px; max-width: 500px; width: 90%; box-shadow: 0 20px 60px rgba(0,0,0,0.3);">
@@ -426,6 +431,10 @@
                     </div>
                 `;
                 document.body.appendChild(modalOverlay);
+            } else {
+                // Remove modal if not active
+                const existingModals = document.querySelectorAll('[data-modal-overlay]');
+                existingModals.forEach(m => m.remove());
             }
         }
 
