@@ -1,7 +1,7 @@
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 from werkzeug.utils import secure_filename
-from models import db, InspectionReport, Conversation, Question, Contractor, Lead, Analytics
+from models import db, InspectionReport, Conversation, Question, Contractor, Lead, Analytics, WarrantyDocument, ReportWarranty, WarrantyQuery
 from utils import (
     extract_text_from_pdf,
     generate_summary_from_report,
@@ -10,9 +10,16 @@ from utils import (
     generate_punchlist,
     send_contractor_email
 )
+from warranty_utils import (
+    extract_warranty_text,
+    parse_warranty_coverage,
+    WarrantyCoverageAnalyzer,
+    WarrantyQASystem
+)
 import os
 from datetime import datetime
 import re
+import json
 from collections import OrderedDict
 
 # Initialize Flask app
@@ -214,30 +221,25 @@ def ask_question(report_id):
         
         # Format contractor referrals
         referrals = []
-        for contractor in contractors:
+        for c in contractors:
             referrals.append({
-                'id': contractor.id,
-                'name': contractor.name,
-                'specialty': contractor.specialty,
-                'rating': contractor.rating,
-                'review_count': contractor.review_count,
-                'is_licensed': contractor.is_licensed,
-                'is_bonded': contractor.is_bonded,
-                'is_insured': contractor.is_insured,
-                'phone': contractor.phone,
-                'email': contractor.email,
-                'city': contractor.city,
-                'state': contractor.state
+                'id': c.id,
+                'name': c.name,
+                'specialty': c.specialty,
+                'phone': c.phone,
+                'email': c.email,
+                'rating': c.rating,
+                'review_count': c.review_count,
+                'description': c.description,
+                'website': c.website
             })
         
         return jsonify({
             'success': True,
             'conversation_id': db_question.id,
-            'question': question,
             'answer': answer,
             'issue_type': issue_type,
-            'referrals': referrals,
-            'timestamp': db_question.created_at.isoformat()
+            'referrals': referrals
         }), 200
         
     except Exception as e:
@@ -245,78 +247,27 @@ def ask_question(report_id):
         print(f"Error: {str(e)}")
         return jsonify({'error': str(e)}), 500
 
-@app.route('/api/conversations/<report_id>', methods=['GET'])
-def get_conversations(report_id):
-    try:
-        report = InspectionReport.query.get(report_id)
-        if not report:
-            return jsonify({'error': 'Report not found'}), 404
-        
-        questions = Question.query.filter_by(report_id=report_id).order_by(Question.created_at.asc()).all()
-        
-        return jsonify({
-            'report_id': report_id,
-            'total_questions': len(questions),
-            'conversations': [
-                {
-                    'id': q.id,
-                    'question': q.question,
-                    'answer': q.answer,
-                    'issue_type': q.issue_type,
-                    'timestamp': q.created_at.isoformat()
-                }
-                for q in questions
-            ]
-        }), 200
-        
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
-
-@app.route('/api/shared/<share_token>', methods=['GET'])
-def get_shared_report(share_token):
-    try:
-        report = InspectionReport.query.filter_by(
-            share_token=share_token,
-            is_shared=True
-        ).first()
-        
-        if not report:
-            return jsonify({'error': 'Report not found'}), 404
-        
-        return jsonify({
-            'id': report.id,
-            'address': report.address,
-            'summary': report.summary,
-            'report_type': report.report_type,
-            'inspection_date': report.inspection_date.isoformat(),
-            'share_token': share_token
-        }), 200
-        
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
-
-# ============================================================================
-# CONTRACTOR MANAGEMENT
-# ============================================================================
-
 @app.route('/api/admin/contractors', methods=['GET'])
-def list_contractors():
+def get_contractors():
     try:
-        contractors = Contractor.query.order_by(Contractor.created_at.desc()).all()
+        contractors = Contractor.query.filter_by(is_active=True).all()
         
         return jsonify({
-            'total_contractors': len(contractors),
+            'total': len(contractors),
             'contractors': [
                 {
                     'id': c.id,
                     'name': c.name,
                     'specialty': c.specialty,
+                    'phone': c.phone,
+                    'email': c.email,
                     'city': c.city,
                     'state': c.state,
                     'rating': c.rating,
-                    'phone': c.phone,
-                    'email': c.email,
-                    'is_active': c.is_active
+                    'review_count': c.review_count,
+                    'is_licensed': c.is_licensed,
+                    'is_bonded': c.is_bonded,
+                    'is_insured': c.is_insured
                 }
                 for c in contractors
             ]
@@ -325,90 +276,17 @@ def list_contractors():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
-@app.route('/api/admin/contractors', methods=['POST'])
-def create_contractor():
-    try:
-        data = request.get_json()
-        
-        contractor = Contractor(
-            name=data['name'],
-            specialty=data['specialty'],
-            phone=data['phone'],
-            email=data['email'],
-            zip_codes=data.get('zip_codes', ''),
-            city=data.get('city', ''),
-            state=data.get('state', ''),
-            rating=float(data.get('rating', 0.0)),
-            description=data.get('description', ''),
-            is_licensed=data.get('is_licensed', True),
-            is_bonded=data.get('is_bonded', True),
-            is_insured=data.get('is_insured', True),
-            cost_per_lead=float(data.get('cost_per_lead', 25.0))
-        )
-        
-        db.session.add(contractor)
-        db.session.commit()
-        
-        return jsonify({
-            'success': True,
-            'contractor_id': contractor.id,
-            'message': 'Contractor created'
-        }), 201
-        
-    except Exception as e:
-        db.session.rollback()
-        return jsonify({'error': str(e)}), 500
-
-@app.route('/api/admin/contractors/<contractor_id>', methods=['PUT'])
-def update_contractor(contractor_id):
-    try:
-        contractor = Contractor.query.get(contractor_id)
-        if not contractor:
-            return jsonify({'error': 'Contractor not found'}), 404
-        
-        data = request.get_json()
-        for key, value in data.items():
-            if hasattr(contractor, key) and value is not None:
-                setattr(contractor, key, value)
-        
-        db.session.commit()
-        
-        return jsonify({'success': True, 'contractor_id': contractor.id}), 200
-        
-    except Exception as e:
-        db.session.rollback()
-        return jsonify({'error': str(e)}), 500
-
-@app.route('/api/admin/contractors/<contractor_id>', methods=['DELETE'])
-def delete_contractor(contractor_id):
-    try:
-        contractor = Contractor.query.get(contractor_id)
-        if not contractor:
-            return jsonify({'error': 'Contractor not found'}), 404
-        
-        db.session.delete(contractor)
-        db.session.commit()
-        
-        return jsonify({'success': True}), 200
-        
-    except Exception as e:
-        db.session.rollback()
-        return jsonify({'error': str(e)}), 500
-
-# ============================================================================
-# LEADS & REFERRALS
-# ============================================================================
-
 @app.route('/api/admin/leads', methods=['GET'])
-def list_leads():
+def get_leads():
     try:
-        leads = Lead.query.order_by(Lead.created_at.desc()).all()
+        leads = Lead.query.all()
         
         return jsonify({
-            'total_leads': len(leads),
+            'total': len(leads),
             'leads': [
                 {
                     'id': l.id,
+                    'report_id': l.report_id,
                     'customer_name': l.customer_name or 'N/A',
                     'customer_email': l.customer_email or 'N/A',
                     'customer_phone': l.customer_phone or 'N/A',
@@ -598,13 +476,6 @@ def get_dashboard_stats():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
- """
-NEW WARRANTY ENDPOINTS - Add these to app.py
-
-These endpoints handle warranty document upload, parsing, and claims analysis
-NO changes to existing inspection endpoints
-"""
-
 # ============================================================================
 # WARRANTY ENDPOINTS
 # ============================================================================
@@ -614,11 +485,6 @@ def upload_warranty(report_id):
     """
     Upload warranty document for an inspection report
     Creates link between inspection and warranty
-    
-    Expected multipart form data:
-    - file: PDF warranty document
-    - builder_name: "Travelers", "National Home Warranty", "Dweller", etc.
-    - warranty_type: "2-5-10", "10-year", etc.
     """
     try:
         # Verify report exists
@@ -647,7 +513,6 @@ def upload_warranty(report_id):
         
         # Parse warranty coverage rules
         print(f"Parsing warranty coverage rules...")
-        from warranty_utils import parse_warranty_coverage
         coverage_rules_json = parse_warranty_coverage(warranty_text, builder_name, warranty_type)
         
         # Create WarrantyDocument record
@@ -670,7 +535,7 @@ def upload_warranty(report_id):
         report_warranty = ReportWarranty(
             report_id=report_id,
             warranty_id=warranty_doc.id,
-            warranty_start_date=datetime.utcnow()  # Could extract from doc
+            warranty_start_date=datetime.utcnow()
         )
         
         db.session.add(report_warranty)
@@ -688,7 +553,6 @@ def upload_warranty(report_id):
         db.session.rollback()
         print(f"Error uploading warranty: {str(e)}")
         return jsonify({'error': str(e)}), 500
-
 
 @app.route('/api/warranty/<report_id>/<warranty_id>', methods=['GET'])
 def get_warranty_details(report_id, warranty_id):
@@ -713,26 +577,10 @@ def get_warranty_details(report_id, warranty_id):
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
-
 @app.route('/api/warranty-claim-check/<report_id>/<warranty_id>', methods=['POST'])
 def check_warranty_claim(report_id, warranty_id):
     """
     Check if an inspection finding is covered under warranty
-    
-    Expected JSON:
-    {
-        "inspection_finding": "Electrical outlet not working in master bedroom",
-        "issue_type": "electrical"
-    }
-    
-    Returns:
-    {
-        "claimability": "COVERED" | "NOT_COVERED" | "PARTIAL" | "REQUIRES_SPECIALIST",
-        "warranty_section": "Section 2.1 - Materials and Labour (2 Year)",
-        "coverage_period": "2 years",
-        "reasoning": "...",
-        "next_steps": [...]
-    }
     """
     try:
         data = request.get_json()
@@ -751,7 +599,6 @@ def check_warranty_claim(report_id, warranty_id):
         coverage_rules = json.loads(warranty.coverage_rules)
         
         # Analyze claim using warranty analyzer
-        from warranty_utils import WarrantyCoverageAnalyzer
         analyzer = WarrantyCoverageAnalyzer(coverage_rules)
         analysis = analyzer.analyze_claim(inspection_finding, issue_type)
         
@@ -781,22 +628,10 @@ def check_warranty_claim(report_id, warranty_id):
         print(f"Error checking warranty claim: {str(e)}")
         return jsonify({'error': str(e)}), 500
 
-
 @app.route('/api/warranty-ask/<report_id>/<warranty_id>', methods=['POST'])
 def ask_warranty_question(report_id, warranty_id):
     """
     Ask a warranty Q&A question in conversational context
-    
-    Expected JSON:
-    {
-        "question": "Is the roof damage covered by my warranty?"
-    }
-    
-    Returns:
-    {
-        "answer": "...",
-        "query_id": "..."
-    }
     """
     try:
         data = request.get_json()
@@ -813,7 +648,6 @@ def ask_warranty_question(report_id, warranty_id):
             return jsonify({'error': 'Report or warranty not found'}), 404
         
         # Create warranty Q&A system
-        from warranty_utils import WarrantyQASystem
         coverage_rules = json.loads(warranty.coverage_rules)
         qa_system = WarrantyQASystem(
             report.extracted_text,
@@ -850,7 +684,6 @@ def ask_warranty_question(report_id, warranty_id):
         print(f"Error answering warranty question: {str(e)}")
         return jsonify({'error': str(e)}), 500
 
-
 @app.route('/api/warranty-queries/<report_id>', methods=['GET'])
 def get_warranty_queries(report_id):
     """Get all warranty claim checks and questions for a report"""
@@ -874,7 +707,6 @@ def get_warranty_queries(report_id):
         
     except Exception as e:
         return jsonify({'error': str(e)}), 500
-
 
 @app.route('/api/report-warranties/<report_id>', methods=['GET'])
 def get_report_warranties(report_id):
@@ -904,7 +736,7 @@ def get_report_warranties(report_id):
         }), 200
         
     except Exception as e:
-        return jsonify({'error': str(e)}), 500       
+        return jsonify({'error': str(e)}), 500
 
 # ============================================================================
 # ERROR HANDLERS
