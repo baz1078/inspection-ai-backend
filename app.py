@@ -189,18 +189,31 @@ def ask_question(report_id):
         if not report:
             return jsonify({'error': 'Report not found'}), 404
         
+        # Check if warranty is linked to this report
+        warranty_id = data.get('warranty_id')
+        warranty_context = ""
+        
+        if warranty_id:
+            warranty = WarrantyDocument.query.get(warranty_id)
+            if warranty:
+                warranty_context = f"\n\n**IMPORTANT - WARRANTY CONTEXT:**\nThe customer has a {warranty.builder_name} ({warranty.warranty_type}) warranty with the following coverage rules:\n{warranty.coverage_rules}\n\nWhen answering questions about coverage or claims, reference this warranty information. If the question is about warranty coverage, analyze the inspection findings against this warranty."
+        
         # Get or create QA system from cache
         if report_id in REPORT_CACHE:
             qa_system = REPORT_CACHE[report_id]
         else:
-            qa_system = InspectionReportQA(report.extracted_text)
+            qa_system = InspectionReportQA(report.extracted_text, warranty_context)
             REPORT_CACHE[report_id] = qa_system
             if len(REPORT_CACHE) > MAX_CACHE_SIZE:
                 REPORT_CACHE.popitem(last=False)
         
+        # Update warranty context if it changed
+        if warranty_context and not hasattr(qa_system, 'warranty_context'):
+            qa_system.warranty_context = warranty_context
+        
         # Get answer
         print(f"Processing question for report {report_id}...")
-        answer = qa_system.answer_question(question)
+        answer = qa_system.answer_question(question, warranty_context)
         
         # Extract issue type
         issue_type = extract_issue_type(question)
@@ -215,24 +228,27 @@ def ask_question(report_id):
         db.session.add(db_question)
         db.session.commit()
         
-        # Get matching contractors
-        zip_code = get_zip_from_address(report.address)
-        contractors = get_matching_contractors(issue_type, zip_code)
-        
-        # Format contractor referrals
+        # Get matching contractors (only if not a warranty question)
         referrals = []
-        for c in contractors:
-            referrals.append({
-                'id': c.id,
-                'name': c.name,
-                'specialty': c.specialty,
-                'phone': c.phone,
-                'email': c.email,
-                'rating': c.rating,
-                'review_count': c.review_count,
-                'description': c.description,
-                'website': c.website
-            })
+        is_warranty_question = any(word in question.lower() for word in ['warranty', 'covered', 'coverage', 'claim'])
+        
+        if not is_warranty_question:
+            zip_code = get_zip_from_address(report.address)
+            contractors = get_matching_contractors(issue_type, zip_code)
+            
+            # Format contractor referrals
+            for c in contractors:
+                referrals.append({
+                    'id': c.id,
+                    'name': c.name,
+                    'specialty': c.specialty,
+                    'phone': c.phone,
+                    'email': c.email,
+                    'rating': c.rating,
+                    'review_count': c.review_count,
+                    'description': c.description,
+                    'website': c.website
+                })
         
         return jsonify({
             'success': True,
@@ -347,7 +363,7 @@ def create_referral_request():
         report.customer_email = data.get('customer_email')
         report.customer_phone = data.get('customer_phone')
         
-        # GENERATE PUNCHLIST: Create filtered issue list for this contractor specialty
+        # GENERATE PUNCHLIST
         print(f"Generating punchlist for {question.issue_type}...")
         punchlist = generate_punchlist(
             question.answer,
@@ -386,7 +402,6 @@ def create_referral_request():
                 print(f"Email sent to contractor: {contractor.email}")
             except Exception as e:
                 print(f"Warning: Failed to send email to contractor: {str(e)}")
-                # Don't fail the request if email fails - lead is still created
         
         return jsonify({
             'success': True,
@@ -482,12 +497,8 @@ def get_dashboard_stats():
 
 @app.route('/api/upload-warranty/<report_id>', methods=['POST'])
 def upload_warranty(report_id):
-    """
-    Upload warranty document for an inspection report
-    Creates link between inspection and warranty
-    """
+    """Upload warranty document for an inspection report"""
     try:
-        # Verify report exists
         report = InspectionReport.query.get(report_id)
         if not report:
             return jsonify({'error': 'Report not found'}), 404
@@ -499,7 +510,6 @@ def upload_warranty(report_id):
         if file.filename == '':
             return jsonify({'error': 'No file selected'}), 400
         
-        # Get warranty metadata from form
         builder_name = request.form.get('builder_name', 'Unknown Builder')
         warranty_type = request.form.get('warranty_type', 'Standard')
         jurisdiction = request.form.get('jurisdiction', 'USA')
@@ -556,13 +566,12 @@ def upload_warranty(report_id):
 
 @app.route('/api/warranty/<report_id>/<warranty_id>', methods=['GET'])
 def get_warranty_details(report_id, warranty_id):
-    """Get warranty document details and coverage rules"""
+    """Get warranty document details"""
     try:
         warranty = WarrantyDocument.query.get(warranty_id)
         if not warranty:
             return jsonify({'error': 'Warranty not found'}), 404
         
-        # Parse coverage rules
         coverage_rules = json.loads(warranty.coverage_rules)
         
         return jsonify({
@@ -579,30 +588,23 @@ def get_warranty_details(report_id, warranty_id):
 
 @app.route('/api/warranty-claim-check/<report_id>/<warranty_id>', methods=['POST'])
 def check_warranty_claim(report_id, warranty_id):
-    """
-    Check if an inspection finding is covered under warranty
-    """
+    """Check if an inspection finding is covered"""
     try:
         data = request.get_json()
         if not data or 'inspection_finding' not in data:
             return jsonify({'error': 'Missing inspection_finding'}), 400
         
-        inspection_finding = data['inspection_finding']
-        issue_type = data.get('issue_type', 'general')
-        
-        # Get warranty document
         warranty = WarrantyDocument.query.get(warranty_id)
         if not warranty:
             return jsonify({'error': 'Warranty not found'}), 404
         
-        # Get coverage rules
+        inspection_finding = data['inspection_finding']
+        issue_type = data.get('issue_type', 'general')
         coverage_rules = json.loads(warranty.coverage_rules)
         
-        # Analyze claim using warranty analyzer
         analyzer = WarrantyCoverageAnalyzer(coverage_rules)
         analysis = analyzer.analyze_claim(inspection_finding, issue_type)
         
-        # Store query in database
         warranty_query = WarrantyQuery(
             report_id=report_id,
             warranty_id=warranty_id,
@@ -630,24 +632,19 @@ def check_warranty_claim(report_id, warranty_id):
 
 @app.route('/api/warranty-ask/<report_id>/<warranty_id>', methods=['POST'])
 def ask_warranty_question(report_id, warranty_id):
-    """
-    Ask a warranty Q&A question in conversational context
-    """
+    """Ask a warranty Q&A question"""
     try:
         data = request.get_json()
         if not data or 'question' not in data:
             return jsonify({'error': 'No question provided'}), 400
         
         question = data['question'].strip()
-        
-        # Get report and warranty
         report = InspectionReport.query.get(report_id)
         warranty = WarrantyDocument.query.get(warranty_id)
         
         if not (report and warranty):
             return jsonify({'error': 'Report or warranty not found'}), 404
         
-        # Create warranty Q&A system
         coverage_rules = json.loads(warranty.coverage_rules)
         qa_system = WarrantyQASystem(
             report.extracted_text,
@@ -656,10 +653,8 @@ def ask_warranty_question(report_id, warranty_id):
             warranty.warranty_type
         )
         
-        # Get answer
         answer = qa_system.answer_warranty_question(question)
         
-        # Store in database
         warranty_query = WarrantyQuery(
             report_id=report_id,
             warranty_id=warranty_id,
@@ -686,7 +681,7 @@ def ask_warranty_question(report_id, warranty_id):
 
 @app.route('/api/warranty-queries/<report_id>', methods=['GET'])
 def get_warranty_queries(report_id):
-    """Get all warranty claim checks and questions for a report"""
+    """Get all warranty queries for a report"""
     try:
         queries = WarrantyQuery.query.filter_by(report_id=report_id).all()
         
@@ -710,7 +705,7 @@ def get_warranty_queries(report_id):
 
 @app.route('/api/report-warranties/<report_id>', methods=['GET'])
 def get_report_warranties(report_id):
-    """Get all warranties linked to a report"""
+    """Get all warranties for a report"""
     try:
         report = InspectionReport.query.get(report_id)
         if not report:

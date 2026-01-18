@@ -163,7 +163,8 @@
             // WARRANTY STATE (seamless integration)
             warrantyId: null,
             warrantyBuilderName: null,
-            warrantyType: null
+            warrantyType: null,
+            warrantyLoaded: false
         };
 
         function render() {
@@ -300,9 +301,9 @@
                                     </div>
                                 </div>
 
-                                ${state.warrantyId ? `
+                                ${state.warrantyLoaded ? `
                                     <div class="bg-amber-50 border border-amber-200 rounded-lg p-4 mb-8">
-                                        <p class="text-sm text-amber-800"><strong>📋 Warranty on file:</strong> ${state.warrantyBuilderName} (${state.warrantyType})</p>
+                                        <p class="text-sm text-amber-800"><strong>✓ 📋 Warranty on file:</strong> ${state.warrantyBuilderName} (${state.warrantyType})</p>
                                     </div>
                                 ` : ''}
 
@@ -401,10 +402,10 @@
                                     </button>
                                     <button 
                                         class="px-6 py-3 bg-amber-500 text-white font-semibold rounded-lg hover:bg-amber-600 transition" 
-                                        onclick="openWarrantyUpload()"
+                                        onclick="startWarrantyUpload()"
                                         title="Upload warranty certificate"
                                     >
-                                        ${state.warrantyId ? '✓ Warranty' : '📋 Warranty'}
+                                        ${state.warrantyLoaded ? '✓ Warranty' : '📋 Warranty'}
                                     </button>
                                 </div>
                             </div>
@@ -491,10 +492,10 @@
                     state.screen = 'chat';
                     state.messages = [];
                 } else {
-                    alert('Upload failed. Make sure backend is running on localhost:5000');
+                    alert('Upload failed. Make sure backend is running');
                 }
             } catch (e) {
-                alert('Error: Cannot connect to backend. Is it running on localhost:5000?');
+                alert('Error: Cannot connect to backend. Is it running?');
             }
             state.uploading = false;
             render();
@@ -512,7 +513,10 @@
                 const res = await fetch(`${API_URL}/api/ask/${state.reportId}`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ question: q })
+                    body: JSON.stringify({ 
+                        question: q,
+                        warranty_id: state.warrantyId || null
+                    })
                 });
                 if (res.ok) {
                     const data = await res.json();
@@ -604,10 +608,15 @@
             render();
         }
 
-        function openWarrantyUpload() {
+        // ============================================================================
+        // WARRANTY FUNCTIONS - End-to-end integration
+        // ============================================================================
+
+        function startWarrantyUpload() {
             const fileInput = document.createElement('input');
             fileInput.type = 'file';
             fileInput.accept = '.pdf';
+            fileInput.id = 'warranty-file-input';
             fileInput.onchange = (e) => {
                 if (e.target.files[0]) {
                     showWarrantyDialog(e.target.files[0]);
@@ -621,7 +630,8 @@
             overlay.style.cssText = 'position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 1000;';
             overlay.innerHTML = `
                 <div style="background: white; border-radius: 12px; padding: 24px; max-width: 500px; width: 90%; box-shadow: 0 20px 60px rgba(0,0,0,0.3);">
-                    <h2 style="font-size: 20px; font-weight: 600; color: #1f2937; margin-bottom: 16px;">Upload Warranty Document</h2>
+                    <h2 style="font-size: 20px; font-weight: 600; color: #1f2937; margin-bottom: 16px;">Upload Warranty Certificate</h2>
+                    <p style="color: #6b7280; margin-bottom: 16px;">File: <strong>${escapeHtml(file.name)}</strong></p>
                     
                     <div style="margin-bottom: 16px;">
                         <label style="font-size: 12px; font-weight: 600; color: #0369a1; text-transform: uppercase; margin-bottom: 6px; display: block;">Builder/Warranty Company</label>
@@ -635,36 +645,73 @@
                     
                     <div style="display: flex; gap: 12px;">
                         <button onclick="this.closest('div').parentElement.remove()" style="flex: 1; padding: 12px; background: #e5e7eb; color: #1f2937; font-weight: 600; border: none; border-radius: 8px; cursor: pointer; font-size: 14px;">Cancel</button>
-                        <button onclick="processWarrantyUpload('${file.name}')" style="flex: 1; padding: 12px; background: #d97706; color: white; font-weight: 600; border: none; border-radius: 8px; cursor: pointer; font-size: 14px;">Upload</button>
+                        <button onclick="uploadWarrantyFile()" style="flex: 1; padding: 12px; background: #d97706; color: white; font-weight: 600; border: none; border-radius: 8px; cursor: pointer; font-size: 14px;">Upload & Process</button>
                     </div>
                 </div>
             `;
-            overlay.id = 'warranty-dialog';
+            overlay.id = 'warranty-dialog-overlay';
             document.body.appendChild(overlay);
         }
 
-        async function processWarrantyUpload(fileName) {
-            const builder = document.getElementById('warranty-builder').value;
-            const warrantyType = document.getElementById('warranty-type').value;
+        async function uploadWarrantyFile() {
+            const builder = document.getElementById('warranty-builder').value.trim();
+            const warrantyType = document.getElementById('warranty-type').value.trim();
+            const fileInput = document.getElementById('warranty-file-input');
             
             if (!builder || !warrantyType) {
                 alert('Please enter builder name and warranty type');
                 return;
             }
             
-            document.getElementById('warranty-dialog').remove();
+            if (!fileInput.files[0]) {
+                alert('No file selected');
+                return;
+            }
             
-            // Set warranty state (UI shows badge, all questions now aware of warranty context)
-            state.warrantyId = 'warranty_' + Date.now();
-            state.warrantyBuilderName = builder;
-            state.warrantyType = warrantyType;
+            const file = fileInput.files[0];
+            const dialog = document.getElementById('warranty-dialog-overlay');
+            if (dialog) dialog.remove();
             
+            state.loading = true;
             state.messages.push({
                 type: 'ai',
-                text: `✅ **Warranty loaded**: ${builder} (${warrantyType})\n\nYou can now ask me questions about warranty coverage. I'll analyze findings from your inspection report against your warranty terms.`
+                text: `**Processing warranty certificate...**\n\nAnalyzing ${builder} (${warrantyType}) coverage rules. Please wait...`
             });
-            
             render();
+            
+            try {
+                const formData = new FormData();
+                formData.append('file', file);
+                formData.append('builder_name', builder);
+                formData.append('warranty_type', warrantyType);
+                formData.append('jurisdiction', 'USA');
+                
+                const res = await fetch(`${API_URL}/api/upload-warranty/${state.reportId}`, {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                if (res.ok) {
+                    const data = await res.json();
+                    
+                    state.warrantyId = data.warranty_id;
+                    state.warrantyBuilderName = data.builder_name;
+                    state.warrantyType = data.warranty_type;
+                    state.warrantyLoaded = true;
+                    
+                    // Update the last message
+                    state.messages[state.messages.length - 1].text = `✅ **Warranty loaded successfully!**\n\n**${data.builder_name}** (${data.warranty_type})\n\nI've analyzed the warranty document and extracted coverage rules. You can now ask me questions about warranty coverage, and I'll check them against your specific warranty terms. Ask things like:\n- "Are the electrical issues covered?"\n- "What's covered in year 2?"\n- "Is water damage covered under building envelope?"`;
+                } else {
+                    const error = await res.json();
+                    state.messages[state.messages.length - 1].text = `❌ Error uploading warranty: ${error.error || 'Unknown error'}`;
+                }
+            } catch (e) {
+                state.messages[state.messages.length - 1].text = `❌ Error: ${e.message}`;
+            }
+            
+            state.loading = false;
+            render();
+            
             setTimeout(() => {
                 const container = document.querySelector('.chat-container');
                 if (container) container.scrollTop = container.scrollHeight;
@@ -688,7 +735,8 @@
                 pendingQuote: null,
                 warrantyId: null,
                 warrantyBuilderName: null,
-                warrantyType: null
+                warrantyType: null,
+                warrantyLoaded: false
             };
             render();
         }
