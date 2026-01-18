@@ -28,6 +28,8 @@ class InspectionReport(db.Model):
     conversations = db.relationship('Conversation', backref='report', lazy=True, cascade='all, delete-orphan')
     questions = db.relationship('Question', backref='report', lazy=True, cascade='all, delete-orphan')
     leads = db.relationship('Lead', backref='report', lazy=True, cascade='all, delete-orphan')
+    report_warranties = db.relationship('ReportWarranty', backref='report', lazy=True, cascade='all, delete-orphan')
+    warranty_queries = db.relationship('WarrantyQuery', backref='report', lazy=True, cascade='all, delete-orphan')
 
 class Conversation(db.Model):
     __tablename__ = 'conversations'
@@ -100,4 +102,74 @@ class Analytics(db.Model):
     issue_type = db.Column(db.String(50))
     question_count = db.Column(db.Integer, default=0)
     lead_count = db.Column(db.Integer, default=0)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+# ============================================================================
+# WARRANTY MODELS - NEW ADDITIONS
+# ============================================================================
+
+class WarrantyDocument(db.Model):
+    __tablename__ = 'warranty_documents'
+    
+    id = db.Column(db.String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    
+    # Warranty identification
+    builder_name = db.Column(db.String(255), nullable=False)
+    warranty_type = db.Column(db.String(100), nullable=False)
+    jurisdiction = db.Column(db.String(50))
+    
+    # Document storage
+    file_path = db.Column(db.String(500))
+    original_filename = db.Column(db.String(255))
+    file_size = db.Column(db.Integer)
+    extracted_text = db.Column(db.Text)
+    
+    # Parsed warranty rules (JSON structure)
+    coverage_rules = db.Column(db.Text)
+    
+    # Metadata
+    is_active = db.Column(db.Boolean, default=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    # Relationships
+    report_warranties = db.relationship('ReportWarranty', backref='warranty', lazy=True, cascade='all, delete-orphan')
+    warranty_queries = db.relationship('WarrantyQuery', backref='warranty_doc', lazy=True, cascade='all, delete-orphan')
+
+class ReportWarranty(db.Model):
+    __tablename__ = 'report_warranties'
+    
+    id = db.Column(db.String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    
+    # Links inspection to warranty document
+    report_id = db.Column(db.String(36), db.ForeignKey('inspection_reports.id'), nullable=False)
+    warranty_id = db.Column(db.String(36), db.ForeignKey('warranty_documents.id'), nullable=False)
+    
+    # Warranty certificate info (extracted from PDF)
+    certificate_number = db.Column(db.String(255))
+    warranty_start_date = db.Column(db.DateTime)
+    warranty_end_date = db.Column(db.DateTime)
+    
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+class WarrantyQuery(db.Model):
+    __tablename__ = 'warranty_queries'
+    
+    id = db.Column(db.String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    
+    # Links question to warranty analysis
+    report_id = db.Column(db.String(36), db.ForeignKey('inspection_reports.id'), nullable=False)
+    warranty_id = db.Column(db.String(36), db.ForeignKey('warranty_documents.id'), nullable=False)
+    
+    # The question and analysis
+    customer_question = db.Column(db.Text)
+    inspection_finding = db.Column(db.Text)
+    
+    # AI Analysis result
+    claimability = db.Column(db.String(50))
+    claim_reason = db.Column(db.Text)
+    warranty_section = db.Column(db.String(255))
+    ai_analysis = db.Column(db.Text)
+    
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
