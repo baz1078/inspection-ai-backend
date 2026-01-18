@@ -13,8 +13,7 @@ from utils import (
 from warranty_utils import (
     extract_warranty_text,
     parse_warranty_coverage,
-    WarrantyCoverageAnalyzer,
-    WarrantyQASystem
+    WarrantyCoverageQA
 )
 import os
 from datetime import datetime
@@ -196,7 +195,7 @@ def ask_question(report_id):
         if warranty_id:
             warranty = WarrantyDocument.query.get(warranty_id)
             if warranty:
-                warranty_context = f"\n\n**IMPORTANT - WARRANTY CONTEXT:**\nThe customer has a {warranty.builder_name} ({warranty.warranty_type}) warranty with the following coverage rules:\n{warranty.coverage_rules}\n\nWhen answering questions about coverage or claims, reference this warranty information. If the question is about warranty coverage, analyze the inspection findings against this warranty."
+                warranty_context = f"\n\nWARRANTY COVERAGE INFORMATION:\n{warranty.coverage_rules}"
         
         # Get or create QA system from cache
         if report_id in REPORT_CACHE:
@@ -207,9 +206,14 @@ def ask_question(report_id):
             if len(REPORT_CACHE) > MAX_CACHE_SIZE:
                 REPORT_CACHE.popitem(last=False)
         
-        # Get answer
+        # Get answer - pass warranty context as part of question if present
         print(f"Processing question for report {report_id}...")
-        answer = qa_system.answer_question(question)
+        if warranty_context:
+            # Prepend warranty context to the question for Claude
+            question_with_context = f"{warranty_context}\n\nCustomer question: {question}"
+            answer = qa_system.answer_question(question_with_context)
+        else:
+            answer = qa_system.answer_question(question)
         
         # Extract issue type
         issue_type = extract_issue_type(question)
@@ -515,52 +519,16 @@ def upload_warranty(report_id):
         filepath = save_uploaded_file(file, app.config['UPLOAD_FOLDER'])
         
         # Extract warranty text
-        print(f"[WARRANTY] Extracting text from warranty PDF...")
-        try:
-            warranty_text = extract_warranty_text(filepath)
-            print(f"[WARRANTY] Extracted {len(warranty_text)} characters")
-        except Exception as e:
-            print(f"[WARRANTY] Error extracting text: {str(e)}")
-            warranty_text = ""
+        print(f"[WARRANTY] Extracting text from PDF...")
+        warranty_text = extract_warranty_text(filepath)
+        print(f"[WARRANTY] Extracted {len(warranty_text)} characters")
         
-        # Parse warranty coverage rules with timeout
-        print(f"[WARRANTY] Parsing warranty coverage rules with Claude...")
-        try:
-            import signal
-            
-            def timeout_handler(signum, frame):
-                raise TimeoutError("Warranty parsing took too long")
-            
-            # Set 30 second timeout
-            signal.signal(signal.SIGALRM, timeout_handler)
-            signal.alarm(30)
-            
-            try:
-                coverage_rules_json = parse_warranty_coverage(warranty_text, builder_name, warranty_type)
-                signal.alarm(0)  # Cancel alarm
-                print(f"[WARRANTY] Successfully parsed coverage rules")
-            except TimeoutError:
-                signal.alarm(0)
-                print(f"[WARRANTY] Parsing timeout - using simple fallback")
-                # Fallback: just store basic warranty info
-                coverage_rules_json = json.dumps({
-                    "builder_name": builder_name,
-                    "warranty_type": warranty_type,
-                    "status": "basic",
-                    "note": "Warranty text extracted but detailed parsing timed out. Full document available for reference."
-                })
-        except Exception as e:
-            print(f"[WARRANTY] Error parsing coverage: {str(e)}")
-            # Fallback
-            coverage_rules_json = json.dumps({
-                "builder_name": builder_name,
-                "warranty_type": warranty_type,
-                "status": "error",
-                "error": str(e)
-            })
+        # Parse warranty coverage (returns plain text summary, not JSON)
+        print(f"[WARRANTY] Parsing warranty coverage summary...")
+        coverage_summary = parse_warranty_coverage(warranty_text, builder_name, warranty_type)
+        print(f"[WARRANTY] Coverage summary created: {len(coverage_summary)} characters")
         
         # Create WarrantyDocument record
-        print(f"[WARRANTY] Creating warranty document in database...")
         warranty_doc = WarrantyDocument(
             builder_name=builder_name,
             warranty_type=warranty_type,
@@ -568,8 +536,8 @@ def upload_warranty(report_id):
             file_path=filepath,
             original_filename=secure_filename(file.filename),
             file_size=os.path.getsize(filepath),
-            extracted_text=warranty_text[:5000] if warranty_text else "",  # Store first 5000 chars only
-            coverage_rules=coverage_rules_json,
+            extracted_text=warranty_text[:5000],  # Store first 5000 chars
+            coverage_rules=coverage_summary,  # Plain text summary, not JSON
             is_active=True
         )
         
@@ -577,7 +545,6 @@ def upload_warranty(report_id):
         db.session.commit()
         
         # Link warranty to report
-        print(f"[WARRANTY] Linking warranty to report...")
         report_warranty = ReportWarranty(
             report_id=report_id,
             warranty_id=warranty_doc.id,
@@ -587,7 +554,7 @@ def upload_warranty(report_id):
         db.session.add(report_warranty)
         db.session.commit()
         
-        print(f"[WARRANTY] Warranty upload complete for {builder_name}")
+        print(f"[WARRANTY] Successfully saved warranty for {builder_name}")
         return jsonify({
             'success': True,
             'warranty_id': warranty_doc.id,
@@ -601,174 +568,7 @@ def upload_warranty(report_id):
         print(f"[WARRANTY] Error uploading warranty: {str(e)}")
         return jsonify({'error': str(e)}), 500
 
-@app.route('/api/warranty/<report_id>/<warranty_id>', methods=['GET'])
-def get_warranty_details(report_id, warranty_id):
-    """Get warranty document details"""
-    try:
-        warranty = WarrantyDocument.query.get(warranty_id)
-        if not warranty:
-            return jsonify({'error': 'Warranty not found'}), 404
-        
-        coverage_rules = json.loads(warranty.coverage_rules)
-        
-        return jsonify({
-            'warranty_id': warranty.id,
-            'builder_name': warranty.builder_name,
-            'warranty_type': warranty.warranty_type,
-            'jurisdiction': warranty.jurisdiction,
-            'coverage_rules': coverage_rules,
-            'created_at': warranty.created_at.isoformat()
-        }), 200
-        
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
-
-@app.route('/api/warranty-claim-check/<report_id>/<warranty_id>', methods=['POST'])
-def check_warranty_claim(report_id, warranty_id):
-    """Check if an inspection finding is covered"""
-    try:
-        data = request.get_json()
-        if not data or 'inspection_finding' not in data:
-            return jsonify({'error': 'Missing inspection_finding'}), 400
-        
-        warranty = WarrantyDocument.query.get(warranty_id)
-        if not warranty:
-            return jsonify({'error': 'Warranty not found'}), 404
-        
-        inspection_finding = data['inspection_finding']
-        issue_type = data.get('issue_type', 'general')
-        coverage_rules = json.loads(warranty.coverage_rules)
-        
-        analyzer = WarrantyCoverageAnalyzer(coverage_rules)
-        analysis = analyzer.analyze_claim(inspection_finding, issue_type)
-        
-        warranty_query = WarrantyQuery(
-            report_id=report_id,
-            warranty_id=warranty_id,
-            customer_question=f"Is '{inspection_finding}' covered?",
-            inspection_finding=inspection_finding,
-            claimability=analysis.get('claimability'),
-            claim_reason=analysis.get('reasoning'),
-            warranty_section=analysis.get('warranty_section'),
-            ai_analysis=json.dumps(analysis)
-        )
-        
-        db.session.add(warranty_query)
-        db.session.commit()
-        
-        return jsonify({
-            'success': True,
-            'query_id': warranty_query.id,
-            'analysis': analysis
-        }), 200
-        
-    except Exception as e:
-        db.session.rollback()
-        print(f"Error checking warranty claim: {str(e)}")
-        return jsonify({'error': str(e)}), 500
-
-@app.route('/api/warranty-ask/<report_id>/<warranty_id>', methods=['POST'])
-def ask_warranty_question(report_id, warranty_id):
-    """Ask a warranty Q&A question"""
-    try:
-        data = request.get_json()
-        if not data or 'question' not in data:
-            return jsonify({'error': 'No question provided'}), 400
-        
-        question = data['question'].strip()
-        report = InspectionReport.query.get(report_id)
-        warranty = WarrantyDocument.query.get(warranty_id)
-        
-        if not (report and warranty):
-            return jsonify({'error': 'Report or warranty not found'}), 404
-        
-        coverage_rules = json.loads(warranty.coverage_rules)
-        qa_system = WarrantyQASystem(
-            report.extracted_text,
-            coverage_rules,
-            warranty.builder_name,
-            warranty.warranty_type
-        )
-        
-        answer = qa_system.answer_warranty_question(question)
-        
-        warranty_query = WarrantyQuery(
-            report_id=report_id,
-            warranty_id=warranty_id,
-            customer_question=question,
-            inspection_finding="conversational",
-            claimability="INQUIRY",
-            claim_reason=answer,
-            ai_analysis=answer
-        )
-        
-        db.session.add(warranty_query)
-        db.session.commit()
-        
-        return jsonify({
-            'success': True,
-            'query_id': warranty_query.id,
-            'answer': answer
-        }), 200
-        
-    except Exception as e:
-        db.session.rollback()
-        print(f"Error answering warranty question: {str(e)}")
-        return jsonify({'error': str(e)}), 500
-
-@app.route('/api/warranty-queries/<report_id>', methods=['GET'])
-def get_warranty_queries(report_id):
-    """Get all warranty queries for a report"""
-    try:
-        queries = WarrantyQuery.query.filter_by(report_id=report_id).all()
-        
-        return jsonify({
-            'total_queries': len(queries),
-            'queries': [
-                {
-                    'id': q.id,
-                    'question': q.customer_question,
-                    'claimability': q.claimability,
-                    'reasoning': q.claim_reason,
-                    'warranty_section': q.warranty_section,
-                    'created_at': q.created_at.isoformat()
-                }
-                for q in queries
-            ]
-        }), 200
-        
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
-
-@app.route('/api/report-warranties/<report_id>', methods=['GET'])
-def get_report_warranties(report_id):
-    """Get all warranties for a report"""
-    try:
-        report = InspectionReport.query.get(report_id)
-        if not report:
-            return jsonify({'error': 'Report not found'}), 404
-        
-        warranties = db.session.query(WarrantyDocument).join(
-            ReportWarranty
-        ).filter(ReportWarranty.report_id == report_id).all()
-        
-        return jsonify({
-            'report_id': report_id,
-            'total_warranties': len(warranties),
-            'warranties': [
-                {
-                    'id': w.id,
-                    'builder_name': w.builder_name,
-                    'warranty_type': w.warranty_type,
-                    'jurisdiction': w.jurisdiction,
-                    'created_at': w.created_at.isoformat()
-                }
-                for w in warranties
-            ]
-        }), 200
-        
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
+# Warranty endpoints removed - functionality moved to unified /api/ask endpoint
 
 # ============================================================================
 # ERROR HANDLERS
