@@ -202,18 +202,14 @@ def ask_question(report_id):
         if report_id in REPORT_CACHE:
             qa_system = REPORT_CACHE[report_id]
         else:
-            qa_system = InspectionReportQA(report.extracted_text, warranty_context)
+            qa_system = InspectionReportQA(report.extracted_text)
             REPORT_CACHE[report_id] = qa_system
             if len(REPORT_CACHE) > MAX_CACHE_SIZE:
                 REPORT_CACHE.popitem(last=False)
         
-        # Update warranty context if it changed
-        if warranty_context and not hasattr(qa_system, 'warranty_context'):
-            qa_system.warranty_context = warranty_context
-        
         # Get answer
         print(f"Processing question for report {report_id}...")
-        answer = qa_system.answer_question(question, warranty_context)
+        answer = qa_system.answer_question(question)
         
         # Extract issue type
         issue_type = extract_issue_type(question)
