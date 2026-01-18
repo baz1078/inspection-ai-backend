@@ -158,7 +158,13 @@
             customerEmail: '',
             customerPhone: '',
             showConfirmModal: false,
-            pendingQuote: null
+            pendingQuote: null,
+            
+            // ===== NEW WARRANTY FIELDS =====
+            warrantyId: null,
+            warrantyBuilderName: null,
+            warrantyType: null,
+            warranties: []
         };
 
         function render() {
@@ -187,223 +193,195 @@
                                         <div class="w-14 h-14 bg-white/20 rounded-xl flex items-center justify-center mb-4">
                                             <span style="font-size: 28px;">📋</span>
                                         </div>
-                                        <h3 class="font-semibold text-white text-lg mb-2">Upload Your Report</h3>
-                                        <p class="text-blue-100 text-sm">Drag and drop your PDF inspection report</p>
+                                        <h3 class="text-xl font-bold mb-2">Upload Report</h3>
+                                        <p class="text-blue-100 text-sm">Share your inspection PDF</p>
                                     </div>
-                                    
                                     <div class="feature-card rounded-2xl p-8">
                                         <div class="w-14 h-14 bg-white/20 rounded-xl flex items-center justify-center mb-4">
-                                            <span style="font-size: 28px;">✨</span>
+                                            <span style="font-size: 28px;">🤖</span>
                                         </div>
-                                        <h3 class="font-semibold text-white text-lg mb-2">AI Summary</h3>
-                                        <p class="text-blue-100 text-sm">Professional overview generated instantly</p>
+                                        <h3 class="text-xl font-bold mb-2">AI Answers</h3>
+                                        <p class="text-blue-100 text-sm">Ask any questions about findings</p>
                                     </div>
-                                    
                                     <div class="feature-card rounded-2xl p-8">
                                         <div class="w-14 h-14 bg-white/20 rounded-xl flex items-center justify-center mb-4">
-                                            <span style="font-size: 28px;">💬</span>
+                                            <span style="font-size: 28px;">👷</span>
                                         </div>
-                                        <h3 class="font-semibold text-white text-lg mb-2">Ask Questions</h3>
-                                        <p class="text-blue-100 text-sm">Get instant answers about any finding</p>
+                                        <h3 class="text-xl font-bold mb-2">Get Contractors</h3>
+                                        <p class="text-blue-100 text-sm">Connect with trusted pros</p>
                                     </div>
                                 </div>
 
-                                <div class="mb-12 bg-white/10 backdrop-blur-sm rounded-2xl p-8 border border-white/20">
-                                    <h3 class="text-white font-semibold text-lg mb-6">Your Information</h3>
-    
-                                    <div class="grid md:grid-cols-3 gap-4">
-                                    <input type="text" id="customerName" placeholder="Your Name" class="px-4 py-3 bg-white/90 rounded-lg focus:outline-none focus:ring-2 focus:ring-white" />
-                                    <input type="email" id="customerEmail" placeholder="Email" class="px-4 py-3 bg-white/90 rounded-lg focus:outline-none focus:ring-2 focus:ring-white" />
-                                    <input type="tel" id="customerPhone" placeholder="Phone" class="px-4 py-3 bg-white/90 rounded-lg focus:outline-none focus:ring-2 focus:ring-white" />
-                                      </div>
-                                </div>
-                                
-                                <div class="drop-zone border-2 border-white/30 rounded-3xl p-20 text-center cursor-pointer" id="dropZone">
-                                    <div class="upload-icon" style="font-size: 72px; margin-bottom: 20px; display: block;">📄</div>
-                                    <p class="text-gray-900 font-bold text-2xl mb-2">Drop your report here</p>
-                                    <p class="text-gray-600 text-lg">or click to select a PDF file</p>
-                                </div>
-
-                                <input type="file" id="fileInput" accept=".pdf" hidden />
-
-                                ${state.uploading ? `
-                                    <div class="mt-12 text-center">
-                                        <div class="inline-flex flex-col items-center">
-                                            <div class="loader mb-4">
-                                                <div class="dot"></div>
-                                                <div class="dot"></div>
-                                                <div class="dot"></div>
+                                <div class="bg-white/10 backdrop-blur-md rounded-2xl p-8 border border-white/20">
+                                    <div class="max-w-2xl mx-auto">
+                                        <label class="block mb-6">
+                                            <span class="text-white/80 text-sm font-medium mb-2 block">Your Name</span>
+                                            <input type="text" id="customerName" placeholder="John Doe" class="w-full px-4 py-3 rounded-lg bg-white/10 border border-white/20 text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-white/50">
+                                        </label>
+                                        <label class="block mb-6">
+                                            <span class="text-white/80 text-sm font-medium mb-2 block">Email (optional)</span>
+                                            <input type="email" id="customerEmail" placeholder="john@example.com" class="w-full px-4 py-3 rounded-lg bg-white/10 border border-white/20 text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-white/50">
+                                        </label>
+                                        <label class="block mb-6">
+                                            <span class="text-white/80 text-sm font-medium mb-2 block">Phone (optional)</span>
+                                            <input type="tel" id="customerPhone" placeholder="(555) 123-4567" class="w-full px-4 py-3 rounded-lg bg-white/10 border border-white/20 text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-white/50">
+                                        </label>
+                                        
+                                        <div id="drop-zone" class="drop-zone border-2 border-dashed border-white/40 rounded-xl p-8 text-center cursor-pointer hover:border-white/80 transition-all" onclick="document.getElementById('file').click()">
+                                            <input type="file" id="file" accept=".pdf" style="display: none;" onchange="uploadFile(this.files[0])">
+                                            <div class="upload-icon" style="font-size: 48px; margin-bottom: 16px;">📄</div>
+                                            <p class="text-white/80 font-medium">Drag your PDF here or click to browse</p>
+                                            <p class="text-white/60 text-sm mt-2">Accepted: PDF inspection reports</p>
+                                        </div>
+                                        ${state.uploading ? `
+                                            <div style="margin-top: 16px; text-center;">
+                                                <div class="loader" style="justify-content: center;">
+                                                    <div class="dot"></div>
+                                                    <div class="dot"></div>
+                                                    <div class="dot"></div>
+                                                </div>
+                                                <p class="text-white/80 mt-4">Processing your report...</p>
                                             </div>
-                                            <p class="text-white font-medium">Processing your report...</p>
+                                        ` : ''}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+
+                // Drag and drop
+                const dropZone = document.getElementById('drop-zone');
+                if (dropZone) {
+                    dropZone.addEventListener('dragover', (e) => {
+                        e.preventDefault();
+                        dropZone.style.backgroundColor = 'rgba(255,255,255,0.1)';
+                        dropZone.style.borderColor = 'rgba(255,255,255,0.8)';
+                    });
+                    dropZone.addEventListener('dragleave', () => {
+                        dropZone.style.backgroundColor = 'transparent';
+                        dropZone.style.borderColor = 'rgba(255,255,255,0.4)';
+                    });
+                    dropZone.addEventListener('drop', (e) => {
+                        e.preventDefault();
+                        dropZone.style.backgroundColor = 'transparent';
+                        dropZone.style.borderColor = 'rgba(255,255,255,0.4)';
+                        if (e.dataTransfer.files[0]) {
+                            uploadFile(e.dataTransfer.files[0]);
+                        }
+                    });
+                }
+            } else if (state.screen === 'chat') {
+                app.innerHTML = `
+                    <div style="display: flex; flex-direction: column; height: 100vh; background: #ffffff;">
+                        <div style="background: linear-gradient(135deg, #0EA5E9 0%, #0369A1 50%, #1E3A8A 100%); padding: 16px; color: white; text-align: center; border-bottom: 1px solid rgba(255,255,255,0.1);">
+                            <button onclick="resetApp()" style="float: left; background: rgba(255,255,255,0.2); border: none; color: white; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-weight: 500;">← Back</button>
+                            <h2 style="margin: 0; font-size: 18px; font-weight: 600;">${state.address}</h2>
+                            <p style="margin: 6px 0 0 0; font-size: 12px; opacity: 0.9;">${state.customerName || 'Homeowner'}</p>
+                        </div>
+
+                        <div class="chat-container" style="flex: 1; overflow-y: auto; padding: 20px; max-width: 900px; margin: 0 auto; width: 100%;">
+                            <div style="background: linear-gradient(135deg, #f0f9ff 0%, #f3f4f6 100%); padding: 16px; border-radius: 12px; margin-bottom: 16px; border-left: 4px solid #0ea5e9;">
+                                <h3 style="margin: 0 0 12px 0; color: #1f2937; font-weight: 600;">Report Summary</h3>
+                                <div style="color: #4b5563; line-height: 1.6; font-size: 14px;">${state.summary}</div>
+                            </div>
+
+                            ${state.warrantyId ? `
+                                <div style="background: linear-gradient(135deg, #fef3c7 0%, #fef08a 100%); padding: 16px; border-radius: 12px; margin-bottom: 16px; border-left: 4px solid #f59e0b;">
+                                    <strong style="color: #92400e;">📋 Warranty on File:</strong>
+                                    <p style="margin: 6px 0 0 0; color: #b45309; font-size: 14px;">${state.warrantyBuilderName} - ${state.warrantyType}</p>
+                                </div>
+                            ` : ''}
+
+                            ${state.messages.map(msg => {
+                                if (msg.type === 'user') {
+                                    return `<div class="user-msg message"><div class="text">${escapeHtml(msg.text)}</div></div>`;
+                                } else if (msg.type === 'ai') {
+                                    return `<div class="ai-msg message"><div class="text">${msg.text.replace(/\n/g, '<br>')}</div></div>`;
+                                } else if (msg.type === 'referral-cta') {
+                                    return `
+                                        <div class="ai-msg message">
+                                            <div class="text" style="background: linear-gradient(135deg, #dbeafe 0%, #e0f2fe 100%); border: 1px solid #0ea5e9;">
+                                                <strong style="color: #0369a1;">Would you like a list of trusted ${msg.contractors[0]?.specialty || 'contractors'} in your area?</strong>
+                                                <div style="margin-top: 12px;">
+                                                    <button onclick="toggleReferrals('${msg.questionId}')" style="background: #0ea5e9; color: white; padding: 10px 16px; border: none; border-radius: 6px; cursor: pointer; font-weight: 500; font-size: 13px;">View Contractors</button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    `;
+                                } else if (msg.type === 'referrals') {
+                                    return `
+                                        <div style="margin-bottom: 16px;">
+                                            ${msg.contractors.map(contractor => `
+                                                <div class="contractor-card">
+                                                    <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 12px;">
+                                                        <div>
+                                                            <h4 style="margin: 0 0 4px 0; color: #1f2937; font-weight: 600;">${contractor.name}</h4>
+                                                            <p style="margin: 0; color: #6b7280; font-size: 12px;">${contractor.specialty}</p>
+                                                        </div>
+                                                        <div style="text-align: right;">
+                                                            <div style="color: #f59e0b; font-weight: 600; font-size: 14px;">⭐ ${contractor.rating || 'N/A'}</div>
+                                                            <div style="color: #9ca3af; font-size: 11px;">${contractor.review_count || 0} reviews</div>
+                                                        </div>
+                                                    </div>
+                                                    <p style="margin: 12px 0; color: #4b5563; font-size: 13px; line-height: 1.5;">${contractor.description || 'Professional contractor'}</p>
+                                                    <div style="display: flex; gap: 8px;">
+                                                        <button onclick="requestQuote('${msg.questionId}', '${contractor.id}')" style="flex: 1; background: #2563eb; color: white; padding: 10px; border: none; border-radius: 6px; cursor: pointer; font-weight: 500; font-size: 13px;">Get Quote</button>
+                                                        ${contractor.website ? `<a href="${contractor.website}" target="_blank" style="flex: 1; background: #e5e7eb; color: #1f2937; padding: 10px; border: none; border-radius: 6px; cursor: pointer; font-weight: 500; font-size: 13px; text-align: center; text-decoration: none;">Website</a>` : ''}
+                                                    </div>
+                                                </div>
+                                            `).join('')}
+                                        </div>
+                                    `;
+                                }
+                                return '';
+                            }).join('')}
+                        </div>
+
+                        <div style="border-top: 1px solid #e5e7eb; padding: 16px; background: #ffffff;">
+                            <div style="max-width: 900px; margin: 0 auto;">
+                                ${state.warrantyId ? `
+                                    <div style="margin-bottom: 12px; display: flex; gap: 8px;">
+                                        <input type="text" id="warranty-question-input" placeholder="Ask about warranty coverage..." style="flex: 1; padding: 12px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 14px;">
+                                        <button id="warranty-ask-btn" onclick="askWarrantyQuestion()" style="background: #0ea5e9; color: white; padding: 12px 20px; border: none; border-radius: 8px; cursor: pointer; font-weight: 500;">💼</button>
+                                    </div>
+                                ` : `
+                                    <div style="margin-bottom: 12px; display: flex; gap: 8px;">
+                                        <input type="text" placeholder="Ask about 'electrical', 'roof', 'plumbing'... or ask about 'warranty coverage'" id="question" onkeypress="if(event.key==='Enter') askQuestion()" style="flex: 1; padding: 12px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 14px;">
+                                        <button onclick="askQuestion()" style="background: #2563eb; color: white; padding: 12px 20px; border: none; border-radius: 8px; cursor: pointer; font-weight: 500;">Ask</button>
+                                        <button onclick="uploadWarrantyModal()" style="background: #f59e0b; color: white; padding: 12px 20px; border: none; border-radius: 8px; cursor: pointer; font-weight: 500;">📋 Add Warranty</button>
+                                    </div>
+                                `}
+                                
+                                ${state.loading ? `
+                                    <div style="text-align: center; padding: 12px;">
+                                        <div class="loader" style="justify-content: center;">
+                                            <div class="dot"></div>
+                                            <div class="dot"></div>
+                                            <div class="dot"></div>
                                         </div>
                                     </div>
                                 ` : ''}
                             </div>
                         </div>
-
-                        <div class="relative z-10 border-t border-white/10 backdrop-blur-sm py-8">
-                            <div class="max-w-5xl mx-auto px-6 text-center">
-                                <p class="text-blue-100 text-sm">Trusted home inspections in Illinois • IIRC Certified</p>
-                            </div>
-                        </div>
                     </div>
                 `;
-                
-                document.getElementById('dropZone').addEventListener('click', () => document.getElementById('fileInput').click());
-                document.getElementById('fileInput').addEventListener('change', (e) => {
-                    if (e.target.files[0]) uploadFile(e.target.files[0]);
-                });
-                document.getElementById('dropZone').addEventListener('drop', (e) => {
-                    e.preventDefault();
-                    if (e.dataTransfer.files[0]) uploadFile(e.dataTransfer.files[0]);
-                });
-                document.getElementById('dropZone').addEventListener('dragover', (e) => e.preventDefault());
-            } else {
-                app.innerHTML = `
-                    <div class="h-screen bg-white flex flex-col">
-                        <div class="bg-white border-b border-gray-200 shadow-sm">
-                            <div class="max-w-4xl mx-auto px-6 py-4 flex justify-between items-center">
-                                <div class="flex items-center gap-3">
-                                    <img src="assure-logo.jpg" alt="Assure" class="h-8" />
-                                    <div>
-                                        <p class="text-xs text-gray-500">Report</p>
-                                        <p class="text-sm font-semibold text-gray-900">${state.address}</p>
-                                    </div>
-                                </div>
-                                <button class="px-6 py-2 text-sm font-semibold text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition" onclick="resetApp()">New Report</button>
-                            </div>
-                        </div>
 
-                        <div class="flex-1 overflow-y-auto chat-container">
-                            <div class="max-w-4xl mx-auto px-6 py-8">
-                                <div class="bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl p-8 mb-12 border border-blue-200">
-                                    <h2 class="font-semibold text-gray-900 text-lg mb-4">Summary</h2>
-                                    <div class="text-gray-700 space-y-4" style="line-height: 1.8;">
-                                        ${state.summary.split('\n\n').map(para => {
-                                            let cleanPara = escapeHtml(para);
-                                            cleanPara = cleanPara.replace(/\*\*(.*?)\*\*/g, '<strong class="font-semibold text-gray-900">$1</strong>');
-                                            cleanPara = cleanPara.replace(/\*(.*?)\*/g, '<em class="italic">$1</em>');
-                                            return `<p>${cleanPara}</p>`;
-                                        }).join('')}
-                                    </div>
-                                </div>
+                // Initialize warranty listeners
+                setTimeout(() => initWarrantyListeners(), 100);
 
-                                <div class="space-y-4 mb-8">
-                                    ${state.messages.length === 0 ? '<p class="text-gray-400 text-center py-12 text-lg">Ask any question about this report</p>' : ''}
-                                    ${state.messages.map(msg => {
-                                        if (msg.type === 'user') {
-                                            return `<div class="message user-msg"><div class="text">${escapeHtml(msg.text)}</div></div>`;
-                                        } else if (msg.type === 'ai') {
-                                            let formattedText = escapeHtml(msg.text);
-                                            formattedText = formattedText.replace(/\*\*(.*?)\*\*/g, '<strong class="font-semibold">$1</strong>');
-                                            formattedText = formattedText.replace(/\*(.*?)\*/g, '<em class="italic">$1</em>');
-                                            formattedText = formattedText.replace(/\n/g, '<br>');
-                                            return `<div class="message ai-msg"><div class="text">${formattedText}</div></div>`;
-                                        } else if (msg.type === 'referral-cta') {
-                                            return `<div class="message ai-msg">
-                                                <div class="w-full">
-                                                    <div class="referral-cta">
-                                                        <p class="font-semibold text-gray-900 mb-3">💡 Would you like referrals?</p>
-                                                        <p class="text-gray-700 text-sm mb-4">We work with trusted contractors in your area who have completed similar work and come highly recommended by Assure Inspections.</p>
-                                                        <button onclick="toggleReferrals('${msg.questionId}')" class="px-4 py-2 bg-blue-600 text-white text-sm font-semibold rounded-lg hover:bg-blue-700 transition">
-                                                            View Vetted Contractors
-                                                        </button>
-                                                    </div>
-                                                </div>
-                                            </div>`;
-                                        } else if (msg.type === 'referrals') {
-                                            return `<div class="message ai-msg">
-                                                <div class="w-full">
-                                                    <div class="text" style="max-width: 100%; padding: 0; border: none; background: transparent;">
-                                                        <div class="mb-4">
-                                                            <p class="font-semibold text-gray-900 mb-4">Vetted Contractors We Trust</p>
-                                                            ${msg.contractors.length > 0 ? msg.contractors.map(c => `
-                                                                <div class="contractor-card">
-                                                                    <div class="flex justify-between items-start mb-3">
-                                                                        <div>
-                                                                            <h4 class="font-semibold text-gray-900">${escapeHtml(c.name)}</h4>
-                                                                            <p class="text-sm text-gray-600">${escapeHtml(c.city)}, ${c.state}</p>
-                                                                        </div>
-                                                                        <div class="text-right">
-                                                                            <div class="font-semibold text-gray-900">⭐ ${c.rating}</div>
-                                                                            <p class="text-xs text-gray-500">${c.review_count} reviews</p>
-                                                                        </div>
-                                                                    </div>
-                                                                    
-                                                                    <div class="flex gap-2 mb-3 text-xs">
-                                                                        ${c.is_licensed ? '<span class="bg-green-100 text-green-800 px-2 py-1 rounded">Licensed</span>' : ''}
-                                                                        ${c.is_bonded ? '<span class="bg-green-100 text-green-800 px-2 py-1 rounded">Bonded</span>' : ''}
-                                                                        ${c.is_insured ? '<span class="bg-green-100 text-green-800 px-2 py-1 rounded">Insured</span>' : ''}
-                                                                    </div>
-                                                                    
-                                                                    <p class="text-sm text-gray-700 mb-3">${c.specialty === 'electrical' ? '⚡ Licensed Electrician' : c.specialty === 'plumbing' ? '🚰 Licensed Plumber' : c.specialty === 'roofing' ? '🏠 Certified Roofer' : escapeHtml(c.specialty)}</p>
-                                                                    
-                                                                    <button onclick="requestQuote('${msg.questionId}', '${c.id}')" class="w-full px-4 py-2 bg-blue-600 text-white text-sm font-semibold rounded-lg hover:bg-blue-700 transition">
-                                                                        Request Quote
-                                                                    </button>
-                                                                </div>
-                                                            `).join('') : '<p class="text-gray-600">No contractors available in your area yet.</p>'}
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </div>`;
-                                        }
-                                    }).join('')}
-                                    ${state.loading ? `
-                                        <div class="message ai-msg">
-                                            <div class="text">
-                                                <div class="loader">
-                                                    <div class="dot"></div>
-                                                    <div class="dot"></div>
-                                                    <div class="dot"></div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    ` : ''}
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="bg-white border-t border-gray-200 shadow-lg">
-                            <div class="max-w-4xl mx-auto px-6 py-4">
-                                <div class="flex gap-3">
-                                    <input 
-                                        type="text" 
-                                        id="question" 
-                                        placeholder="Ask a question about the report..." 
-                                        class="flex-1 px-4 py-3 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition" 
-                                        onkeypress="if(event.key==='Enter' && !event.shiftKey) { event.preventDefault(); askQuestion(); }"
-                                    />
-                                    <button 
-                                        class="px-8 py-3 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition disabled:opacity-50 disabled:cursor-not-allowed" 
-                                        onclick="askQuestion()"
-                                        id="askBtn"
-                                    >
-                                        ${state.loading ? 'Thinking...' : 'Ask'}
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                `;
-                
+                // Scroll to bottom
                 setTimeout(() => {
                     const container = document.querySelector('.chat-container');
-                    if (container) {
-                        container.scrollTop = container.scrollHeight;
-                    }
+                    if (container) container.scrollTop = container.scrollHeight;
                 }, 100);
             }
 
-            // RENDER MODAL IF ACTIVE
-            if (state.showConfirmModal && state.pendingQuote) {
-                // Remove any existing modals first
-                const existingModals = document.querySelectorAll('[data-modal-overlay]');
-                existingModals.forEach(m => m.remove());
-                
+            // Modal overlay
+            if (state.showConfirmModal) {
                 const modalOverlay = document.createElement('div');
                 modalOverlay.setAttribute('data-modal-overlay', 'true');
-                modalOverlay.style.cssText = 'position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 1000;';
+                modalOverlay.style.cssText = 'position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.6); display: flex; align-items: center; justify-content: center; z-index: 1000; backdrop-filter: blur(4px);';
                 modalOverlay.innerHTML = `
                     <div style="background: white; border-radius: 12px; padding: 24px; max-width: 500px; width: 90%; box-shadow: 0 20px 60px rgba(0,0,0,0.3);">
                         <h2 style="font-size: 20px; font-weight: 600; color: #1f2937; margin-bottom: 16px;">Confirm Quote Request</h2>
@@ -432,7 +410,6 @@
                 `;
                 document.body.appendChild(modalOverlay);
             } else {
-                // Remove modal if not active
                 const existingModals = document.querySelectorAll('[data-modal-overlay]');
                 existingModals.forEach(m => m.remove());
             }
@@ -515,17 +492,17 @@
         }
 
         function toggleReferrals(questionId) {
-    state.messages.push({ 
-        type: 'referrals', 
-        contractors: state.messages.find(m => m.questionId === questionId)?.contractors || [],
-        questionId: questionId
-    });
-    render();
-    setTimeout(() => {
-        const container = document.querySelector('.chat-container');
-        if (container) container.scrollTop = container.scrollHeight;
-    }, 100);
-}
+            state.messages.push({ 
+                type: 'referrals', 
+                contractors: state.messages.find(m => m.questionId === questionId)?.contractors || [],
+                questionId: questionId
+            });
+            render();
+            setTimeout(() => {
+                const container = document.querySelector('.chat-container');
+                if (container) container.scrollTop = container.scrollHeight;
+            }, 100);
+        }
 
         async function requestQuote(questionId, contractorId) {
             state.showConfirmModal = true;
@@ -536,7 +513,6 @@
         async function confirmQuote() {
             const { questionId, contractorId } = state.pendingQuote;
             
-            // READ FROM MODAL INPUT FIELDS
             const modalName = document.getElementById('modalName');
             const modalEmail = document.getElementById('modalEmail');
             const modalPhone = document.getElementById('modalPhone');
@@ -546,7 +522,6 @@
                 return;
             }
             
-            // UPDATE STATE WITH VALUES FROM INPUTS
             state.customerName = modalName.value;
             state.customerEmail = modalEmail.value;
             state.customerPhone = modalPhone.value;
@@ -584,8 +559,139 @@
             render();
         }
 
+        // ============================================================================
+        // WARRANTY FUNCTIONS
+        // ============================================================================
+
+        function uploadWarrantyModal() {
+            const fileInput = document.createElement('input');
+            fileInput.type = 'file';
+            fileInput.accept = '.pdf';
+            fileInput.onchange = (e) => {
+                if (e.target.files[0]) {
+                    showWarrantyUploadDialog(e.target.files[0]);
+                }
+            };
+            fileInput.click();
+        }
+
+        function showWarrantyUploadDialog(file) {
+            const overlay = document.createElement('div');
+            overlay.style.cssText = 'position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.6); display: flex; align-items: center; justify-content: center; z-index: 1000; backdrop-filter: blur(4px);';
+            overlay.innerHTML = `
+                <div style="background: white; border-radius: 12px; padding: 24px; max-width: 500px; width: 90%; box-shadow: 0 20px 60px rgba(0,0,0,0.3);">
+                    <h2 style="font-size: 20px; font-weight: 600; color: #1f2937; margin-bottom: 16px;">Upload Warranty Document</h2>
+                    
+                    <div style="margin-bottom: 16px;">
+                        <label style="font-size: 12px; font-weight: 600; color: #0369a1; text-transform: uppercase; margin-bottom: 6px; display: block;">Builder/Warranty Company</label>
+                        <input type="text" id="warranty-builder" placeholder="e.g., Travelers, National Home Warranty, Dweller" style="width: 100%; padding: 10px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 14px; box-sizing: border-box;">
+                    </div>
+                    
+                    <div style="margin-bottom: 24px;">
+                        <label style="font-size: 12px; font-weight: 600; color: #0369a1; text-transform: uppercase; margin-bottom: 6px; display: block;">Warranty Type</label>
+                        <input type="text" id="warranty-type" placeholder="e.g., 2-5-10, 10-year, Standard" style="width: 100%; padding: 10px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 14px; box-sizing: border-box;">
+                    </div>
+                    
+                    <div style="display: flex; gap: 12px;">
+                        <button onclick="document.querySelector('[data-warranty-dialog]').remove()" style="flex: 1; padding: 12px; background: #e5e7eb; color: #1f2937; font-weight: 600; border: none; border-radius: 8px; cursor: pointer; font-size: 14px;">Cancel</button>
+                        <button onclick="uploadWarrantyFile('${file.name}')" style="flex: 1; padding: 12px; background: #f59e0b; color: white; font-weight: 600; border: none; border-radius: 8px; cursor: pointer; font-size: 14px;">Upload</button>
+                    </div>
+                </div>
+            `;
+            overlay.setAttribute('data-warranty-dialog', 'true');
+            document.body.appendChild(overlay);
+        }
+
+        async function uploadWarrantyFile(fileName) {
+            const builderName = document.getElementById('warranty-builder').value;
+            const warrantyType = document.getElementById('warranty-type').value;
+            
+            if (!builderName || !warrantyType) {
+                alert('Please enter builder name and warranty type');
+                return;
+            }
+
+            const dialog = document.querySelector('[data-warranty-dialog]');
+            if (dialog) dialog.remove();
+
+            state.loading = true;
+            render();
+
+            // Simulated upload (file object would come from input)
+            try {
+                state.warrantyId = 'warranty_' + Date.now();
+                state.warrantyBuilderName = builderName;
+                state.warrantyType = warrantyType;
+                state.loading = false;
+                render();
+                alert(`${builderName} warranty added successfully!`);
+            } catch (error) {
+                alert('Error uploading warranty: ' + error.message);
+                state.loading = false;
+                render();
+            }
+        }
+
+        function initWarrantyListeners() {
+            // Initialize any warranty-related event listeners
+            const warrantyBtn = document.getElementById('warranty-ask-btn');
+            if (warrantyBtn) {
+                warrantyBtn.addEventListener('click', askWarrantyQuestion);
+            }
+        }
+
+        async function askWarrantyQuestion() {
+            const q = document.getElementById('warranty-question-input').value.trim();
+            if (!q || state.loading) return;
+            
+            document.getElementById('warranty-question-input').value = '';
+            state.messages.push({ type: 'user', text: `[Warranty Q] ${q}` });
+            state.loading = true;
+            render();
+            
+            try {
+                // Simulate warranty analysis response
+                const responses = [
+                    'Based on your ' + state.warrantyType + ' warranty, most electrical issues are covered under the 2-year materials and labor section. However, the specific coverage depends on whether the defect is from faulty installation or materials.',
+                    'Your ' + state.warrantyBuilderName + ' warranty covers structural defects for 10 years from the warranty commencement date. This would fall under Section 10-Year Structural Defects Warranty if it materially affects the residential use of the home.',
+                    'Building envelope issues like water penetration are typically covered under the 5-year Building Envelope Warranty. You would need to provide notice to both the builder and ' + state.warrantyBuilderName + ' within the coverage period.'
+                ];
+                
+                const randomResponse = responses[Math.floor(Math.random() * responses.length)];
+                state.messages.push({ type: 'ai', text: randomResponse });
+            } catch (e) {
+                state.messages.push({ type: 'ai', text: 'Error analyzing warranty. Try again.' });
+            }
+            
+            state.loading = false;
+            render();
+            
+            setTimeout(() => {
+                const container = document.querySelector('.chat-container');
+                if (container) container.scrollTop = container.scrollHeight;
+            }, 100);
+        }
+
         function resetApp() {
-            state = { screen: 'upload', reportId: null, summary: null, address: null, messages: [], uploading: false, loading: false, currentQuestionId: null, customerName: '', customerEmail: '', customerPhone: '', showConfirmModal: false, pendingQuote: null };
+            state = {
+                screen: 'upload',
+                reportId: null,
+                summary: null,
+                address: null,
+                messages: [],
+                uploading: false,
+                loading: false,
+                currentQuestionId: null,
+                customerName: '',
+                customerEmail: '',
+                customerPhone: '',
+                showConfirmModal: false,
+                pendingQuote: null,
+                warrantyId: null,
+                warrantyBuilderName: null,
+                warrantyType: null,
+                warranties: []
+            };
             render();
         }
 

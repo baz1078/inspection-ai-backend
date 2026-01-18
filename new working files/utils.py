@@ -54,50 +54,41 @@ Do NOT make up information. Only summarize what's in the report."""
     return message.content[0].text
 
 
-def generate_punchlist(extracted_text, issue_type, question):
-    """Generate AI punchlist filtered by issue type for contractor"""
+def generate_punchlist(answer_text, issue_type, question):
+    """Generate AI punchlist filtered by issue type for contractor - from Q&A answer"""
     client = create_ai_client()
     
-    system_prompt = f"""You are an expert creating detailed, visually appealing punchlist summaries for {issue_type} contractors.
+    system_prompt = f"""You are an expert creating quick, actionable punchlist summaries for {issue_type} contractors.
 
 Create a professional punchlist that:
-1. Filters ONLY {issue_type} related issues
+1. Filters ONLY {issue_type} related issues mentioned
 2. Organizes by urgency (Immediate vs. Attention needed)
 3. Is clear, scannable, and actionable
-4. Includes Location, Issue, Required fix, Why it matters, and Tradesperson
-5. Uses professional formatting for readability
+4. Includes Location, Issue, Required fix, and Why it matters
 
 Format exactly like this:
 
-[ISSUE TYPE] PUNCHLIST - [ADDRESS]
+[ISSUE TYPE] PUNCHLIST
 
 IMMEDIATE ATTENTION ITEMS:
-[List any critical/safety issues that need immediate attention, or "None requiring immediate action, but items below should be addressed soon"]
+[List any critical/safety issues, or "None requiring immediate action"]
 
 ATTENTION ITEMS - Should be corrected:
-1. [LOCATION NAME] - [Issue Title]
-   Location: [specific location]
-   Issue: [detailed description]
+1. [Issue Title]
+   Location: [where]
+   Issue: [description]
    Required: [what needs to be done]
-   Why: [why it's important/safety concern]
-   Tradesperson: [who should do it]
+   Why: [why it matters]
 
-2. [next item]
-   ...
-
-GENERAL [ISSUE TYPE] INFORMATION:
-[Add any relevant general information about the system from the inspection]
-
-Do NOT include issues unrelated to {issue_type}.
-Make it visually appealing and easy to read."""
+Do NOT include issues unrelated to {issue_type}."""
     
     message = client.messages.create(
         model="claude-sonnet-4-5-20250929",
-        max_tokens=1500,
+        max_tokens=600,
         system=system_prompt,
         messages=[{
             "role": "user",
-            "content": f"Create a punchlist for a {issue_type} contractor based on this inspection report and question:\n\nQuestion: {question}\n\nReport:\n{extracted_text}"
+            "content": f"Create a punchlist for a {issue_type} contractor from this inspection answer:\n\nQuestion: {question}\n\nAnswer:\n{answer_text}"
         }]
     )
     
