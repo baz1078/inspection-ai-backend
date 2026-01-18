@@ -216,15 +216,15 @@
                                     <div class="max-w-2xl mx-auto">
                                         <label class="block mb-6">
                                             <span class="text-white/80 text-sm font-medium mb-2 block">Your Name</span>
-                                            <input type="text" id="customerName" placeholder="John Doe" class="w-full px-4 py-3 rounded-lg bg-white/10 border border-white/20 text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-white/50">
+                                            <input type="text" id="customerName" value="${state.customerName || ''}" placeholder="John Doe" class="w-full px-4 py-3 rounded-lg bg-white/10 border border-white/20 text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-white/50">
                                         </label>
                                         <label class="block mb-6">
                                             <span class="text-white/80 text-sm font-medium mb-2 block">Email (optional)</span>
-                                            <input type="email" id="customerEmail" placeholder="john@example.com" class="w-full px-4 py-3 rounded-lg bg-white/10 border border-white/20 text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-white/50">
+                                            <input type="email" id="customerEmail" value="${state.customerEmail || ''}" placeholder="john@example.com" class="w-full px-4 py-3 rounded-lg bg-white/10 border border-white/20 text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-white/50">
                                         </label>
                                         <label class="block mb-6">
                                             <span class="text-white/80 text-sm font-medium mb-2 block">Phone (optional)</span>
-                                            <input type="tel" id="customerPhone" placeholder="(555) 123-4567" class="w-full px-4 py-3 rounded-lg bg-white/10 border border-white/20 text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-white/50">
+                                            <input type="tel" id="customerPhone" value="${state.customerPhone || ''}" placeholder="(555) 123-4567" class="w-full px-4 py-3 rounded-lg bg-white/10 border border-white/20 text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-white/50">
                                         </label>
                                         
                                         <div id="dropZone" class="drop-zone border-2 border-dashed border-white/40 rounded-xl p-8 text-center cursor-pointer hover:border-white/80 transition-all" onclick="document.getElementById('fileInput').click()">
@@ -675,7 +675,7 @@
             state.loading = true;
             state.messages.push({
                 type: 'ai',
-                text: `**Processing warranty certificate...**\n\nAnalyzing ${builder} (${warrantyType}) coverage rules. Please wait...`
+                text: `⏳ **Uploading warranty...**\n\nProcessing ${file.name}\n**${builder}** (${warrantyType})\n\nExtracting coverage rules and warranty terms. This may take a moment...`
             });
             render();
             
@@ -699,14 +699,14 @@
                     state.warrantyType = data.warranty_type;
                     state.warrantyLoaded = true;
                     
-                    // Update the last message
-                    state.messages[state.messages.length - 1].text = `✅ **Warranty loaded successfully!**\n\n**${data.builder_name}** (${data.warranty_type})\n\nI've analyzed the warranty document and extracted coverage rules. You can now ask me questions about warranty coverage, and I'll check them against your specific warranty terms. Ask things like:\n- "Are the electrical issues covered?"\n- "What's covered in year 2?"\n- "Is water damage covered under building envelope?"`;
+                    // Update the last message with success
+                    state.messages[state.messages.length - 1].text = `✅ **Warranty loaded successfully!**\n\n**${data.builder_name}** (${data.warranty_type})\n\nI've processed your warranty document. You can now ask me about coverage for any issues found in the inspection. Try asking:\n- "Are the electrical issues covered?"\n- "What does year 2 cover?"\n- "Is water damage covered?"`;
                 } else {
                     const error = await res.json();
-                    state.messages[state.messages.length - 1].text = `❌ Error uploading warranty: ${error.error || 'Unknown error'}`;
+                    state.messages[state.messages.length - 1].text = `❌ Error uploading warranty: ${error.error || 'Unknown error'}. Please try again.`;
                 }
             } catch (e) {
-                state.messages[state.messages.length - 1].text = `❌ Error: ${e.message}`;
+                state.messages[state.messages.length - 1].text = `❌ Upload failed: ${e.message}. Is the backend running?`;
             }
             
             state.loading = false;

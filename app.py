@@ -511,17 +511,56 @@ def upload_warranty(report_id):
         jurisdiction = request.form.get('jurisdiction', 'USA')
         
         # Save file
+        print(f"[WARRANTY] Saving warranty file...")
         filepath = save_uploaded_file(file, app.config['UPLOAD_FOLDER'])
         
         # Extract warranty text
-        print(f"Extracting text from warranty PDF...")
-        warranty_text = extract_warranty_text(filepath)
+        print(f"[WARRANTY] Extracting text from warranty PDF...")
+        try:
+            warranty_text = extract_warranty_text(filepath)
+            print(f"[WARRANTY] Extracted {len(warranty_text)} characters")
+        except Exception as e:
+            print(f"[WARRANTY] Error extracting text: {str(e)}")
+            warranty_text = ""
         
-        # Parse warranty coverage rules
-        print(f"Parsing warranty coverage rules...")
-        coverage_rules_json = parse_warranty_coverage(warranty_text, builder_name, warranty_type)
+        # Parse warranty coverage rules with timeout
+        print(f"[WARRANTY] Parsing warranty coverage rules with Claude...")
+        try:
+            import signal
+            
+            def timeout_handler(signum, frame):
+                raise TimeoutError("Warranty parsing took too long")
+            
+            # Set 30 second timeout
+            signal.signal(signal.SIGALRM, timeout_handler)
+            signal.alarm(30)
+            
+            try:
+                coverage_rules_json = parse_warranty_coverage(warranty_text, builder_name, warranty_type)
+                signal.alarm(0)  # Cancel alarm
+                print(f"[WARRANTY] Successfully parsed coverage rules")
+            except TimeoutError:
+                signal.alarm(0)
+                print(f"[WARRANTY] Parsing timeout - using simple fallback")
+                # Fallback: just store basic warranty info
+                coverage_rules_json = json.dumps({
+                    "builder_name": builder_name,
+                    "warranty_type": warranty_type,
+                    "status": "basic",
+                    "note": "Warranty text extracted but detailed parsing timed out. Full document available for reference."
+                })
+        except Exception as e:
+            print(f"[WARRANTY] Error parsing coverage: {str(e)}")
+            # Fallback
+            coverage_rules_json = json.dumps({
+                "builder_name": builder_name,
+                "warranty_type": warranty_type,
+                "status": "error",
+                "error": str(e)
+            })
         
         # Create WarrantyDocument record
+        print(f"[WARRANTY] Creating warranty document in database...")
         warranty_doc = WarrantyDocument(
             builder_name=builder_name,
             warranty_type=warranty_type,
@@ -529,7 +568,7 @@ def upload_warranty(report_id):
             file_path=filepath,
             original_filename=secure_filename(file.filename),
             file_size=os.path.getsize(filepath),
-            extracted_text=warranty_text,
+            extracted_text=warranty_text[:5000] if warranty_text else "",  # Store first 5000 chars only
             coverage_rules=coverage_rules_json,
             is_active=True
         )
@@ -538,6 +577,7 @@ def upload_warranty(report_id):
         db.session.commit()
         
         # Link warranty to report
+        print(f"[WARRANTY] Linking warranty to report...")
         report_warranty = ReportWarranty(
             report_id=report_id,
             warranty_id=warranty_doc.id,
@@ -547,6 +587,7 @@ def upload_warranty(report_id):
         db.session.add(report_warranty)
         db.session.commit()
         
+        print(f"[WARRANTY] Warranty upload complete for {builder_name}")
         return jsonify({
             'success': True,
             'warranty_id': warranty_doc.id,
@@ -557,7 +598,7 @@ def upload_warranty(report_id):
         
     except Exception as e:
         db.session.rollback()
-        print(f"Error uploading warranty: {str(e)}")
+        print(f"[WARRANTY] Error uploading warranty: {str(e)}")
         return jsonify({'error': str(e)}), 500
 
 @app.route('/api/warranty/<report_id>/<warranty_id>', methods=['GET'])
