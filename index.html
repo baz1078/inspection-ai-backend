@@ -468,12 +468,18 @@
         }
 
         async function uploadFile(file) {
-            state.customerName = document.getElementById('customerName').value || 'Unknown';
-            state.customerEmail = document.getElementById('customerEmail').value;
-            state.customerPhone = document.getElementById('customerPhone').value;
+            // STEP 1: Save form data to state BEFORE anything else
+            state.customerName = document.getElementById('customerName').value.trim() || 'Customer';
+            state.customerEmail = document.getElementById('customerEmail').value.trim();
+            state.customerPhone = document.getElementById('customerPhone').value.trim();
             
+            // STEP 2: Mark as uploading
             state.uploading = true;
+            
+            // STEP 3: Render with form still visible (with saved values)
             render();
+            
+            // STEP 4: Make API call
             const formData = new FormData();
             formData.append('file', file);
             formData.append('address', file.name);
@@ -482,6 +488,7 @@
             formData.append('customer_phone', state.customerPhone);
             formData.append('inspector_name', 'Inspector');
             formData.append('report_type', 'home_inspection');
+            
             try {
                 const res = await fetch(`${API_URL}/api/upload`, { method: 'POST', body: formData });
                 if (res.ok) {
@@ -497,7 +504,11 @@
             } catch (e) {
                 alert('Error: Cannot connect to backend. Is it running?');
             }
+            
+            // STEP 5: Mark as done uploading
             state.uploading = false;
+            
+            // STEP 6: Render final state (switches to chat or back to upload)
             render();
         }
 
@@ -619,6 +630,7 @@
             fileInput.id = 'warranty-file-input';
             fileInput.onchange = (e) => {
                 if (e.target.files[0]) {
+                    state.warrantyFile = e.target.files[0];
                     showWarrantyDialog(e.target.files[0]);
                 }
             };
@@ -627,65 +639,93 @@
 
         function showWarrantyDialog(file) {
             const overlay = document.createElement('div');
+            overlay.id = 'warranty-modal-overlay';
             overlay.style.cssText = 'position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 1000;';
+            
             overlay.innerHTML = `
-                <div style="background: white; border-radius: 12px; padding: 24px; max-width: 500px; width: 90%; box-shadow: 0 20px 60px rgba(0,0,0,0.3);">
-                    <h2 style="font-size: 20px; font-weight: 600; color: #1f2937; margin-bottom: 16px;">Upload Warranty Certificate</h2>
-                    <p style="color: #6b7280; margin-bottom: 16px;">File: <strong>${escapeHtml(file.name)}</strong></p>
-                    
-                    <div style="margin-bottom: 16px;">
-                        <label style="font-size: 12px; font-weight: 600; color: #0369a1; text-transform: uppercase; margin-bottom: 6px; display: block;">Builder/Warranty Company</label>
-                        <input type="text" id="warranty-builder" placeholder="e.g., Travelers, National Home Warranty, Dweller" style="width: 100%; padding: 10px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 14px; box-sizing: border-box;">
+                <div id="warranty-modal" style="background: white; border-radius: 12px; padding: 24px; max-width: 500px; width: 90%; box-shadow: 0 20px 60px rgba(0,0,0,0.3);">
+                    <div id="warranty-input-state">
+                        <h2 style="font-size: 20px; font-weight: 600; color: #1f2937; margin-bottom: 16px;">Upload Warranty Certificate</h2>
+                        <p style="color: #6b7280; margin-bottom: 16px;">File: <strong>${escapeHtml(file.name)}</strong></p>
+                        
+                        <div style="margin-bottom: 16px;">
+                            <label style="font-size: 12px; font-weight: 600; color: #0369a1; text-transform: uppercase; margin-bottom: 6px; display: block;">Builder/Warranty Company</label>
+                            <input type="text" id="warranty-builder" placeholder="e.g., Travelers, National Home Warranty" style="width: 100%; padding: 10px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 14px; box-sizing: border-box;">
+                        </div>
+                        
+                        <div style="margin-bottom: 24px;">
+                            <label style="font-size: 12px; font-weight: 600; color: #0369a1; text-transform: uppercase; margin-bottom: 6px; display: block;">Warranty Type</label>
+                            <input type="text" id="warranty-type" placeholder="e.g., 2-5-10, 10-year, Standard" style="width: 100%; padding: 10px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 14px; box-sizing: border-box;">
+                        </div>
+                        
+                        <div style="display: flex; gap: 12px;">
+                            <button onclick="closeWarrantyModal()" style="flex: 1; padding: 12px; background: #e5e7eb; color: #1f2937; font-weight: 600; border: none; border-radius: 8px; cursor: pointer; font-size: 14px;">Cancel</button>
+                            <button onclick="processWarrantyUpload()" style="flex: 1; padding: 12px; background: #d97706; color: white; font-weight: 600; border: none; border-radius: 8px; cursor: pointer; font-size: 14px;">Upload & Process</button>
+                        </div>
                     </div>
                     
-                    <div style="margin-bottom: 24px;">
-                        <label style="font-size: 12px; font-weight: 600; color: #0369a1; text-transform: uppercase; margin-bottom: 6px; display: block;">Warranty Type</label>
-                        <input type="text" id="warranty-type" placeholder="e.g., 2-5-10, 10-year, Standard" style="width: 100%; padding: 10px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 14px; box-sizing: border-box;">
-                    </div>
-                    
-                    <div style="display: flex; gap: 12px;">
-                        <button onclick="this.closest('div').parentElement.remove()" style="flex: 1; padding: 12px; background: #e5e7eb; color: #1f2937; font-weight: 600; border: none; border-radius: 8px; cursor: pointer; font-size: 14px;">Cancel</button>
-                        <button onclick="uploadWarrantyFile()" style="flex: 1; padding: 12px; background: #d97706; color: white; font-weight: 600; border: none; border-radius: 8px; cursor: pointer; font-size: 14px;">Upload & Process</button>
+                    <div id="warranty-loading-state" style="display: none; text-align: center;">
+                        <div style="font-size: 48px; margin-bottom: 16px;">⏳</div>
+                        <h2 style="font-size: 20px; font-weight: 600; color: #1f2937; margin-bottom: 8px;">Uploading Warranty</h2>
+                        <p id="warranty-loading-text" style="color: #6b7280; margin-bottom: 24px;">Processing your document...</p>
+                        
+                        <div class="loader" style="justify-content: center; margin-bottom: 16px;">
+                            <div class="dot"></div>
+                            <div class="dot"></div>
+                            <div class="dot"></div>
+                        </div>
+                        
+                        <button onclick="closeWarrantyModal()" style="width: 100%; padding: 12px; background: #e5e7eb; color: #1f2937; font-weight: 600; border: none; border-radius: 8px; cursor: pointer; font-size: 14px;">Cancel Upload</button>
                     </div>
                 </div>
             `;
-            overlay.id = 'warranty-dialog-overlay';
+            
+            overlay.onclick = (e) => {
+                if (e.target === overlay) closeWarrantyModal();
+            };
+            
             document.body.appendChild(overlay);
         }
 
-        async function uploadWarrantyFile() {
+        function closeWarrantyModal() {
+            const overlay = document.getElementById('warranty-modal-overlay');
+            if (overlay) overlay.remove();
+            state.warrantyFile = null;
+        }
+
+        async function processWarrantyUpload() {
             const builder = document.getElementById('warranty-builder').value.trim();
             const warrantyType = document.getElementById('warranty-type').value.trim();
-            const fileInput = document.getElementById('warranty-file-input');
             
             if (!builder || !warrantyType) {
                 alert('Please enter builder name and warranty type');
                 return;
             }
             
-            if (!fileInput.files[0]) {
+            if (!state.warrantyFile) {
                 alert('No file selected');
                 return;
             }
             
-            const file = fileInput.files[0];
-            const dialog = document.getElementById('warranty-dialog-overlay');
-            if (dialog) dialog.remove();
+            // SWITCH TO LOADING STATE
+            const inputState = document.getElementById('warranty-input-state');
+            const loadingState = document.getElementById('warranty-loading-state');
+            const loadingText = document.getElementById('warranty-loading-text');
             
-            state.loading = true;
-            state.messages.push({
-                type: 'ai',
-                text: `⏳ **Uploading warranty...**\n\nProcessing ${file.name}\n**${builder}** (${warrantyType})\n\nExtracting coverage rules and warranty terms. This may take a moment...`
-            });
-            render();
+            if (inputState && loadingState) {
+                inputState.style.display = 'none';
+                loadingState.style.display = 'block';
+                loadingText.textContent = `Uploading ${state.warrantyFile.name}...`;
+            }
+            
+            // MAKE API CALL
+            const formData = new FormData();
+            formData.append('file', state.warrantyFile);
+            formData.append('builder_name', builder);
+            formData.append('warranty_type', warrantyType);
+            formData.append('jurisdiction', 'USA');
             
             try {
-                const formData = new FormData();
-                formData.append('file', file);
-                formData.append('builder_name', builder);
-                formData.append('warranty_type', warrantyType);
-                formData.append('jurisdiction', 'USA');
-                
                 const res = await fetch(`${API_URL}/api/upload-warranty/${state.reportId}`, {
                     method: 'POST',
                     body: formData
@@ -694,28 +734,47 @@
                 if (res.ok) {
                     const data = await res.json();
                     
+                    // Store warranty data
                     state.warrantyId = data.warranty_id;
                     state.warrantyBuilderName = data.builder_name;
                     state.warrantyType = data.warranty_type;
                     state.warrantyLoaded = true;
                     
-                    // Update the last message with success
-                    state.messages[state.messages.length - 1].text = `✅ **Warranty loaded successfully!**\n\n**${data.builder_name}** (${data.warranty_type})\n\nI've processed your warranty document. You can now ask me about coverage for any issues found in the inspection. Try asking:\n- "Are the electrical issues covered?"\n- "What does year 2 cover?"\n- "Is water damage covered?"`;
+                    // Show success message in modal
+                    if (loadingText) {
+                        loadingText.innerHTML = `✅ ${data.builder_name} (${data.warranty_type}) uploaded successfully!`;
+                    }
+                    
+                    // Close modal and return to chat after delay
+                    setTimeout(() => {
+                        closeWarrantyModal();
+                        render();  // Re-render to show warranty badge
+                    }, 1500);
                 } else {
                     const error = await res.json();
-                    state.messages[state.messages.length - 1].text = `❌ Error uploading warranty: ${error.error || 'Unknown error'}. Please try again.`;
+                    if (loadingText) {
+                        loadingText.textContent = `❌ Error: ${error.error || 'Upload failed'}`;
+                    }
+                    // Show form again after error
+                    setTimeout(() => {
+                        if (inputState && loadingState) {
+                            inputState.style.display = 'block';
+                            loadingState.style.display = 'none';
+                        }
+                    }, 2000);
                 }
             } catch (e) {
-                state.messages[state.messages.length - 1].text = `❌ Upload failed: ${e.message}. Is the backend running?`;
+                if (loadingText) {
+                    loadingText.textContent = `❌ Error: ${e.message}`;
+                }
+                // Show form again after error
+                setTimeout(() => {
+                    if (inputState && loadingState) {
+                        inputState.style.display = 'block';
+                        loadingState.style.display = 'none';
+                    }
+                }, 2000);
             }
-            
-            state.loading = false;
-            render();
-            
-            setTimeout(() => {
-                const container = document.querySelector('.chat-container');
-                if (container) container.scrollTop = container.scrollHeight;
-            }, 100);
         }
 
         function resetApp() {
