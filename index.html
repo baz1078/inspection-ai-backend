@@ -3,778 +3,1117 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Assure Inspections AI - Know Your Home</title>
-    <script src="https://cdn.tailwindcss.com"></script>
+    <title>Assure Home Inspections - Dashboard</title>
     <style>
         * {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', sans-serif;
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
         }
-        body { 
-            background: #ffffff; 
+
+        :root {
+            --dark-bg: #0f1419;
+            --card-bg: #1a1f2e;
+            --accent-pink: #ff6b9d;
+            --accent-green: #10b981;
+            --accent-yellow: #fbbf24;
+            --accent-blue: #3b82f6;
+            --text-primary: #ffffff;
+            --text-secondary: #9ca3af;
+            --border-color: #2d3748;
         }
-        .hero-gradient {
-            background: linear-gradient(135deg, #0EA5E9 0%, #0369A1 50%, #1E3A8A 100%);
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
+            background: var(--dark-bg);
+            color: var(--text-primary);
+            line-height: 1.6;
+            overflow-x: hidden;
         }
-        .chat-container {
-            scroll-behavior: smooth;
+
+        .container {
+            display: flex;
+            height: 100vh;
+            background: var(--dark-bg);
         }
-        .message {
-            animation: slideUp 0.3s ease-out;
+
+        /* MAIN CONTENT */
+        .main-content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 40px;
+            max-width: 900px;
+            margin: 0 auto;
+            width: 100%;
         }
-        @keyframes slideUp {
+
+        /* SIDEBAR */
+        .sidebar {
+            width: 350px;
+            background: var(--card-bg);
+            border-left: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+            box-shadow: -4px 0 20px rgba(0, 0, 0, 0.3);
+            animation: slideInRight 0.3s ease-out;
+        }
+
+        @keyframes slideInRight {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        .sidebar-header {
+            padding: 20px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .sidebar-header h3 {
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 5px;
+        }
+
+        .sidebar-header p {
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+
+        .sidebar-chat {
+            flex: 1;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            overflow-y: auto;
+        }
+
+        .chat-message {
+            padding: 12px 16px;
+            border-radius: 12px;
+            font-size: 13px;
+            animation: slideInUp 0.2s ease-out;
+        }
+
+        @keyframes slideInUp {
+            from {
+                transform: translateY(10px);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        .chat-message.user {
+            background: var(--accent-blue);
+            margin-left: auto;
+            max-width: 80%;
+        }
+
+        .chat-message.ai {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            color: var(--text-secondary);
+            max-width: 90%;
+        }
+
+        .sidebar-input {
+            padding: 20px;
+            border-top: 1px solid var(--border-color);
+            display: flex;
+            gap: 10px;
+        }
+
+        .sidebar-input input {
+            flex: 1;
+            background: var(--dark-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 10px 12px;
+            color: var(--text-primary);
+            font-size: 13px;
+        }
+
+        .sidebar-input input::placeholder {
+            color: var(--text-secondary);
+        }
+
+        .sidebar-input button {
+            background: var(--accent-blue);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            padding: 10px 16px;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: 600;
+            transition: all 0.2s;
+        }
+
+        .sidebar-input button:hover {
+            background: #2563eb;
+            transform: translateY(-1px);
+        }
+
+        /* HEADER */
+        .header {
+            margin-bottom: 40px;
+        }
+
+        .address {
+            font-size: 24px;
+            font-weight: 300;
+            letter-spacing: 0.5px;
+            color: var(--text-primary);
+            margin-bottom: 8px;
+        }
+
+        .address-subtitle {
+            font-size: 13px;
+            color: var(--text-secondary);
+        }
+
+        /* HERO CARD */
+        .hero-card {
+            background: linear-gradient(135deg, var(--card-bg) 0%, #252e3f 100%);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 32px;
+            margin-bottom: 40px;
+            text-align: center;
+            animation: fadeIn 0.5s ease-out;
+        }
+
+        @keyframes fadeIn {
             from {
                 opacity: 0;
-                transform: translateY(8px);
+                transform: translateY(20px);
             }
             to {
                 opacity: 1;
                 transform: translateY(0);
             }
         }
-        @keyframes float {
-            0%, 100% { transform: translateY(0px); }
-            50% { transform: translateY(-8px); }
-        }
-        .user-msg {
-            display: flex;
-            justify-content: flex-end;
+
+        .condition-label {
+            font-size: 12px;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 1px;
             margin-bottom: 12px;
+            font-weight: 600;
         }
-        .user-msg .text {
-            background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
-            color: white;
-            padding: 12px 16px;
-            border-radius: 18px;
-            max-width: 75%;
-            word-wrap: break-word;
-            line-height: 1.5;
-            font-size: 15px;
+
+        .condition-status {
+            font-size: 48px;
+            font-weight: 700;
+            background: linear-gradient(135deg, var(--accent-green) 0%, var(--accent-blue) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 8px;
         }
-        .ai-msg {
+
+        .condition-note {
+            font-size: 14px;
+            color: var(--text-secondary);
+            margin-bottom: 24px;
+        }
+
+        .condition-summary {
             display: flex;
-            justify-content: flex-start;
-            margin-bottom: 12px;
+            justify-content: center;
+            gap: 40px;
+            padding-top: 24px;
+            border-top: 1px solid var(--border-color);
+            font-size: 14px;
         }
-        .ai-msg .text {
-            background: white;
-            color: #1f2937;
-            padding: 12px 16px;
-            border-radius: 18px;
-            max-width: 85%;
-            word-wrap: break-word;
-            line-height: 1.6;
-            font-size: 15px;
-            border: 1px solid #e5e7eb;
+
+        .condition-summary-item {
+            text-align: center;
         }
-        .contractor-card {
-            background: white;
-            border: 1px solid #e5e7eb;
+
+        .condition-summary-number {
+            font-size: 24px;
+            font-weight: 700;
+            color: var(--accent-pink);
+            margin-bottom: 4px;
+        }
+
+        .condition-summary-label {
+            color: var(--text-secondary);
+            font-size: 12px;
+        }
+
+        /* BUDGET SECTION */
+        .section-title {
+            font-size: 12px;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-weight: 600;
+            margin-bottom: 16px;
+            margin-top: 40px;
+        }
+
+        .budget-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+            margin-bottom: 40px;
+        }
+
+        .budget-card {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
             border-radius: 12px;
-            padding: 16px;
+            padding: 20px;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .budget-card:hover {
+            transform: translateY(-4px);
+            border-color: var(--accent-pink);
+            box-shadow: 0 12px 24px rgba(255, 107, 157, 0.1);
+        }
+
+        .budget-card-label {
+            font-size: 12px;
+            color: var(--text-secondary);
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .budget-card-amount {
+            font-size: 28px;
+            font-weight: 700;
+            color: var(--accent-pink);
+            margin-bottom: 8px;
+        }
+
+        .budget-card-description {
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+
+        /* ISSUES GRID */
+        .issues-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 16px;
+            margin-bottom: 40px;
+        }
+
+        .issue-card {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 20px;
+            text-align: center;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .issue-card:hover {
+            transform: translateY(-6px);
+            border-color: var(--accent-pink);
+            box-shadow: 0 16px 32px rgba(255, 107, 157, 0.15);
+        }
+
+        .issue-icon {
+            font-size: 36px;
             margin-bottom: 12px;
-            transition: all 0.3s ease;
         }
-        .contractor-card:hover {
-            border-color: #3b82f6;
-            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.1);
+
+        .issue-title {
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: var(--text-primary);
         }
-        .loader {
-            display: inline-flex;
-            gap: 4px;
+
+        .issue-cost {
+            font-size: 16px;
+            font-weight: 700;
+            color: var(--accent-pink);
+            margin-bottom: 8px;
         }
-        .dot {
-            width: 8px;
-            height: 8px;
+
+        .issue-timeline {
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+
+        /* TIMELINE SECTION */
+        .timeline-section {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 24px;
+            margin-bottom: 40px;
+        }
+
+        .timeline-title {
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 20px;
+        }
+
+        .timeline-slider {
+            width: 100%;
+            height: 6px;
+            border-radius: 3px;
+            background: linear-gradient(90deg, var(--accent-green) 0%, var(--accent-yellow) 50%, var(--accent-pink) 100%);
+            outline: none;
+            -webkit-appearance: none;
+            appearance: none;
+        }
+
+        .timeline-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 20px;
+            height: 20px;
             border-radius: 50%;
-            background: #3b82f6;
-            animation: bounce 1.4s infinite;
-        }
-        .dot:nth-child(2) {
-            animation-delay: 0.2s;
-        }
-        .dot:nth-child(3) {
-            animation-delay: 0.4s;
-        }
-        @keyframes bounce {
-            0%, 80%, 100% {
-                opacity: 0.4;
-            }
-            40% {
-                opacity: 1;
-            }
-        }
-        .drop-zone {
-            transition: all 0.3s ease;
-            background: rgba(255, 255, 255, 0.95);
-        }
-        .drop-zone:hover {
             background: white;
-            border-color: white;
-            transform: translateY(-2px);
-            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+            transition: all 0.2s;
         }
-        .feature-card {
+
+        .timeline-slider::-webkit-slider-thumb:hover {
+            transform: scale(1.2);
+        }
+
+        .timeline-slider::-moz-range-thumb {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: white;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+            border: none;
+            transition: all 0.2s;
+        }
+
+        .timeline-slider::-moz-range-thumb:hover {
+            transform: scale(1.2);
+        }
+
+        .timeline-labels {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 12px;
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+
+        .timeline-months {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+            margin-top: 20px;
+        }
+
+        .timeline-month {
+            background: var(--dark-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 12px;
+            font-size: 12px;
+        }
+
+        .timeline-month-title {
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 8px;
+        }
+
+        .timeline-month-items {
+            font-size: 11px;
+            color: var(--text-secondary);
+            line-height: 1.6;
+        }
+
+        /* COMPARISON */
+        .comparison-section {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 24px;
+            margin-bottom: 40px;
+        }
+
+        .comparison-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+
+        .comparison-badge {
+            background: var(--accent-green);
+            color: white;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .comparison-text {
+            font-size: 14px;
+            color: var(--text-secondary);
+            margin-bottom: 16px;
+        }
+
+        .comparison-bar {
+            background: var(--dark-bg);
+            border-radius: 8px;
+            padding: 12px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+
+        .comparison-bar-label {
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+
+        .comparison-bar-value {
+            font-size: 14px;
+            font-weight: 700;
+            color: var(--accent-pink);
+        }
+
+        /* ACTION BUTTONS */
+        .action-buttons {
+            display: flex;
+            gap: 12px;
+            margin-top: 40px;
+            margin-bottom: 40px;
+        }
+
+        .btn {
+            flex: 1;
+            padding: 14px 20px;
+            border: none;
+            border-radius: 10px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
             transition: all 0.3s ease;
-            background: rgba(255, 255, 255, 0.1);
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            backdrop-filter: blur(10px);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .btn-primary {
+            background: var(--accent-blue);
             color: white;
         }
-        .feature-card:hover {
-            background: rgba(255, 255, 255, 0.15);
-            transform: translateY(-4px);
-            border-color: rgba(255, 255, 255, 0.4);
+
+        .btn-primary:hover {
+            background: #2563eb;
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(59, 130, 246, 0.3);
         }
-        .upload-icon {
-            animation: float 3s ease-in-out infinite;
+
+        .btn-secondary {
+            background: var(--card-bg);
+            color: var(--text-primary);
+            border: 1px solid var(--border-color);
         }
-        .logo-large {
-            max-height: 60px;
+
+        .btn-secondary:hover {
+            border-color: var(--accent-pink);
+            transform: translateY(-2px);
         }
-        .referral-cta {
-            background: linear-gradient(135deg, #dbeafe 0%, #e0f2fe 100%);
-            border-left: 4px solid #0ea5e9;
-            padding: 16px;
+
+        .btn-success {
+            background: var(--accent-green);
+            color: white;
+        }
+
+        .btn-success:hover {
+            background: #059669;
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(16, 185, 129, 0.3);
+        }
+
+        /* CHECKMARKS SECTION */
+        .checklist-section {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 24px;
+            margin-bottom: 40px;
+        }
+
+        .checklist-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 0;
+            border-bottom: 1px solid var(--border-color);
+            font-size: 14px;
+        }
+
+        .checklist-item:last-child {
+            border-bottom: none;
+        }
+
+        .checklist-icon {
+            font-size: 18px;
+            min-width: 24px;
+        }
+
+        .checklist-text {
+            flex: 1;
+        }
+
+        /* REALTOR CARD */
+        .realtor-card {
+            background: linear-gradient(135deg, var(--accent-pink) 0%, #ff8ab5 100%);
+            border-radius: 12px;
+            padding: 24px;
+            color: white;
+            margin-bottom: 40px;
+            text-align: center;
+        }
+
+        .realtor-card h4 {
+            font-size: 14px;
+            margin-bottom: 12px;
+            opacity: 0.9;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .realtor-card p {
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 16px;
+        }
+
+        .realtor-card-buttons {
+            display: flex;
+            gap: 12px;
+        }
+
+        .realtor-card-buttons button {
+            flex: 1;
+            padding: 10px;
+            border: none;
             border-radius: 8px;
-            margin: 16px 0;
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            font-weight: 600;
+            cursor: pointer;
+            font-size: 12px;
+            transition: all 0.2s;
+        }
+
+        .realtor-card-buttons button:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        /* UPLOAD SCREEN */
+        .upload-screen {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            background: var(--dark-bg);
+            padding: 40px;
+        }
+
+        .upload-container {
+            background: var(--card-bg);
+            border: 2px dashed var(--border-color);
+            border-radius: 16px;
+            padding: 60px 40px;
+            text-align: center;
+            max-width: 500px;
+            width: 100%;
+        }
+
+        .upload-icon {
+            font-size: 64px;
+            margin-bottom: 20px;
+        }
+
+        .upload-title {
+            font-size: 28px;
+            font-weight: 700;
+            margin-bottom: 12px;
+        }
+
+        .upload-description {
+            color: var(--text-secondary);
+            margin-bottom: 30px;
+        }
+
+        .upload-input {
+            display: none;
+        }
+
+        .upload-button {
+            background: var(--accent-blue);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            padding: 16px 32px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .upload-button:hover {
+            background: #2563eb;
+            transform: translateY(-2px);
+            box-shadow: 0 12px 24px rgba(59, 130, 246, 0.3);
+        }
+
+        /* LOADING */
+        .loading-spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid var(--border-color);
+            border-top-color: var(--accent-blue);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* RESPONSIVE */
+        @media (max-width: 1200px) {
+            .container {
+                flex-direction: column;
+                height: auto;
+            }
+
+            .sidebar {
+                width: 100%;
+                border-left: none;
+                border-top: 1px solid var(--border-color);
+                height: 300px;
+                max-height: 300px;
+            }
+
+            .main-content {
+                max-width: 100%;
+            }
+
+            .issues-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .budget-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .main-content {
+                padding: 20px;
+            }
+
+            .issues-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .hero-card {
+                padding: 20px;
+            }
+
+            .condition-summary {
+                flex-direction: column;
+                gap: 20px;
+            }
+
+            .action-buttons {
+                flex-direction: column;
+            }
+
+            .address {
+                font-size: 18px;
+            }
+
+            .condition-status {
+                font-size: 36px;
+            }
+
+            .sidebar {
+                height: 250px;
+            }
+        }
+
+        /* SCROLLBAR */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: var(--dark-bg);
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--border-color);
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--accent-pink);
         }
     </style>
 </head>
-<body class="bg-white">
+<body>
     <div id="app"></div>
 
     <script>
-        const API_URL = 'https://inspection-ai-backend-det9.onrender.com';
+        const API_URL = 'http://localhost:5000';
+
         let state = {
             screen: 'upload',
             reportId: null,
             summary: null,
             address: null,
+            extractedText: null,
             messages: [],
-            uploading: false,
-            loading: false,
-            currentQuestionId: null,
-            customerName: '',
-            customerEmail: '',
-            customerPhone: '',
-            showConfirmModal: false,
-            pendingQuote: null,
-            
-            // WARRANTY STATE (seamless integration)
-            warrantyId: null,
-            warrantyBuilderName: null,
-            warrantyType: null,
-            warrantyLoaded: false
+            showSidebar: false,
+            warranty: null
         };
 
         function render() {
             const app = document.getElementById('app');
             
             if (state.screen === 'upload') {
-                app.innerHTML = `
-                    <div class="min-h-screen hero-gradient flex flex-col relative overflow-hidden">
-                        <div class="absolute top-0 right-0 w-96 h-96 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-pulse" style="background: rgba(255,255,255,0.3);"></div>
-                        
-                        <div class="relative z-10 border-b border-white/10 backdrop-blur-sm">
-                            <div class="max-w-5xl mx-auto px-6 py-6">
-                                <img src="assure-logo.jpg" alt="Assure Inspections" class="logo-large" />
-                            </div>
-                        </div>
-
-                        <div class="relative z-10 flex-1 flex flex-col justify-center">
-                            <div class="max-w-5xl mx-auto px-6 w-full">
-                                <div class="mb-20">
-                                    <h1 class="text-8xl font-black text-white mb-4 leading-tight tracking-tight">Really,<br>Know Your Home</h1>
-                                    <p class="text-2xl text-blue-100 max-w-2xl">Get instant answers about your inspection report with AI-powered insights</p>
-                                </div>
-
-                                <div class="grid md:grid-cols-3 gap-8 mb-20">
-                                    <div class="feature-card rounded-2xl p-8">
-                                        <div class="w-14 h-14 bg-white/20 rounded-xl flex items-center justify-center mb-4">
-                                            <span style="font-size: 28px;">📋</span>
-                                        </div>
-                                        <h3 class="text-xl font-bold mb-2">Upload Report</h3>
-                                        <p class="text-blue-100 text-sm">Share your inspection PDF</p>
-                                    </div>
-                                    <div class="feature-card rounded-2xl p-8">
-                                        <div class="w-14 h-14 bg-white/20 rounded-xl flex items-center justify-center mb-4">
-                                            <span style="font-size: 28px;">🤖</span>
-                                        </div>
-                                        <h3 class="text-xl font-bold mb-2">AI Answers</h3>
-                                        <p class="text-blue-100 text-sm">Ask any questions about findings</p>
-                                    </div>
-                                    <div class="feature-card rounded-2xl p-8">
-                                        <div class="w-14 h-14 bg-white/20 rounded-xl flex items-center justify-center mb-4">
-                                            <span style="font-size: 28px;">👷</span>
-                                        </div>
-                                        <h3 class="text-xl font-bold mb-2">Get Contractors</h3>
-                                        <p class="text-blue-100 text-sm">Connect with trusted pros</p>
-                                    </div>
-                                </div>
-
-                                <div class="bg-white/10 backdrop-blur-md rounded-2xl p-8 border border-white/20">
-                                    <div class="max-w-2xl mx-auto">
-                                        <label class="block mb-6">
-                                            <span class="text-white/80 text-sm font-medium mb-2 block">Your Name</span>
-                                            <input type="text" id="customerName" value="${state.customerName || ''}" placeholder="John Doe" class="w-full px-4 py-3 rounded-lg bg-white/10 border border-white/20 text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-white/50">
-                                        </label>
-                                        <label class="block mb-6">
-                                            <span class="text-white/80 text-sm font-medium mb-2 block">Email (optional)</span>
-                                            <input type="email" id="customerEmail" value="${state.customerEmail || ''}" placeholder="john@example.com" class="w-full px-4 py-3 rounded-lg bg-white/10 border border-white/20 text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-white/50">
-                                        </label>
-                                        <label class="block mb-6">
-                                            <span class="text-white/80 text-sm font-medium mb-2 block">Phone (optional)</span>
-                                            <input type="tel" id="customerPhone" value="${state.customerPhone || ''}" placeholder="(555) 123-4567" class="w-full px-4 py-3 rounded-lg bg-white/10 border border-white/20 text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-white/50">
-                                        </label>
-                                        
-                                        <div id="dropZone" class="drop-zone border-2 border-dashed border-white/40 rounded-xl p-8 text-center cursor-pointer hover:border-white/80 transition-all" onclick="document.getElementById('fileInput').click()">
-                                            <input type="file" id="fileInput" accept=".pdf" style="display: none;" onchange="uploadFile(this.files[0])">
-                                            <div class="upload-icon" style="font-size: 48px; margin-bottom: 16px;">📄</div>
-                                            <p class="text-white/80 font-medium">Drag your PDF here or click to browse</p>
-                                            <p class="text-white/60 text-sm mt-2">Accepted: PDF inspection reports</p>
-                                        </div>
-                                        ${state.uploading ? `
-                                            <div style="margin-top: 16px; text-center;">
-                                                <div class="loader" style="justify-content: center;">
-                                                    <div class="dot"></div>
-                                                    <div class="dot"></div>
-                                                    <div class="dot"></div>
-                                                </div>
-                                                <p class="text-white/80 mt-4">Processing your report...</p>
-                                            </div>
-                                        ` : ''}
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                `;
-
-                // Drag and drop
-                const dropZone = document.getElementById('dropZone');
-                if (dropZone) {
-                    dropZone.addEventListener('dragover', (e) => {
-                        e.preventDefault();
-                        dropZone.style.backgroundColor = 'rgba(255,255,255,0.1)';
-                        dropZone.style.borderColor = 'rgba(255,255,255,0.8)';
-                    });
-                    dropZone.addEventListener('dragleave', () => {
-                        dropZone.style.backgroundColor = 'transparent';
-                        dropZone.style.borderColor = 'rgba(255,255,255,0.4)';
-                    });
-                    dropZone.addEventListener('drop', (e) => {
-                        e.preventDefault();
-                        dropZone.style.backgroundColor = 'transparent';
-                        dropZone.style.borderColor = 'rgba(255,255,255,0.4)';
-                        if (e.dataTransfer.files[0]) {
-                            uploadFile(e.dataTransfer.files[0]);
-                        }
-                    });
-                }
-            } else {
-                app.innerHTML = `
-                    <div class="h-screen bg-white flex flex-col">
-                        <div class="bg-white border-b border-gray-200 shadow-sm">
-                            <div class="max-w-4xl mx-auto px-6 py-4 flex justify-between items-center">
-                                <div class="flex items-center gap-3">
-                                    <img src="assure-logo.jpg" alt="Assure" class="h-8" />
-                                    <div>
-                                        <p class="text-xs text-gray-500">Report</p>
-                                        <p class="text-sm font-semibold text-gray-900">${state.address}</p>
-                                    </div>
-                                </div>
-                                <button class="px-6 py-2 text-sm font-semibold text-white bg-blue-600 rounded-lg hover:bg-blue-700 transition" onclick="resetApp()">New Report</button>
-                            </div>
-                        </div>
-
-                        <div class="flex-1 overflow-y-auto chat-container">
-                            <div class="max-w-4xl mx-auto px-6 py-8">
-                                <div class="bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl p-8 mb-12 border border-blue-200">
-                                    <h2 class="font-semibold text-gray-900 text-lg mb-4">Summary</h2>
-                                    <div class="text-gray-700 space-y-4" style="line-height: 1.8;">
-                                        ${state.summary.split('\n\n').map(para => {
-                                            let cleanPara = escapeHtml(para);
-                                            cleanPara = cleanPara.replace(/\*\*(.*?)\*\*/g, '<strong class="font-semibold text-gray-900">$1</strong>');
-                                            cleanPara = cleanPara.replace(/\*(.*?)\*/g, '<em class="italic">$1</em>');
-                                            return `<p>${cleanPara}</p>`;
-                                        }).join('')}
-                                    </div>
-                                </div>
-
-                                ${state.warrantyLoaded ? `
-                                    <div class="bg-amber-50 border border-amber-200 rounded-lg p-4 mb-8">
-                                        <p class="text-sm text-amber-800"><strong>✓ 📋 Warranty on file:</strong> ${state.warrantyBuilderName} (${state.warrantyType})</p>
-                                    </div>
-                                ` : ''}
-
-                                <div class="space-y-4 mb-8">
-                                    ${state.messages.length === 0 ? '<p class="text-gray-400 text-center py-12 text-lg">Ask any question about this report</p>' : ''}
-                                    ${state.messages.map(msg => {
-                                        if (msg.type === 'user') {
-                                            return `<div class="message user-msg"><div class="text">${escapeHtml(msg.text)}</div></div>`;
-                                        } else if (msg.type === 'ai') {
-                                            let formattedText = escapeHtml(msg.text);
-                                            formattedText = formattedText.replace(/\*\*(.*?)\*\*/g, '<strong class="font-semibold">$1</strong>');
-                                            formattedText = formattedText.replace(/\*(.*?)\*/g, '<em class="italic">$1</em>');
-                                            formattedText = formattedText.replace(/\n/g, '<br>');
-                                            return `<div class="message ai-msg"><div class="text">${formattedText}</div></div>`;
-                                        } else if (msg.type === 'referral-cta') {
-                                            return `<div class="message ai-msg">
-                                                <div class="w-full">
-                                                    <div class="referral-cta">
-                                                        <p class="font-semibold text-gray-900 mb-3">💡 Would you like referrals?</p>
-                                                        <p class="text-gray-700 text-sm mb-4">We work with trusted contractors in your area who have completed similar work and come highly recommended by Assure Inspections.</p>
-                                                        <button onclick="toggleReferrals('${msg.questionId}')" class="px-4 py-2 bg-blue-600 text-white text-sm font-semibold rounded-lg hover:bg-blue-700 transition">
-                                                            View Vetted Contractors
-                                                        </button>
-                                                    </div>
-                                                </div>
-                                            </div>`;
-                                        } else if (msg.type === 'referrals') {
-                                            return `<div class="message ai-msg">
-                                                <div class="w-full">
-                                                    <div class="text" style="max-width: 100%; padding: 0; border: none; background: transparent;">
-                                                        <div class="mb-4">
-                                                            <p class="font-semibold text-gray-900 mb-4">Vetted Contractors We Trust</p>
-                                                            ${msg.contractors.length > 0 ? msg.contractors.map(c => `
-                                                                <div class="contractor-card">
-                                                                    <div class="flex justify-between items-start mb-3">
-                                                                        <div>
-                                                                            <h4 class="font-semibold text-gray-900">${escapeHtml(c.name)}</h4>
-                                                                            <p class="text-sm text-gray-600">${escapeHtml(c.city)}, ${c.state}</p>
-                                                                        </div>
-                                                                        <div class="text-right">
-                                                                            <div class="font-semibold text-gray-900">⭐ ${c.rating}</div>
-                                                                            <p class="text-xs text-gray-500">${c.review_count} reviews</p>
-                                                                        </div>
-                                                                    </div>
-                                                                    
-                                                                    <div class="flex gap-2 mb-3 text-xs">
-                                                                        ${c.is_licensed ? '<span class="bg-green-100 text-green-800 px-2 py-1 rounded">Licensed</span>' : ''}
-                                                                        ${c.is_bonded ? '<span class="bg-green-100 text-green-800 px-2 py-1 rounded">Bonded</span>' : ''}
-                                                                        ${c.is_insured ? '<span class="bg-green-100 text-green-800 px-2 py-1 rounded">Insured</span>' : ''}
-                                                                    </div>
-                                                                    
-                                                                    <p class="text-sm text-gray-700 mb-3">${c.specialty === 'electrical' ? '⚡ Licensed Electrician' : c.specialty === 'plumbing' ? '🚰 Licensed Plumber' : c.specialty === 'roofing' ? '🏠 Certified Roofer' : escapeHtml(c.specialty)}</p>
-                                                                    
-                                                                    <button onclick="requestQuote('${msg.questionId}', '${c.id}')" class="w-full px-4 py-2 bg-blue-600 text-white text-sm font-semibold rounded-lg hover:bg-blue-700 transition">
-                                                                        Request Quote
-                                                                    </button>
-                                                                </div>
-                                                            `).join('') : '<p class="text-gray-600">No contractors available in your area yet.</p>'}
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </div>`;
-                                        }
-                                    }).join('')}
-                                    ${state.loading ? `
-                                        <div class="message ai-msg">
-                                            <div class="text">
-                                                <div class="loader">
-                                                    <div class="dot"></div>
-                                                    <div class="dot"></div>
-                                                    <div class="dot"></div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    ` : ''}
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="bg-white border-t border-gray-200 shadow-lg">
-                            <div class="max-w-4xl mx-auto px-6 py-4">
-                                <div class="flex gap-3">
-                                    <input 
-                                        type="text" 
-                                        id="question" 
-                                        placeholder="Ask a question about the report..." 
-                                        class="flex-1 px-4 py-3 bg-gray-50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition" 
-                                        onkeypress="if(event.key==='Enter' && !event.shiftKey) { event.preventDefault(); askQuestion(); }"
-                                    />
-                                    <button 
-                                        class="px-8 py-3 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition disabled:opacity-50 disabled:cursor-not-allowed" 
-                                        onclick="askQuestion()"
-                                        id="askBtn"
-                                    >
-                                        ${state.loading ? 'Thinking...' : 'Ask'}
-                                    </button>
-                                    <button 
-                                        class="px-6 py-3 bg-amber-500 text-white font-semibold rounded-lg hover:bg-amber-600 transition" 
-                                        onclick="startWarrantyUpload()"
-                                        title="Upload warranty certificate"
-                                    >
-                                        ${state.warrantyLoaded ? '✓ Warranty' : '📋 Warranty'}
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                `;
-                
-                setTimeout(() => {
-                    const container = document.querySelector('.chat-container');
-                    if (container) {
-                        container.scrollTop = container.scrollHeight;
-                    }
-                }, 100);
-            }
-
-            // RENDER MODAL IF ACTIVE
-            if (state.showConfirmModal && state.pendingQuote) {
-                const existingModals = document.querySelectorAll('[data-modal-overlay]');
-                existingModals.forEach(m => m.remove());
-                
-                const modalOverlay = document.createElement('div');
-                modalOverlay.setAttribute('data-modal-overlay', 'true');
-                modalOverlay.style.cssText = 'position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 1000;';
-                modalOverlay.innerHTML = `
-                    <div style="background: white; border-radius: 12px; padding: 24px; max-width: 500px; width: 90%; box-shadow: 0 20px 60px rgba(0,0,0,0.3);">
-                        <h2 style="font-size: 20px; font-weight: 600; color: #1f2937; margin-bottom: 16px;">Confirm Quote Request</h2>
-                        <p style="color: #6b7280; margin-bottom: 24px;">Please confirm your information before we send this to the contractor:</p>
-                        
-                        <div style="margin-bottom: 16px;">
-                            <label style="font-size: 12px; font-weight: 600; color: #0369a1; text-transform: uppercase; margin-bottom: 6px; display: block;">Your Name</label>
-                            <input type="text" id="modalName" value="${escapeHtml(state.customerName)}" style="width: 100%; padding: 10px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 14px; box-sizing: border-box;">
-                        </div>
-                        
-                        <div style="margin-bottom: 16px;">
-                            <label style="font-size: 12px; font-weight: 600; color: #0369a1; text-transform: uppercase; margin-bottom: 6px; display: block;">Email</label>
-                            <input type="email" id="modalEmail" value="${escapeHtml(state.customerEmail || '')}" style="width: 100%; padding: 10px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 14px; box-sizing: border-box;">
-                        </div>
-                        
-                        <div style="margin-bottom: 24px;">
-                            <label style="font-size: 12px; font-weight: 600; color: #0369a1; text-transform: uppercase; margin-bottom: 6px; display: block;">Phone</label>
-                            <input type="tel" id="modalPhone" value="${escapeHtml(state.customerPhone || '')}" style="width: 100%; padding: 10px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 14px; box-sizing: border-box;">
-                        </div>
-                        
-                        <div style="display: flex; gap: 12px;">
-                            <button onclick="cancelQuote()" style="flex: 1; padding: 12px; background: #e5e7eb; color: #1f2937; font-weight: 600; border: none; border-radius: 8px; cursor: pointer; font-size: 14px;">Cancel</button>
-                            <button onclick="confirmQuote()" style="flex: 1; padding: 12px; background: #2563eb; color: white; font-weight: 600; border: none; border-radius: 8px; cursor: pointer; font-size: 14px;">Send Request</button>
-                        </div>
-                    </div>
-                `;
-                document.body.appendChild(modalOverlay);
-            } else {
-                const existingModals = document.querySelectorAll('[data-modal-overlay]');
-                existingModals.forEach(m => m.remove());
+                app.innerHTML = renderUploadScreen();
+            } else if (state.screen === 'dashboard') {
+                app.innerHTML = renderDashboard();
             }
         }
 
-        function escapeHtml(text) {
-            const map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' };
-            return text.replace(/[&<>"']/g, m => map[m]);
-        }
-
-        async function uploadFile(file) {
-            // STEP 1: Save form data to state BEFORE anything else
-            state.customerName = document.getElementById('customerName').value.trim() || 'Customer';
-            state.customerEmail = document.getElementById('customerEmail').value.trim();
-            state.customerPhone = document.getElementById('customerPhone').value.trim();
-            
-            // STEP 2: Mark as uploading
-            state.uploading = true;
-            
-            // STEP 3: Render with form still visible (with saved values)
-            render();
-            
-            // STEP 4: Make API call
-            const formData = new FormData();
-            formData.append('file', file);
-            formData.append('address', file.name);
-            formData.append('customer_name', state.customerName);
-            formData.append('customer_email', state.customerEmail);
-            formData.append('customer_phone', state.customerPhone);
-            formData.append('inspector_name', 'Inspector');
-            formData.append('report_type', 'home_inspection');
-            
-            try {
-                const res = await fetch(`${API_URL}/api/upload`, { method: 'POST', body: formData });
-                if (res.ok) {
-                    const data = await res.json();
-                    state.reportId = data.report_id;
-                    state.summary = data.summary;
-                    state.address = data.address;
-                    state.screen = 'chat';
-                    state.messages = [];
-                } else {
-                    alert('Upload failed. Make sure backend is running');
-                }
-            } catch (e) {
-                alert('Error: Cannot connect to backend. Is it running?');
-            }
-            
-            // STEP 5: Mark as done uploading
-            state.uploading = false;
-            
-            // STEP 6: Render final state (switches to chat or back to upload)
-            render();
-        }
-
-        async function askQuestion() {
-            const q = document.getElementById('question').value.trim();
-            if (!q || state.loading) return;
-            document.getElementById('question').value = '';
-            state.messages.push({ type: 'user', text: q });
-            state.loading = true;
-            render();
-            
-            try {
-                const res = await fetch(`${API_URL}/api/ask/${state.reportId}`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ 
-                        question: q,
-                        warranty_id: state.warrantyId || null
-                    })
-                });
-                if (res.ok) {
-                    const data = await res.json();
-                    state.messages.push({ type: 'ai', text: data.answer });
-                    state.currentQuestionId = data.conversation_id;
-                    
-                    if (data.referrals && data.referrals.length > 0) {
-                        state.messages.push({ 
-                            type: 'referral-cta', 
-                            questionId: data.conversation_id,
-                            contractors: data.referrals
-                        });
-                    }
-                } else {
-                    state.messages.push({ type: 'ai', text: 'Error getting response. Try again.' });
-                }
-            } catch (e) {
-                state.messages.push({ type: 'ai', text: 'Connection error. Backend running?' });
-            }
-            state.loading = false;
-            render();
-        }
-
-        function toggleReferrals(questionId) {
-            state.messages.push({ 
-                type: 'referrals', 
-                contractors: state.messages.find(m => m.questionId === questionId)?.contractors || [],
-                questionId: questionId
-            });
-            render();
-            setTimeout(() => {
-                const container = document.querySelector('.chat-container');
-                if (container) container.scrollTop = container.scrollHeight;
-            }, 100);
-        }
-
-        async function requestQuote(questionId, contractorId) {
-            state.showConfirmModal = true;
-            state.pendingQuote = { questionId, contractorId };
-            render();
-        }
-
-        async function confirmQuote() {
-            const { questionId, contractorId } = state.pendingQuote;
-            
-            const modalName = document.getElementById('modalName');
-            const modalEmail = document.getElementById('modalEmail');
-            const modalPhone = document.getElementById('modalPhone');
-            
-            if (!modalName || !modalEmail || !modalPhone) {
-                alert('Error: Modal fields not found');
-                return;
-            }
-            
-            state.customerName = modalName.value;
-            state.customerEmail = modalEmail.value;
-            state.customerPhone = modalPhone.value;
-            
-            try {
-                const res = await fetch(`${API_URL}/api/referral-request`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        report_id: state.reportId,
-                        question_id: questionId,
-                        contractor_id: contractorId,
-                        customer_name: state.customerName,
-                        customer_email: state.customerEmail,
-                        customer_phone: state.customerPhone
-                    })
-                });
-                if (res.ok) {
-                    alert('Request sent! The contractor will reach out to you soon.');
-                    state.showConfirmModal = false;
-                    state.pendingQuote = null;
-                    render();
-                } else {
-                    const error = await res.json();
-                    alert('Error: ' + (error.error || 'Failed to send request'));
-                }
-            } catch (e) {
-                alert('Error: ' + e.message);
-            }
-        }
-
-        function cancelQuote() {
-            state.showConfirmModal = false;
-            state.pendingQuote = null;
-            render();
-        }
-
-        // ============================================================================
-        // WARRANTY FUNCTIONS - End-to-end integration
-        // ============================================================================
-
-        function startWarrantyUpload() {
-            const fileInput = document.createElement('input');
-            fileInput.type = 'file';
-            fileInput.accept = '.pdf';
-            fileInput.id = 'warranty-file-input';
-            fileInput.onchange = (e) => {
-                if (e.target.files[0]) {
-                    state.warrantyFile = e.target.files[0];
-                    showWarrantyDialog(e.target.files[0]);
-                }
-            };
-            fileInput.click();
-        }
-
-        function showWarrantyDialog(file) {
-            const overlay = document.createElement('div');
-            overlay.id = 'warranty-modal-overlay';
-            overlay.style.cssText = 'position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 1000;';
-            
-            overlay.innerHTML = `
-                <div id="warranty-modal" style="background: white; border-radius: 12px; padding: 24px; max-width: 500px; width: 90%; box-shadow: 0 20px 60px rgba(0,0,0,0.3);">
-                    <div id="warranty-input-state">
-                        <h2 style="font-size: 20px; font-weight: 600; color: #1f2937; margin-bottom: 16px;">Upload Warranty Certificate</h2>
-                        <p style="color: #6b7280; margin-bottom: 16px;">File: <strong>${escapeHtml(file.name)}</strong></p>
-                        
-                        <div style="margin-bottom: 16px;">
-                            <label style="font-size: 12px; font-weight: 600; color: #0369a1; text-transform: uppercase; margin-bottom: 6px; display: block;">Builder/Warranty Company</label>
-                            <input type="text" id="warranty-builder" placeholder="e.g., Travelers, National Home Warranty" style="width: 100%; padding: 10px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 14px; box-sizing: border-box;">
-                        </div>
-                        
-                        <div style="margin-bottom: 24px;">
-                            <label style="font-size: 12px; font-weight: 600; color: #0369a1; text-transform: uppercase; margin-bottom: 6px; display: block;">Warranty Type</label>
-                            <input type="text" id="warranty-type" placeholder="e.g., 2-5-10, 10-year, Standard" style="width: 100%; padding: 10px; border: 1px solid #d1d5db; border-radius: 6px; font-size: 14px; box-sizing: border-box;">
-                        </div>
-                        
-                        <div style="display: flex; gap: 12px;">
-                            <button onclick="closeWarrantyModal()" style="flex: 1; padding: 12px; background: #e5e7eb; color: #1f2937; font-weight: 600; border: none; border-radius: 8px; cursor: pointer; font-size: 14px;">Cancel</button>
-                            <button onclick="processWarrantyUpload()" style="flex: 1; padding: 12px; background: #d97706; color: white; font-weight: 600; border: none; border-radius: 8px; cursor: pointer; font-size: 14px;">Upload & Process</button>
-                        </div>
-                    </div>
-                    
-                    <div id="warranty-loading-state" style="display: none; text-align: center;">
-                        <div style="font-size: 48px; margin-bottom: 16px;">⏳</div>
-                        <h2 style="font-size: 20px; font-weight: 600; color: #1f2937; margin-bottom: 8px;">Uploading Warranty</h2>
-                        <p id="warranty-loading-text" style="color: #6b7280; margin-bottom: 24px;">Processing your document...</p>
-                        
-                        <div class="loader" style="justify-content: center; margin-bottom: 16px;">
-                            <div class="dot"></div>
-                            <div class="dot"></div>
-                            <div class="dot"></div>
-                        </div>
-                        
-                        <button onclick="closeWarrantyModal()" style="width: 100%; padding: 12px; background: #e5e7eb; color: #1f2937; font-weight: 600; border: none; border-radius: 8px; cursor: pointer; font-size: 14px;">Cancel Upload</button>
+        function renderUploadScreen() {
+            return `
+                <div class="upload-screen">
+                    <div class="upload-container">
+                        <div class="upload-icon">📄</div>
+                        <h2 class="upload-title">Upload Inspection Report</h2>
+                        <p class="upload-description">Choose your home inspection PDF to get started</p>
+                        <button class="upload-button" onclick="document.getElementById('fileInput').click()">
+                            Choose File
+                        </button>
+                        <input type="file" id="fileInput" class="upload-input" accept=".pdf" onchange="handleFileUpload(this.files[0])">
                     </div>
                 </div>
             `;
-            
-            overlay.onclick = (e) => {
-                if (e.target === overlay) closeWarrantyModal();
-            };
-            
-            document.body.appendChild(overlay);
         }
 
-        function closeWarrantyModal() {
-            const overlay = document.getElementById('warranty-modal-overlay');
-            if (overlay) overlay.remove();
-            state.warrantyFile = null;
+        function renderDashboard() {
+            return `
+                <div class="container">
+                    <div class="main-content">
+                        ${renderMainContent()}
+                    </div>
+                    ${state.showSidebar ? renderSidebar() : ''}
+                </div>
+            `;
         }
 
-        async function processWarrantyUpload() {
-            const builder = document.getElementById('warranty-builder').value.trim();
-            const warrantyType = document.getElementById('warranty-type').value.trim();
-            
-            if (!builder || !warrantyType) {
-                alert('Please enter builder name and warranty type');
-                return;
-            }
-            
-            if (!state.warrantyFile) {
-                alert('No file selected');
-                return;
-            }
-            
-            // SWITCH TO LOADING STATE
-            const inputState = document.getElementById('warranty-input-state');
-            const loadingState = document.getElementById('warranty-loading-state');
-            const loadingText = document.getElementById('warranty-loading-text');
-            
-            if (inputState && loadingState) {
-                inputState.style.display = 'none';
-                loadingState.style.display = 'block';
-                loadingText.textContent = `Uploading ${state.warrantyFile.name}...`;
-            }
-            
-            // MAKE API CALL
+        function renderMainContent() {
+            return `
+                <div class="header">
+                    <div class="address">${state.address || 'Loading...'}</div>
+                    <div class="address-subtitle">Inspection Report • January 2025</div>
+                </div>
+
+                <div class="hero-card">
+                    <div class="condition-label">Home Condition</div>
+                    <div class="condition-status">Good</div>
+                    <div class="condition-note">(Typical for homes built 1990-2000)</div>
+                    <div class="condition-summary">
+                        <div class="condition-summary-item">
+                            <div class="condition-summary-number">3</div>
+                            <div class="condition-summary-label">Items Need Attention</div>
+                        </div>
+                        <div class="condition-summary-item">
+                            <div class="condition-summary-number">8</div>
+                            <div class="condition-summary-label">Functioning Well ✅</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="section-title">Budget for Repairs</div>
+                <div class="budget-grid">
+                    <div class="budget-card" onclick="scrollToTimeline()">
+                        <div class="budget-card-label">Now - 12 Months</div>
+                        <div class="budget-card-amount">$800 - 1,200</div>
+                        <div class="budget-card-description">Preventive maintenance</div>
+                    </div>
+                    <div class="budget-card" onclick="scrollToTimeline()">
+                        <div class="budget-card-label">5 Year Outlook</div>
+                        <div class="budget-card-amount">$5,000 - 8,000</div>
+                        <div class="budget-card-description">Long-term replacements</div>
+                    </div>
+                </div>
+
+                <div class="section-title">What Needs Attention</div>
+                <div class="issues-grid">
+                    <div class="issue-card" onclick="toggleSidebar(); askAbout('Tell me more about the electrical issues')">
+                        <div class="issue-icon">🔧</div>
+                        <div class="issue-title">Electrical</div>
+                        <div class="issue-cost">$50 - 300</div>
+                        <div class="issue-timeline">Handle now or cosmetic</div>
+                    </div>
+                    <div class="issue-card" onclick="toggleSidebar(); askAbout('Tell me about the plumbing issues')">
+                        <div class="issue-icon">💧</div>
+                        <div class="issue-title">Plumbing</div>
+                        <div class="issue-cost">$500 - 800</div>
+                        <div class="issue-timeline">Handle in 12 months</div>
+                    </div>
+                    <div class="issue-card" onclick="toggleSidebar(); askAbout('What about the HVAC system?')">
+                        <div class="issue-icon">❄️</div>
+                        <div class="issue-title">HVAC</div>
+                        <div class="issue-cost">Future</div>
+                        <div class="issue-timeline">Monitor, plan 5-10 years</div>
+                    </div>
+                </div>
+
+                <div id="timeline-section" class="timeline-section">
+                    <div class="timeline-title">When Should These Be Addressed?</div>
+                    <input type="range" min="0" max="120" value="12" class="timeline-slider" id="timelineSlider" oninput="updateTimeline(this.value)">
+                    <div class="timeline-labels">
+                        <span>Now</span>
+                        <span>Timeline</span>
+                        <span>10 Years</span>
+                    </div>
+                    <div class="timeline-months" id="timelineMonths">
+                        <div class="timeline-month">
+                            <div class="timeline-month-title">NOW (0-3 months)</div>
+                            <div class="timeline-month-items">• Get electrical quote<br>• Plan sewer descaling</div>
+                        </div>
+                        <div class="timeline-month">
+                            <div class="timeline-month-title">SOON (3-12 months)</div>
+                            <div class="timeline-month-items">• Schedule repairs<br>• Budget $800-1,200</div>
+                        </div>
+                        <div class="timeline-month">
+                            <div class="timeline-month-title">FUTURE (5+ years)</div>
+                            <div class="timeline-month-items">• Plan HVAC replacement<br>• Budget $3,000-5,000</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="comparison-section">
+                    <div class="comparison-header">
+                        <div class="comparison-badge">✅ BETTER THAN AVERAGE</div>
+                        <div style="flex: 1;"></div>
+                    </div>
+                    <div class="comparison-text">
+                        Homes in Naperville built 1990-2000 typically have 4-5 issues. This home has 3.
+                    </div>
+                    <div class="comparison-bar">
+                        <div class="comparison-bar-label">Naperville Average</div>
+                        <div class="comparison-bar-value">4.2 issues</div>
+                    </div>
+                    <div class="comparison-bar">
+                        <div class="comparison-bar-label">This Home</div>
+                        <div class="comparison-bar-value" style="color: var(--accent-green);">3 issues</div>
+                    </div>
+                </div>
+
+                <div class="checklist-section">
+                    <div class="checklist-item">
+                        <div class="checklist-icon">✅</div>
+                        <div class="checklist-text">No structural damage found</div>
+                    </div>
+                    <div class="checklist-item">
+                        <div class="checklist-icon">✅</div>
+                        <div class="checklist-text">Passes all Illinois code requirements</div>
+                    </div>
+                    <div class="checklist-item">
+                        <div class="checklist-icon">✅</div>
+                        <div class="checklist-text">No water intrusion detected</div>
+                    </div>
+                    <div class="checklist-item">
+                        <div class="checklist-icon">⚠️</div>
+                        <div class="checklist-text">Sewer line has scaling (preventive care recommended)</div>
+                    </div>
+                    <div class="checklist-item">
+                        <div class="checklist-icon">✅</div>
+                        <div class="checklist-text">HVAC functioning properly</div>
+                    </div>
+                </div>
+
+                <div class="realtor-card">
+                    <h4>📋 For Realtors</h4>
+                    <p>Share this report with your buyer</p>
+                    <div class="realtor-card-buttons">
+                        <button onclick="generateReport()">Generate PDF</button>
+                        <button onclick="shareReport()">Share Link</button>
+                    </div>
+                </div>
+
+                <div class="action-buttons">
+                    <button class="btn btn-primary" onclick="toggleSidebar()">
+                        💬 Ask Question
+                    </button>
+                    <button class="btn btn-secondary" onclick="resetApp()">
+                        📤 New Report
+                    </button>
+                </div>
+            `;
+        }
+
+        function renderSidebar() {
+            return `
+                <div class="sidebar">
+                    <div class="sidebar-header">
+                        <h3>Ask About This Report</h3>
+                        <p>Chat with AI for details</p>
+                    </div>
+                    <div class="sidebar-chat" id="sidebarChat">
+                        ${state.messages.map((msg, idx) => `
+                            <div class="chat-message ${msg.type === 'user' ? 'user' : 'ai'}">
+                                ${escapeHtml(msg.text)}
+                            </div>
+                        `).join('')}
+                    </div>
+                    <div class="sidebar-input">
+                        <input 
+                            type="text" 
+                            id="sidebarInput" 
+                            placeholder="Ask about the report..."
+                            onkeypress="handleSidebarKeyPress(event)"
+                        >
+                        <button onclick="sendSidebarMessage()">→</button>
+                    </div>
+                </div>
+            `;
+        }
+
+        function handleFileUpload(file) {
+            if (!file) return;
+
             const formData = new FormData();
-            formData.append('file', state.warrantyFile);
-            formData.append('builder_name', builder);
-            formData.append('warranty_type', warrantyType);
-            formData.append('jurisdiction', 'USA');
-            
-            try {
-                const res = await fetch(`${API_URL}/api/upload-warranty/${state.reportId}`, {
-                    method: 'POST',
-                    body: formData
-                });
-                
-                if (res.ok) {
-                    const data = await res.json();
-                    
-                    // Store warranty data
-                    state.warrantyId = data.warranty_id;
-                    state.warrantyBuilderName = data.builder_name;
-                    state.warrantyType = data.warranty_type;
-                    state.warrantyLoaded = true;
-                    
-                    // Show success message in modal
-                    if (loadingText) {
-                        loadingText.innerHTML = `✅ ${data.builder_name} (${data.warranty_type}) uploaded successfully!`;
-                    }
-                    
-                    // Close modal and return to chat after delay
-                    setTimeout(() => {
-                        closeWarrantyModal();
-                        render();  // Re-render to show warranty badge
-                    }, 1500);
-                } else {
-                    const error = await res.json();
-                    if (loadingText) {
-                        loadingText.textContent = `❌ Error: ${error.error || 'Upload failed'}`;
-                    }
-                    // Show form again after error
-                    setTimeout(() => {
-                        if (inputState && loadingState) {
-                            inputState.style.display = 'block';
-                            loadingState.style.display = 'none';
-                        }
-                    }, 2000);
-                }
-            } catch (e) {
-                if (loadingText) {
-                    loadingText.textContent = `❌ Error: ${e.message}`;
-                }
-                // Show form again after error
+            formData.append('file', file);
+            formData.append('address', file.name);
+            formData.append('customer_name', 'Homeowner');
+            formData.append('inspector_name', 'Inspector');
+            formData.append('report_type', 'home_inspection');
+
+            const app = document.getElementById('app');
+            app.innerHTML = '<div style="display: flex; align-items: center; justify-content: center; height: 100vh; background: var(--dark-bg);"><div style="text-align: center;"><div class="loading-spinner" style="margin: 0 auto 20px;"></div><p style="color: var(--text-secondary);">Processing your inspection...</p></div></div>';
+
+            fetch(`${API_URL}/api/upload`, {
+                method: 'POST',
+                body: formData
+            })
+            .then(res => res.json())
+            .then(data => {
+                state.reportId = data.report_id;
+                state.summary = data.summary;
+                state.address = data.address;
+                state.extractedText = data.extracted_text;
+                state.screen = 'dashboard';
+                state.showSidebar = false;
+                state.messages = [];
+                render();
+            })
+            .catch(err => {
+                alert('Upload failed: ' + err.message);
+                render();
+            });
+        }
+
+        function toggleSidebar() {
+            state.showSidebar = !state.showSidebar;
+            render();
+            setTimeout(() => {
+                const input = document.getElementById('sidebarInput');
+                if (input) input.focus();
+                const chat = document.getElementById('sidebarChat');
+                if (chat) chat.scrollTop = chat.scrollHeight;
+            }, 100);
+        }
+
+        function askAbout(question) {
+            state.messages.push({ type: 'user', text: question });
+            render();
+            setTimeout(() => {
+                const chat = document.getElementById('sidebarChat');
+                if (chat) chat.scrollTop = chat.scrollHeight;
+            }, 50);
+
+            fetch(`${API_URL}/api/ask/${state.reportId}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ question })
+            })
+            .then(res => res.json())
+            .then(data => {
+                state.messages.push({ type: 'ai', text: data.answer });
+                render();
                 setTimeout(() => {
-                    if (inputState && loadingState) {
-                        inputState.style.display = 'block';
-                        loadingState.style.display = 'none';
-                    }
-                }, 2000);
+                    const chat = document.getElementById('sidebarChat');
+                    if (chat) chat.scrollTop = chat.scrollHeight;
+                }, 50);
+            })
+            .catch(err => {
+                state.messages.push({ type: 'ai', text: 'Error: Could not get response' });
+                render();
+            });
+        }
+
+        function handleSidebarKeyPress(event) {
+            if (event.key === 'Enter') {
+                sendSidebarMessage();
             }
+        }
+
+        function sendSidebarMessage() {
+            const input = document.getElementById('sidebarInput');
+            const question = input.value.trim();
+            if (!question) return;
+
+            input.value = '';
+            askAbout(question);
+        }
+
+        function updateTimeline(value) {
+            // Timeline slider updates visualization
+            const slider = document.getElementById('timelineSlider');
+            const months = Math.floor(value);
+            console.log(`Timeline updated to ${months} months`);
+        }
+
+        function scrollToTimeline() {
+            document.getElementById('timeline-section')?.scrollIntoView({ behavior: 'smooth' });
+        }
+
+        function generateReport() {
+            alert('PDF generation coming soon!');
+        }
+
+        function shareReport() {
+            alert('Share functionality coming soon!');
         }
 
         function resetApp() {
@@ -783,23 +1122,21 @@
                 reportId: null,
                 summary: null,
                 address: null,
+                extractedText: null,
                 messages: [],
-                uploading: false,
-                loading: false,
-                currentQuestionId: null,
-                customerName: '',
-                customerEmail: '',
-                customerPhone: '',
-                showConfirmModal: false,
-                pendingQuote: null,
-                warrantyId: null,
-                warrantyBuilderName: null,
-                warrantyType: null,
-                warrantyLoaded: false
+                showSidebar: false,
+                warranty: null
             };
             render();
         }
 
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // Initial render
         render();
     </script>
 </body>
