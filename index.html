@@ -1023,24 +1023,29 @@
             app.innerHTML = '<div style="display: flex; align-items: center; justify-content: center; height: 100vh; background: var(--dark-bg);"><div style="text-align: center;"><div class="loading-spinner" style="margin: 0 auto 20px;"></div><p style="color: var(--text-secondary);">Processing your inspection...</p></div></div>';
 
             fetch(`${API_URL}/api/upload`, {
-                method: 'POST',
-                body: formData
-            })
-            .then(res => res.json())
-            .then(data => {
-                state.reportId = data.report_id;
-                state.summary = data.summary;
-                state.address = data.address;
-                state.extractedText = data.extracted_text;
-                state.screen = 'dashboard';
-                state.showSidebar = false;
-                state.messages = [];
-                render();
-            })
-            .catch(err => {
-                alert('Upload failed: ' + err.message);
-                render();
-            });
+    method: 'POST',
+    body: formData
+})
+.then(res => {
+    if (!res.ok) {
+        throw new Error(`HTTP error! status: ${res.status}`);
+    }
+    return res.json();
+})
+.then(data => {
+    state.reportId = data.report_id;
+    state.summary = data.summary;
+    state.address = data.address;
+    state.extractedText = data.extracted_text;
+    state.screen = 'dashboard';
+    state.showSidebar = false;
+    state.messages = [];
+    render();
+})
+.catch(err => {
+    alert('Upload failed: ' + err.message);
+    render();
+});
         }
 
         function toggleSidebar() {
