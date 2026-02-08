@@ -22,8 +22,13 @@ import json
 from collections import OrderedDict
 
 # Initialize Flask app
-app = Flask(__name__)
+#app = Flask(__name__)
+app = Flask(__name__, static_folder='.', static_url_path='')
 
+@app.route('/')
+def index():
+    with open('index.html', 'r', encoding='utf-8') as f:
+        return f.read()
 # Database config
 app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URL', 'sqlite:///inspection_reports.db')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
@@ -135,9 +140,9 @@ def upload_report():
         # Create database record
         report = InspectionReport(
             address=request.form.get('address', 'Unknown Address'),
-            customer_name=request.form.get('customer_name', 'Unknown'),
-            customer_email=request.form.get('customer_email', ''),
-            customer_phone=request.form.get('customer_phone', ''),
+            customerName=request.form.get('customer_name', 'Unknown'),
+            customerEmail=request.form.get('customer_email', ''),
+            customerPhone=request.form.get('customer_phone', ''),
             inspector_name=request.form.get('inspector_name', 'Inspector'),
             inspection_date=datetime.utcnow(),
             report_type=request.form.get('report_type', 'home_inspection'),
@@ -304,9 +309,9 @@ def get_leads():
                     'id': l.id,
                     'report_id': l.report_id,
                     'customer_name': l.customer_name or 'N/A',
-                    'customer_email': l.customer_email or 'N/A',
-                    'customer_phone': l.customer_phone or 'N/A',
-                    'contractor_name': l.contractor.name,
+                    'customerEmail': l.customer_email or 'N/A',
+                    'customerPhone': l.customer_phone or 'N/A',
+                    'contractorName': l.contractor.name,
                     'issue_type': l.question.issue_type,
                     'status': l.status,
                     'created_at': l.created_at.isoformat()
@@ -376,9 +381,9 @@ def create_referral_request():
             report_id=data['report_id'],
             question_id=data['question_id'],
             contractor_id=data['contractor_id'],
-            customer_name=data.get('customer_name', ''),
-            customer_email=data.get('customer_email', ''),
-            customer_phone=data.get('customer_phone', ''),
+            customerName=data.get('customer_name', ''),
+            customerEmail=data.get('customer_email', ''),
+            customerPhone=data.get('customer_phone', ''),
             status='pending',
             notes=punchlist
         )
