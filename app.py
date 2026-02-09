@@ -168,7 +168,7 @@ def upload_report():
         return jsonify({
             'success': True,
             'report_id': report.id,
-            'share_token': report.share_token,
+            'shareToken': report.shareToken,
             'summary': summary,
             'address': report.address,
             'message': 'Report uploaded successfully'
