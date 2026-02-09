@@ -15,6 +15,7 @@ from warranty_utils import (
     parse_warranty_coverage,
     WarrantyCoverageQA
 )
+import uuid
 import os
 from datetime import datetime
 import re
