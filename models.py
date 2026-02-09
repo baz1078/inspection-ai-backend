@@ -20,7 +20,7 @@ class InspectionReport(db.Model):
     fileSize = db.Column(db.Integer)
     extractedText = db.Column(db.Text)
     summary = db.Column(db.Text)
-    shareToken = db.Column(db.String(100), unique=True, default=lambda: str(uuid.uuid4()))
+    shareToken = db.Column(db.String(100), unique=True)
     isShared = db.Column(db.Boolean, default=True)
     createdAt = db.Column(db.DateTime, default=datetime.utcnow)
     updatedAt = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
@@ -38,7 +38,6 @@ class Conversation(db.Model):
     reportId = db.Column(db.String(36), db.ForeignKey('InspectionReport.id'), nullable=False)
     customerQuestion = db.Column(db.Text)
     aiResponse = db.Column(db.Text)
-    questionNumber = db.Column(db.Integer)
     createdAt = db.Column(db.DateTime, default=datetime.utcnow)
 
 class Question(db.Model):
@@ -56,12 +55,12 @@ class Contractor(db.Model):
     
     id = db.Column(db.String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
     name = db.Column(db.String(255), nullable=False)
-    specialty = db.Column(db.String(50), nullable=False)
+    specialty = db.Column(db.String(255), nullable=False)
     phone = db.Column(db.String(20))
     email = db.Column(db.String(255))
     zipCodes = db.Column(db.Text)
     city = db.Column(db.String(100))
-    state = db.Column(db.String(2))
+    state = db.Column(db.String(50))
     rating = db.Column(db.Float, default=0.0)
     reviewCount = db.Column(db.Integer, default=0)
     description = db.Column(db.Text)
@@ -84,9 +83,6 @@ class Lead(db.Model):
     reportId = db.Column(db.String(36), db.ForeignKey('InspectionReport.id'), nullable=False)
     questionId = db.Column(db.String(36), db.ForeignKey('Question.id'), nullable=False)
     contractorId = db.Column(db.String(36), db.ForeignKey('Contractor.id'), nullable=False)
-    customerName = db.Column(db.String(255), nullable=True)
-    customerEmail = db.Column(db.String(255), nullable=True)
-    customerPhone = db.Column(db.String(20), nullable=True)
     status = db.Column(db.String(50), default='pending')
     notes = db.Column(db.Text)
     createdAt = db.Column(db.DateTime, default=datetime.utcnow)
@@ -109,7 +105,7 @@ class WarrantyDocument(db.Model):
     
     id = db.Column(db.String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
     builderName = db.Column(db.String(255), nullable=False)
-    warrantyType = db.Column(db.String(100), nullable=False)
+    warrantyType = db.Column(db.String(255), nullable=False)
     jurisdiction = db.Column(db.String(50))
     filePath = db.Column(db.String(500))
     originalFilename = db.Column(db.String(255))
@@ -177,6 +173,3 @@ class DamageAssessmentReport(db.Model):
     isShared = db.Column(db.Boolean, default=True)
     createdAt = db.Column(db.DateTime, default=datetime.utcnow)
     updatedAt = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
-    
-    def __repr__(self):
-        return f'<DamageAssessmentReport {self.reportId}>'

@@ -92,13 +92,13 @@ def get_matching_contractors(issue_type: str, zip_code: str = None):
     """Get contractors matching issue type and optionally zip code"""
     contractors = Contractor.query.filter_by(
         specialty=issue_type,
-        is_active=True
+        isActive=True
     ).order_by(Contractor.rating.desc()).limit(3).all()
     
     if zip_code and contractors:
         matching = []
         for c in contractors:
-            if c.zip_codes and zip_code in c.zip_codes:
+            if c.zipCodes and zip_code in c.zipCodes:
                 matching.append(c)
         return matching if matching else contractors[:3]
     
@@ -131,11 +131,11 @@ def upload_report():
         
         # Extract text
         print("Extracting text from PDF...")
-        extracted_text = extract_text_from_pdf(filepath)
+        extractedText = extract_text_from_pdf(filepath)
         
         # Generate summary
         print("Generating AI summary...")
-        summary = generate_summary_from_report(extracted_text)
+        summary = generate_summary_from_report(extractedText)
         
         # Create database record
         report = InspectionReport(
@@ -143,22 +143,22 @@ def upload_report():
             customerName=request.form.get('customer_name', 'Unknown'),
             customerEmail=request.form.get('customer_email', ''),
             customerPhone=request.form.get('customer_phone', ''),
-            inspector_name=request.form.get('inspector_name', 'Inspector'),
-            inspection_date=datetime.utcnow(),
-            report_type=request.form.get('report_type', 'home_inspection'),
-            original_filename=secure_filename(file.filename),
-            file_path=filepath,
-            file_size=os.path.getsize(filepath),
-            extracted_text=extracted_text,
+            inspectorName=request.form.get('inspector_name', 'Inspector'),
+            inspectionDate=datetime.utcnow(),
+            reportType=request.form.get('report_type', 'home_inspection'),
+            originalFilename=secure_filename(file.filename),
+            filePath=filepath,
+            fileSize=os.path.getsize(filepath),
+            extractedText=extractedText,
             summary=summary,
-            is_shared=True
+            isShared=True
         )
         
         db.session.add(report)
         db.session.commit()
         
         # Cache the conversation
-        qa_system = InspectionReportQA(extracted_text)
+        qa_system = InspectionReportQA(extractedText)
         REPORT_CACHE[report.id] = qa_system
         if len(REPORT_CACHE) > MAX_CACHE_SIZE:
             REPORT_CACHE.popitem(last=False)
@@ -206,7 +206,7 @@ def ask_question(report_id):
         if report_id in REPORT_CACHE:
             qa_system = REPORT_CACHE[report_id]
         else:
-            qa_system = InspectionReportQA(report.extracted_text)
+            qa_system = InspectionReportQA(report.extractedText)
             REPORT_CACHE[report_id] = qa_system
             if len(REPORT_CACHE) > MAX_CACHE_SIZE:
                 REPORT_CACHE.popitem(last=False)
@@ -271,7 +271,7 @@ def ask_question(report_id):
 @app.route('/api/admin/contractors', methods=['GET'])
 def get_contractors():
     try:
-        contractors = Contractor.query.filter_by(is_active=True).all()
+        contractors = Contractor.query.filter_by(isActive=True).all()
         
         return jsonify({
             'total': len(contractors),
@@ -538,12 +538,12 @@ def upload_warranty(report_id):
             builder_name=builder_name,
             warranty_type=warranty_type,
             jurisdiction=jurisdiction,
-            file_path=filepath,
-            original_filename=secure_filename(file.filename),
-            file_size=os.path.getsize(filepath),
-            extracted_text=warranty_text[:5000],  # Store first 5000 chars
+            filePath=filepath,
+            originalFilename=secure_filename(file.filename),
+            fileSize=os.path.getsize(filepath),
+            extractedText=warranty_text[:5000],  # Store first 5000 chars
             coverage_rules=coverage_summary,  # Plain text summary, not JSON
-            is_active=True
+            isActive=True
         )
         
         db.session.add(warranty_doc)
