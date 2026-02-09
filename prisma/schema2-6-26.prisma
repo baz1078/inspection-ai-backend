@@ -27,7 +27,7 @@ model InspectionReport {
   questions         Question[]
   leads             Lead[]
   
-
+  # NEW WARRANTY RELATIONSHIPS
   reportWarranties  ReportWarranty[]
   warrantyQueries   WarrantyQuery[]
 
@@ -38,10 +38,10 @@ model InspectionReport {
 model Contractor {
   id                String    @id @default(cuid())
   name              String
-  specialty         String    
+  specialty         String    // "roofer", "plumber", "electrician", etc.
   phone             String
   email             String
-  zipCodes          String    
+  zipCodes          String    // comma-separated: "60601,60602,60603"
   city              String
   state             String
   rating            Float     @default(0.0)
@@ -52,7 +52,7 @@ model Contractor {
   isLicensed        Boolean   @default(true)
   isBonded          Boolean   @default(true)
   isInsured         Boolean   @default(true)
-  costPerLead       Float     
+  costPerLead       Float     // How much you charge them per lead
   createdAt         DateTime  @default(now())
   updatedAt         DateTime  @updatedAt
   isActive          Boolean   @default(true)
@@ -70,7 +70,7 @@ model Question {
   report            InspectionReport @relation(fields: [reportId], references: [id], onDelete: Cascade)
   
   question          String    @db.Text
-  issueType         String    
+  issueType         String    // "electrical", "roofing", "plumbing", etc.
   answer            String    @db.Text
   
   createdAt         DateTime  @default(now())
@@ -92,7 +92,7 @@ model Lead {
   contractorId      String
   contractor        Contractor @relation(fields: [contractorId], references: [id], onDelete: Cascade)
   
-  status            String    @default("pending") 
+  status            String    @default("pending") // pending, contacted, quoted, converted, lost
   notes             String?   @db.Text
   
   createdAt         DateTime  @default(now())
@@ -129,31 +129,33 @@ model Analytics {
   @@index([createdAt])
 }
 
-
+# ============================================================================
+# NEW WARRANTY MODELS - NON-BREAKING ADDITIONS
+# ============================================================================
 
 model WarrantyDocument {
   id                String    @id @default(cuid())
   
- 
-  builderName       String    
-  warrantyType      String  
-  jurisdiction      String    
+  # Warranty identification
+  builderName       String    // "Travelers", "National Home Warranty", "Dweller", etc.
+  warrantyType      String    // "2-5-10", "10-year", "NHWC", "Builder Warranty", etc.
+  jurisdiction      String    // "BC", "IL", "CA", "USA", etc.
   
-
+  # Document storage
   filePath          String
   originalFilename  String
   fileSize          Int
   extractedText     String    @db.Text
   
+  # Parsed warranty rules (JSON structure matching warranty_config.json)
+  coverageRules     String    @db.Text  // JSON: coverage periods, covered items, exclusions
   
-  coverageRules     String    @db.Text  
-  
-
+  # Metadata
   isActive          Boolean   @default(true)
   createdAt         DateTime  @default(now())
   updatedAt         DateTime  @updatedAt
   
-
+  # Relationships
   reportWarranties  ReportWarranty[]
   warrantyQueries   WarrantyQuery[]
   
@@ -165,14 +167,14 @@ model WarrantyDocument {
 model ReportWarranty {
   id                String    @id @default(cuid())
   
-  
+  # Links inspection to warranty document
   reportId          String
   report            InspectionReport @relation(fields: [reportId], references: [id], onDelete: Cascade)
   
   warrantyId        String
   warranty          WarrantyDocument @relation(fields: [warrantyId], references: [id], onDelete: Cascade)
   
-  
+  # Warranty certificate info (extracted from PDF)
   certificateNumber String?
   warrantyStartDate DateTime?
   warrantyEndDate   DateTime?
@@ -180,29 +182,33 @@ model ReportWarranty {
   createdAt         DateTime  @default(now())
   updatedAt         DateTime  @updatedAt
   
-  @@unique([reportId, warrantyId])  
+  @@unique([reportId, warrantyId])  // One warranty per report
   @@index([reportId])
   @@index([warrantyId])
 }
 
 model WarrantyQuery {
   id                String    @id @default(cuid())
+  
+  # Links question to warranty analysis
   reportId          String
   report            InspectionReport @relation(fields: [reportId], references: [id], onDelete: Cascade)
   
   warrantyId        String
-  warranty          WarrantyDocument @relation(fields: [warrantyId], references: [id], onDelete: Cascade)
   
-  customerQuestion  String    @db.Text
-  inspectionFinding String    @db.Text
+  # The question and analysis
+  customerQuestion  String    @db.Text  // e.g., "Is the electrical issue covered?"
+  inspectionFinding String    @db.Text  // The actual finding from inspection
   
-  claimability      String?
-  claimReason       String    @db.Text
-  warrantySection   String?
-  aiAnalysis        String    @db.Text
+  # AI Analysis result
+  claimability      String    // "COVERED", "NOT_COVERED", "PARTIAL", "REQUIRES_SPECIALIST"
+  claimReason       String    @db.Text  // Why it is/isn't covered
+  warranty_section  String?   // e.g., "Section A.2 - Building Envelope Warranty"
+  ai_analysis       String    @db.Text  // Full Claude response
   
   createdAt         DateTime  @default(now())
   
   @@index([reportId])
+  @@index([warrantyId])
   @@index([claimability])
 }

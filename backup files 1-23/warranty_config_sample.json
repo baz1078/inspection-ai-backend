@@ -1,0 +1,159 @@
+{
+  "legal_source": "Travelers Insurance Company of Canada - Home Warranty Schedule E-1",
+  "builder_name": "Travelers Insurance Company of Canada",
+  "warranty_type": "2-5-10 Home Warranty Certificate",
+  "jurisdiction": "BC (British Columbia, Canada)",
+  "last_updated": "2026-01-18",
+  
+  "coverage_periods": {
+    "1_year_materials_labor": {
+      "duration": "1 Year",
+      "what_covered": [
+        "All defects in Materials and Labour",
+        "Workmanship defects",
+        "Material quality issues"
+      ],
+      "example_finding": "Outlet not working, drywall cracks, paint defects"
+    },
+    
+    "2_year_systems": {
+      "duration": "2 Years",
+      "what_covered": [
+        "Gas, electrical, plumbing delivery and distribution systems",
+        "Heating, ventilation, and air conditioning systems",
+        "Exterior cladding, caulking, windows and doors (if causing detachment or material damage)",
+        "Any defect rendering home unfit to live in",
+        "Non-compliance with Building Code (if creates health/safety risk)"
+      ],
+      "example_finding": "Non-working furnace, water leak at window, electrical panel issue"
+    },
+    
+    "5_year_building_envelope": {
+      "duration": "5 Years",
+      "what_covered": [
+        "Building Envelope defects",
+        "Water penetration causing material damage",
+        "Roof leaks",
+        "Exterior water intrusion"
+      ],
+      "example_finding": "Roof leak, water damage from exterior, building envelope failure"
+    },
+    
+    "10_year_structural": {
+      "duration": "10 Years",
+      "what_covered": [
+        "Structural Defects in Materials and Labour",
+        "Failure of Load Bearing parts (foundation, beams, posts, load bearing walls, floor/roof support)",
+        "Structural damage materially affecting residential use"
+      ],
+      "example_finding": "Foundation crack, settling causing structural concern"
+    }
+  },
+  
+  "covered_items": {
+    "electrical": {
+      "covered": ["Wiring, panels, delivery systems", "2 years coverage"],
+      "not_covered": ["Light fixtures, appliances", "Owner-supplied materials"]
+    },
+    "plumbing": {
+      "covered": ["Water lines, drain systems, delivery/distribution systems", "2 years coverage"],
+      "not_covered": ["Fixtures (faucets, toilets)", "Owner-supplied materials"]
+    },
+    "hvac": {
+      "covered": ["Furnace, boiler, delivery/distribution systems", "2 years coverage"],
+      "not_covered": ["Filters, routine maintenance", "Owner-supplied materials"]
+    },
+    "roofing": {
+      "covered": ["Roof covering, flashing, drainage", "5 years building envelope coverage"],
+      "not_covered": ["Routine cleaning, gutter cleaning (not disassembly)"]
+    },
+    "structural": {
+      "covered": ["Foundation, load bearing components, structural damage", "10 years coverage"],
+      "not_covered": ["Normal settling, cosmetic cracks"]
+    },
+    "exterior": {
+      "covered": ["Cladding, windows, doors causing water intrusion", "2-5 years coverage"],
+      "not_covered": ["Landscaping, grading, surface drainage (except Building Code required)"]
+    }
+  },
+  
+  "exclusions": [
+    "Normal wear and tear, weathering, deterioration",
+    "Normal shrinkage of materials",
+    "Non-residential use",
+    "Owner-supplied materials or labour",
+    "Damage caused by owner, third party, or improper maintenance",
+    "Failure to maintain (owner responsibility)",
+    "Acts of nature (fire, flood, earthquake, etc.)",
+    "Damage to personal property or real property not part of home",
+    "Non-Building Code compliant work by non-builders",
+    "Changes/alterations by owner",
+    "Insects/rodents (unless from non-compliance with Building Code)",
+    "Contaminated soil",
+    "Land subsidence (except directly under footings/driveways)",
+    "Diminution in value",
+    "Landscaping (hard and soft)",
+    "Non-residential structures (sheds, detached garages)",
+    "Roads, curbs, lanes",
+    "Site grading/drainage (except Building Code required)",
+    "Municipal services (sewer)",
+    "Septic systems",
+    "Water wells (except delivery equipment)"
+  ],
+  
+  "coverage_limits": {
+    "fee_simple": {
+      "limit": "Lesser of purchase price or $200,000"
+    },
+    "strata_unit": {
+      "limit": "Lesser of purchase price or $100,000"
+    },
+    "common_property": {
+      "limit": "Lesser of: total contract price, $100k × unit count, or $2,500,000"
+    }
+  },
+  
+  "claim_process": [
+    "1. Discover defect and assess if it falls within coverage period",
+    "2. Give written notice to Builder and Travelers (required before expiry)",
+    "3. Travelers will arrange inspection of the defect",
+    "4. If claim valid, Travelers covers repair or issues payment",
+    "5. All repairs warranted against defects until later of: 1 year or remaining warranty"
+  ],
+  
+  "key_definitions": {
+    "defect": "Design or construction contrary to Building Code OR requires repair due to Builder negligence",
+    "building_envelope": "Assemblies separating interior from exterior, protecting from weather",
+    "load_bearing": "Foundation systems, support beams/posts/columns, load bearing walls, floor/roof support",
+    "material_damage": "Damage materially and adversely affecting residential use",
+    "structural_defect": "Defect causing failure of Load Bearing part affecting Load Bearing function",
+    "readily_accessible": "Available for visual inspection WITHOUT moving property, dismantling, or risk to persons"
+  },
+  
+  "customer_question_examples": {
+    "covered": [
+      "Is a non-working furnace covered? → YES (2-year systems coverage)",
+      "Is water leaking through the roof covered? → YES (5-year building envelope coverage)",
+      "Is a foundation crack covered? → MAYBE (10-year structural, but depends on severity)"
+    ],
+    "not_covered": [
+      "Is window condensation covered? → NO (normal wear and tear exclusion)",
+      "Is a light fixture replacement covered? → NO (fixtures are excluded)",
+      "Is foundation settling 1/4 inch covered? → NO (normal settling excluded, must materially affect use)"
+    ],
+    "needs_evaluation": [
+      "Is a small drywall crack covered? → DEPENDS (if structural, yes; if cosmetic, no)",
+      "Is water in basement covered? → DEPENDS (if from defect, yes; if from flooding, no)"
+    ]
+  },
+  
+  "response_templates": {
+    "covered": "This issue IS covered under your **{warranty_type}** warranty. Specifically, {coverage_period} covers {what_covered}. Here's how to claim: {claim_steps}",
+    
+    "not_covered": "This issue is NOT covered under your **{warranty_type}** warranty because it falls under the exclusion: {exclusion_reason}. This is considered {what_it_is} which is owner responsibility.",
+    
+    "partial": "Part of this issue MAY be covered. {covered_part} is covered under {coverage_period}. However, {not_covered_part} is NOT covered because {reason}.",
+    
+    "requires_evaluation": "Whether this is covered depends on professional evaluation. {basic_answer} To determine coverage, you should: {next_steps}"
+  }
+}
