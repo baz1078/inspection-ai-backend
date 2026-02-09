@@ -152,7 +152,7 @@ def upload_report():
             fileSize=os.path.getsize(filepath),
             extractedText=extractedText,
             summary=summary,
-            isShared=True
+            isShared=True,
             shareToken=str(uuid.uuid4())[:8] 
         )
         
