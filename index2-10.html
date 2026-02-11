@@ -906,8 +906,7 @@
             warrantyBuilderName: null,
             warrantyType: null,
             warrantyLoaded: false,
-            showConfirmModal: false,
-            chatVisible: true
+            showConfirmModal: false
         };
 
         function render() {
@@ -1056,21 +1055,21 @@
                             <p>Share this report with your buyer</p>
                             <div class="realtor-card-buttons">
                                 <button onclick="alert('PDF generation coming soon!')">Generate PDF</button>
-                                <button onclick="copyShareLink()">Share Link</button>
+                                <button onclick="alert('Share functionality coming soon!')">Share Link</button>
                             </div>
                         </div>
 
                         <div class="action-buttons">
-                            <button class="btn btn-primary" onclick="toggleChat(true)">💬 Ask Question</button>
+                            <button class="btn btn-primary" onclick="document.getElementById('question')?.focus()">💬 Ask Question</button>
                             <button class="btn btn-secondary" onclick="resetApp()">📤 New Report</button>
                         </div>
                     </div>
                 </div>
 
-                <div class="chat-panel" id="chatPanel" style="display: ${state.chatVisible ? 'flex' : 'none'}">
+                <div class="chat-panel">
                     <div class="chat-panel-header">
                         <h3>Ask About This Report</h3>
-                        <button class="chat-panel-close" onclick="toggleChat(false)">✕</button>
+                        <button class="chat-panel-close" onclick="document.querySelector('.chat-panel').style.display='none'">✕</button>
                     </div>
                     <div class="chat-messages" id="chatMessages"></div>
                     <div class="chat-input-area">
@@ -1152,7 +1151,6 @@
                     state.reportId = data.report_id;
                     state.summary = data.summary;
                     state.address = data.address;
-                    state.shareToken = data.share_token || null;
                     state.screen = 'dashboard';
                     state.messages = [];
                     render();
@@ -1368,38 +1366,8 @@
             });
         }
 
-        function toggleChat(show) {
-            state.chatVisible = show;
-            const panel = document.getElementById('chatPanel');
-            if (panel) {
-                panel.style.display = show ? 'flex' : 'none';
-                if (show) {
-                    const input = document.getElementById('question');
-                    if (input) input.focus();
-                }
-            }
-        }
-
-        function copyShareLink() {
-            if (state.shareToken) {
-                const link = window.location.origin + '/report/' + state.shareToken;
-                navigator.clipboard.writeText(link).then(() => {
-                    alert('Share link copied to clipboard!');
-                }).catch(() => {
-                    prompt('Copy this link:', link);
-                });
-            } else {
-                const link = window.location.origin + '/report/' + state.reportId;
-                navigator.clipboard.writeText(link).then(() => {
-                    alert('Share link copied to clipboard!');
-                }).catch(() => {
-                    prompt('Copy this link:', link);
-                });
-            }
-        }
-
         function resetApp() {
-            state = { screen: 'upload', customerName: '', customerEmail: '', customerPhone: '', uploading: false, reportId: null, summary: null, address: null, messages: [], loading: false, pendingQuote: null, warrantyId: null, warrantyBuilderName: null, warrantyType: null, warrantyLoaded: false, showConfirmModal: false, chatVisible: true, shareToken: null };
+            state = { screen: 'upload', customerName: '', customerEmail: '', customerPhone: '', uploading: false, reportId: null, summary: null, address: null, messages: [], loading: false, pendingQuote: null, warrantyId: null, warrantyBuilderName: null, warrantyType: null, warrantyLoaded: false, showConfirmModal: false };
             render();
         }
 
