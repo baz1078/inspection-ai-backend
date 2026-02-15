@@ -202,7 +202,7 @@ def ask_question(report_id):
         if warranty_id:
             warranty = WarrantyDocument.query.get(warranty_id)
             if warranty:
-                warranty_context = f"\n\nWARRANTY COVERAGE INFORMATION:\n{warranty.coverage_rules}"
+                warranty_context = f"\n\nWARRANTY COVERAGE INFORMATION:\n{warranty.coverageRules}"
         
         # Get or create QA system from cache
         if report_id in REPORT_CACHE:
@@ -229,7 +229,7 @@ def ask_question(report_id):
         db_question = Question(
             reportId=report.id,
             question=question,
-            issue_type=issue_type,
+            issueType=issue_type,
             answer=answer
         )
         db.session.add(db_question)
@@ -252,7 +252,7 @@ def ask_question(report_id):
                     'phone': c.phone,
                     'email': c.email,
                     'rating': c.rating,
-                    'review_count': c.review_count,
+                    'review_count': c.reviewCount,
                     'description': c.description,
                     'website': c.website
                 })
@@ -287,10 +287,10 @@ def get_contractors():
                     'city': c.city,
                     'state': c.state,
                     'rating': c.rating,
-                    'review_count': c.review_count,
-                    'is_licensed': c.is_licensed,
-                    'is_bonded': c.is_bonded,
-                    'is_insured': c.is_insured
+                    'review_count': c.reviewCount,
+                    'is_licensed': c.isLicensed,
+                    'is_bonded': c.isBonded,
+                    'is_insured': c.isInsured
                 }
                 for c in contractors
             ]
@@ -309,14 +309,11 @@ def get_leads():
             'leads': [
                 {
                     'id': l.id,
-                    'report_id': l.report_id,
-                    'customer_name': l.customer_name or 'N/A',
-                    'customerEmail': l.customer_email or 'N/A',
-                    'customerPhone': l.customer_phone or 'N/A',
+                    'report_id': l.reportId,
                     'contractorName': l.contractor.name,
-                    'issue_type': l.question.issue_type,
+                    'issue_type': l.question.issueType,
                     'status': l.status,
-                    'created_at': l.created_at.isoformat()
+                    'created_at': l.createdAt.isoformat()
                 }
                 for l in leads
             ]
@@ -366,26 +363,23 @@ def create_referral_request():
             return jsonify({'error': 'Report, question, or contractor not found'}), 404
         
         # UPDATE report with customer info if provided
-        report.customer_name = data.get('customer_name')
-        report.customer_email = data.get('customer_email')
-        report.customer_phone = data.get('customer_phone')
+        report.customerName = data.get('customer_name')
+        report.customerEmail = data.get('customer_email')
+        report.customerPhone = data.get('customer_phone')
         
         # GENERATE PUNCHLIST
-        print(f"Generating punchlist for {question.issue_type}...")
+        print(f"Generating punchlist for {question.issueType}...")
         punchlist = generate_punchlist(
             question.answer,
-            question.issue_type,
+            question.issueType,
             question.question
         )
         
         # CREATE LEAD with punchlist in notes
         lead = Lead(
-            report_id=data['report_id'],
-            question_id=data['question_id'],
-            contractor_id=data['contractor_id'],
-            customerName=data.get('customer_name', ''),
-            customerEmail=data.get('customer_email', ''),
-            customerPhone=data.get('customer_phone', ''),
+            reportId=data['report_id'],
+            questionId=data['question_id'],
+            contractorId=data['contractor_id'],
             status='pending',
             notes=punchlist
         )
@@ -403,7 +397,7 @@ def create_referral_request():
                     customer_email=data.get('customer_email'),
                     customer_phone=data.get('customer_phone'),
                     property_address=report.address,
-                    issue_type=question.issue_type,
+                    issue_type=question.issueType,
                     punchlist=punchlist
                 )
                 print(f"Email sent to contractor: {contractor.email}")
@@ -432,7 +426,7 @@ def get_question_analytics():
         
         issue_type_count = {}
         for q in questions:
-            issue_type_count[q.issue_type] = issue_type_count.get(q.issue_type, 0) + 1
+            issue_type_count[q.issueType] = issue_type_count.get(q.issueType, 0) + 1
         
         return jsonify({
             'total_questions': len(questions),
@@ -480,7 +474,7 @@ def get_dashboard_stats():
         
         issue_type_count = {}
         for q in questions:
-            issue_type_count[q.issue_type] = issue_type_count.get(q.issue_type, 0) + 1
+            issue_type_count[q.issueType] = issue_type_count.get(q.issueType, 0) + 1
         
         by_status = {}
         for l in leads:
@@ -537,14 +531,14 @@ def upload_warranty(report_id):
         
         # Create WarrantyDocument record
         warranty_doc = WarrantyDocument(
-            builder_name=builder_name,
-            warranty_type=warranty_type,
+            builderName=builder_name,
+            warrantyType=warranty_type,
             jurisdiction=jurisdiction,
             filePath=filepath,
             originalFilename=secure_filename(file.filename),
             fileSize=os.path.getsize(filepath),
             extractedText=warranty_text[:5000],  # Store first 5000 chars
-            coverage_rules=coverage_summary,  # Plain text summary, not JSON
+            coverageRules=coverage_summary,  # Plain text summary, not JSON
             isActive=True
         )
         
@@ -554,8 +548,8 @@ def upload_warranty(report_id):
         # Link warranty to report
         report_warranty = ReportWarranty(
             reportId=report_id,
-            warranty_id=warranty_doc.id,
-            warranty_start_date=datetime.utcnow()
+            warrantyId=warranty_doc.id,
+            warrantyStartDate=datetime.utcnow()
         )
         
         db.session.add(report_warranty)
