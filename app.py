@@ -227,7 +227,7 @@ def ask_question(report_id):
         
         # Create question record
         db_question = Question(
-            report_id=report.id,
+            reportId=report.id,
             question=question,
             issue_type=issue_type,
             answer=answer
@@ -553,7 +553,7 @@ def upload_warranty(report_id):
         
         # Link warranty to report
         report_warranty = ReportWarranty(
-            report_id=report_id,
+            reportId=report_id,
             warranty_id=warranty_doc.id,
             warranty_start_date=datetime.utcnow()
         )
