@@ -532,17 +532,26 @@
             flex-direction: column;
             box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
             z-index: 100;
+            transition: transform 0.3s ease, opacity 0.3s ease;
+            transform: translateY(0);
+            opacity: 1;
+        }
+
+        .chat-panel.chat-hidden {
+            transform: translateY(20px);
+            opacity: 0;
+            pointer-events: none;
         }
 
         .chat-panel-header {
             padding: 16px;
             border-bottom: 1px solid var(--border-color);
-            cursor: move;
             display: flex;
             justify-content: space-between;
             align-items: center;
             user-select: none;
             background: linear-gradient(90deg, var(--card-bg), rgba(20, 184, 166, 0.05));
+            border-radius: 12px 12px 0 0;
         }
 
         .chat-panel-header h3 {
@@ -767,18 +776,6 @@
             background: #0d9488;
         }
 
-        /* RESIZE HANDLE */
-        .resize-handle {
-            position: absolute;
-            bottom: 0;
-            right: 0;
-            width: 20px;
-            height: 20px;
-            cursor: nwse-resize;
-            background: linear-gradient(135deg, transparent 50%, #4a5568 50%);
-            border-radius: 0 0 12px 0;
-        }
-
         /* MODAL */
         .modal-overlay {
             position: fixed;
@@ -875,7 +872,7 @@
         @media (max-width: 768px) {
             .issues-grid { grid-template-columns: 1fr; }
             .budget-grid { grid-template-columns: 1fr; }
-            .chat-panel { width: calc(100vw - 40px); height: 300px; }
+            .chat-panel { width: calc(100vw - 24px); right: 12px; bottom: 12px; height: 350px; }
         }
 
         ::-webkit-scrollbar { width: 6px; }
@@ -917,7 +914,6 @@
                 setupUploadHandlers();
             } else if (state.screen === 'dashboard') {
                 app.innerHTML = renderDashboardScreen();
-                setupChatPanel();
             }
         }
 
@@ -1067,7 +1063,7 @@
                     </div>
                 </div>
 
-                <div class="chat-panel" id="chatPanel" style="display: ${state.chatVisible ? 'flex' : 'none'}">
+                <div class="chat-panel ${state.chatVisible ? '' : 'chat-hidden'}" id="chatPanel">
                     <div class="chat-panel-header">
                         <h3>Ask About This Report</h3>
                         <button class="chat-panel-close" onclick="toggleChat(false)">✕</button>
@@ -1077,7 +1073,6 @@
                         <input type="text" id="question" placeholder="Ask about the report..." onkeypress="if(event.key==='Enter') askQuestion()">
                         <button onclick="askQuestion()">Send</button>
                     </div>
-                    <div class="resize-handle"></div>
                 </div>
 
                 ${state.showConfirmModal ? `
@@ -1170,6 +1165,7 @@
         }
 
         function askQuestionCard(q) {
+            if (!state.chatVisible) toggleChat(true);
             const input = document.getElementById('question');
             if (input) {
                 input.value = q;
@@ -1315,67 +1311,18 @@
             }
         }
 
-        function setupChatPanel() {
-            const panel = document.querySelector('.chat-panel');
-            const header = document.querySelector('.chat-panel-header');
-            const resizeHandle = document.querySelector('.resize-handle');
-            
-            if (!panel) return;
-
-            let dragging = false;
-            let startX = 0, startY = 0;
-
-            header.addEventListener('mousedown', (e) => {
-                dragging = true;
-                startX = e.clientX - (window.innerWidth - panel.getBoundingClientRect().right);
-                startY = e.clientY - (window.innerHeight - panel.getBoundingClientRect().bottom);
-            });
-
-            document.addEventListener('mousemove', (e) => {
-                if (!dragging) return;
-                panel.style.right = (window.innerWidth - e.clientX - startX) + 'px';
-                panel.style.bottom = (window.innerHeight - e.clientY - startY) + 'px';
-            });
-
-            document.addEventListener('mouseup', () => {
-                dragging = false;
-            });
-
-            // Resize
-            resizeHandle.addEventListener('mousedown', (e) => {
-                let resizing = true;
-                const sX = e.clientX;
-                const sY = e.clientY;
-                const sW = panel.offsetWidth;
-                const sH = panel.offsetHeight;
-
-                const move = (me) => {
-                    if (!resizing) return;
-                    const nW = Math.max(300, sW + (me.clientX - sX));
-                    const nH = Math.max(250, sH + (me.clientY - sY));
-                    panel.style.width = nW + 'px';
-                    panel.style.height = nH + 'px';
-                };
-
-                const end = () => {
-                    resizing = false;
-                    document.removeEventListener('mousemove', move);
-                    document.removeEventListener('mouseup', end);
-                };
-
-                document.addEventListener('mousemove', move);
-                document.addEventListener('mouseup', end);
-            });
-        }
-
         function toggleChat(show) {
             state.chatVisible = show;
             const panel = document.getElementById('chatPanel');
             if (panel) {
-                panel.style.display = show ? 'flex' : 'none';
                 if (show) {
-                    const input = document.getElementById('question');
-                    if (input) input.focus();
+                    panel.classList.remove('chat-hidden');
+                    setTimeout(() => {
+                        const input = document.getElementById('question');
+                        if (input) input.focus();
+                    }, 300);
+                } else {
+                    panel.classList.add('chat-hidden');
                 }
             }
         }
