@@ -674,3 +674,33 @@ def generate_pdf_report(report_id):
         print(f"PDF generation error: {str(e)}")
         return jsonify({'error': str(e)}), 500
 
+
+@app.route('/api/admin/contractors', methods=['POST'])
+def add_contractor():
+    data = request.json
+    required = ['name', 'email', 'phone', 'company', 'service_area']
+    
+    if not all(k in data for k in required):
+        return jsonify({'error': 'Missing required fields'}), 400
+    
+    try:
+        with get_db() as conn:
+            with conn.cursor() as cur:
+                cur.execute("""
+                    INSERT INTO contractors (name, email, phone, company, service_area, subscription_tier, status)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s)
+                    RETURNING id
+                """, (
+                    data['name'],
+                    data['email'], 
+                    data['phone'],
+                    data['company'],
+                    data['service_area'],
+                    data.get('subscription_tier', 'basic'),
+                    data.get('status', 'active')
+                ))
+                contractor_id = cur.fetchone()[0]
+                conn.commit()
+                return jsonify({'success': True, 'contractor_id': contractor_id}), 201
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
