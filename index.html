@@ -917,7 +917,8 @@
     <div id="app"></div>
 
     <script>
-        const API_URL = 'https://inspection-ai-backend-det9.onrender.com';
+        // UPDATED: Points to your actual production backend
+        const API_URL = 'https://inspection-ai-backend.onrender.com';
 
         let state = {
             screen: 'upload',
@@ -1178,10 +1179,11 @@
                 const res = await fetch(`${API_URL}/api/upload`, { method: 'POST', body: formData });
                 if (res.ok) {
                     const data = await res.json();
+                    // CRITICAL: Saving reportId to state
                     state.reportId = data.report_id;
                     state.summary = data.summary;
                     state.address = data.address;
-                    state.shareToken = data.share_token || null;
+                    state.shareToken = data.shareToken || null;
                     state.screen = 'dashboard';
                     state.messages = [];
                     render();
@@ -1385,152 +1387,47 @@
             return div.innerHTML;
         }
 
-        function generatePDF() {
-            const { jsPDF } = window.jspdf;
-            const doc = new jsPDF();
-            const pageWidth = doc.internal.pageSize.getWidth();
-            let y = 20;
+        // UPDATED: Now connects to your Backend generate-pdf route
+        async function generatePDF() {
+    // 1. Ensure we have the report ID from your app's state
+    const reportId = state.reportId; 
+    
+    if (!reportId) {
+        alert("Please upload a report first so the AI can generate the summary.");
+        return;
+    }
 
-            // Header
-            doc.setFillColor(15, 20, 25);
-            doc.rect(0, 0, pageWidth, 40, 'F');
-            doc.setTextColor(20, 184, 166);
-            doc.setFontSize(22);
-            doc.setFont('helvetica', 'bold');
-            doc.text('Assure Home Inspections', pageWidth / 2, 18, { align: 'center' });
-            doc.setTextColor(161, 161, 161);
-            doc.setFontSize(11);
-            doc.text('AI-Powered Inspection Summary', pageWidth / 2, 28, { align: 'center' });
-            doc.setTextColor(255, 255, 255);
-            doc.setFontSize(9);
-            doc.text(new Date().toLocaleDateString(), pageWidth / 2, 36, { align: 'center' });
+    try {
+        // Show the user something is happening
+        document.body.style.cursor = 'wait';
+        
+        // 2. Fetch the file from your live Render production backend
+        const response = await fetch(`${API_URL}/api/generate-pdf/${reportId}`);
+        
+        if (!response.ok) throw new Error("The server is still waking up or the report was not found.");
 
-            y = 50;
-
-            // Property info
-            doc.setTextColor(50, 50, 50);
-            doc.setFontSize(10);
-            doc.setFont('helvetica', 'normal');
-            doc.text('Property:', 20, y);
-            doc.setFont('helvetica', 'bold');
-            doc.text(state.address || 'N/A', 50, y);
-            y += 8;
-            doc.setFont('helvetica', 'normal');
-            doc.text('Prepared for:', 20, y);
-            doc.setFont('helvetica', 'bold');
-            doc.text(state.customerName || 'N/A', 55, y);
-            y += 14;
-
-            // Condition
-            doc.setDrawColor(20, 184, 166);
-            doc.setLineWidth(0.5);
-            doc.line(20, y, pageWidth - 20, y);
-            y += 10;
-            doc.setFontSize(16);
-            doc.setTextColor(20, 184, 166);
-            doc.text('Overall Condition: Good', pageWidth / 2, y, { align: 'center' });
-            y += 8;
-            doc.setFontSize(10);
-            doc.setTextColor(120, 120, 120);
-            doc.text('3 Items Need Attention  |  8 Functioning Well', pageWidth / 2, y, { align: 'center' });
-            y += 14;
-
-            // Budget section
-            doc.setFontSize(13);
-            doc.setTextColor(50, 50, 50);
-            doc.setFont('helvetica', 'bold');
-            doc.text('Budget for Repairs', 20, y);
-            y += 8;
-            doc.setFontSize(10);
-            doc.setFont('helvetica', 'normal');
-            doc.setTextColor(80, 80, 80);
-            doc.text('Now - 12 Months:  $800 - 1,200  (Preventive maintenance)', 25, y);
-            y += 7;
-            doc.text('5 Year Outlook:  $5,000 - 8,000  (Long-term replacements)', 25, y);
-            y += 14;
-
-            // Issues section
-            doc.setFontSize(13);
-            doc.setTextColor(50, 50, 50);
-            doc.setFont('helvetica', 'bold');
-            doc.text('What Needs Attention', 20, y);
-            y += 10;
-
-            const issues = [
-                { icon: 'Electrical', cost: '$50 - 300', timeline: 'Handle now or cosmetic' },
-                { icon: 'Plumbing', cost: '$500 - 800', timeline: 'Handle in 12 months' },
-                { icon: 'HVAC', cost: 'Future', timeline: 'Monitor, plan 5-10 years' }
-            ];
-
-            doc.setFontSize(10);
-            issues.forEach(issue => {
-                doc.setFont('helvetica', 'bold');
-                doc.setTextColor(50, 50, 50);
-                doc.text(issue.icon, 25, y);
-                doc.setFont('helvetica', 'normal');
-                doc.setTextColor(217, 70, 166);
-                doc.text(issue.cost, 70, y);
-                doc.setTextColor(120, 120, 120);
-                doc.text(issue.timeline, 110, y);
-                y += 8;
-            });
-
-            y += 8;
-
-            // Checklist
-            doc.setFontSize(13);
-            doc.setTextColor(50, 50, 50);
-            doc.setFont('helvetica', 'bold');
-            doc.text('Inspection Checklist', 20, y);
-            y += 10;
-
-            const checks = [
-                { pass: true, text: 'No structural damage found' },
-                { pass: true, text: 'Passes all Illinois code requirements' },
-                { pass: true, text: 'No water intrusion detected' },
-                { pass: false, text: 'Sewer line has scaling (preventive care)' },
-                { pass: true, text: 'HVAC functioning properly' }
-            ];
-
-            doc.setFontSize(10);
-            doc.setFont('helvetica', 'normal');
-            checks.forEach(item => {
-                doc.setTextColor(item.pass ? 20 : 200, item.pass ? 184 : 150, item.pass ? 166 : 0);
-                doc.text(item.pass ? 'PASS' : 'WARN', 25, y);
-                doc.setTextColor(80, 80, 80);
-                doc.text(item.text, 45, y);
-                y += 7;
-            });
-
-            y += 10;
-
-            // AI Summary
-            if (state.summary) {
-                doc.setFontSize(13);
-                doc.setTextColor(50, 50, 50);
-                doc.setFont('helvetica', 'bold');
-                doc.text('AI Analysis Summary', 20, y);
-                y += 8;
-                doc.setFontSize(9);
-                doc.setFont('helvetica', 'normal');
-                doc.setTextColor(80, 80, 80);
-                const summaryLines = doc.splitTextToSize(state.summary, pageWidth - 40);
-                doc.text(summaryLines, 20, y);
-            }
-
-            // Footer
-            const pageHeight = doc.internal.pageSize.getHeight();
-            doc.setDrawColor(20, 184, 166);
-            doc.setLineWidth(0.3);
-            doc.line(20, pageHeight - 15, pageWidth - 20, pageHeight - 15);
-            doc.setFontSize(8);
-            doc.setTextColor(150, 150, 150);
-            doc.text('Generated by Assure Home Inspections AI  |  assureinspections.com', pageWidth / 2, pageHeight - 8, { align: 'center' });
-
-            // Save
-            const filename = (state.address || 'inspection-report').replace(/[^a-zA-Z0-9]/g, '_') + '.pdf';
-            doc.save(filename);
-        }
+        // 3. Process the PDF data (the "Blob")
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+        
+        // 4. Trigger the download
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `Assure_Inspection_Summary_${reportId}.pdf`;
+        document.body.appendChild(a);
+        a.click();
+        
+        // Cleanup
+        document.body.removeChild(a);
+        window.URL.revokeObjectURL(url);
+        document.body.style.cursor = 'default';
+        
+    } catch (error) {
+        document.body.style.cursor = 'default';
+        console.error("PDF Error:", error);
+        alert("Download failed. Please try again in 30 seconds while the server wakes up.");
+    }
+}
 
         render();
     </script>
