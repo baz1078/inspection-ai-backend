@@ -50,7 +50,7 @@ app.config['MAIL_DEFAULT_SENDER'] = os.getenv('MAIL_DEFAULT_SENDER', 'noreply@as
 
 # Initialize database
 db.init_app(app)
-CORS(app)
+CORS(app, resources={r"/api/*": {"origins": "*"}})
 @app.after_request
 def set_headers(response):
     response.headers['Content-Security-Policy'] = "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdnjs.cloudflare.com"
@@ -124,6 +124,59 @@ def health_check():
         'service': 'Assure Inspections AI',
         'timestamp': datetime.utcnow().isoformat()
     }), 200
+
+import io
+from flask import send_file
+from reportlab.pdfgen import canvas
+from reportlab.lib.pagesizes import LETTER
+
+@app.route('/api/generate-pdf/<report_id>', methods=['GET'])
+def generate_pdf(report_id):
+    try:
+        # 1. Get the report data from the database
+        report = InspectionReport.query.get(report_id)
+        if not report:
+            return jsonify({'error': 'Report not found'}), 404
+
+        # 2. Create the PDF in memory
+        buffer = io.BytesIO()
+        p = canvas.Canvas(buffer, pagesize=LETTER)
+        
+        # Header
+        p.setFont("Helvetica-Bold", 16)
+        p.drawString(100, 750, "Inspection Summary Report")
+        
+        # Report Info
+        p.setFont("Helvetica", 12)
+        p.drawString(100, 730, f"Address: {report.address}")
+        p.drawString(100, 715, f"Date: {report.inspectionDate.strftime('%Y-%m-%d')}")
+        
+        # Summary Content (handling long text)
+        p.setFont("Helvetica-Bold", 14)
+        p.drawString(100, 680, "AI Analysis Summary:")
+        
+        p.setFont("Helvetica", 10)
+        text_object = p.beginText(100, 660)
+        # Wrap text manually if summary is long
+        summary_lines = report.summary.split('\n')
+        for line in summary_lines:
+            text_object.textLine(line[:100]) # Basic wrapping
+        p.drawText(text_object)
+        
+        p.showPage()
+        p.save()
+        
+        # 3. Return the file to the browser
+        buffer.seek(0)
+        return send_file(
+            buffer, 
+            as_attachment=True, 
+            download_name=f"Summary_{report_id}.pdf", 
+            mimetype='application/pdf'
+        )
+    except Exception as e:
+        print(f"PDF Error: {str(e)}")
+        return jsonify({'error': str(e)}), 500
 
 @app.route('/api/upload', methods=['POST'])
 def upload_report():
