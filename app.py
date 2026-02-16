@@ -684,23 +684,22 @@ def add_contractor():
         return jsonify({'error': 'Missing required fields'}), 400
     
     try:
-        with get_db() as conn:
-            with conn.cursor() as cur:
-                cur.execute("""
-                    INSERT INTO contractors (name, email, phone, company, service_area, subscription_tier, status)
-                    VALUES (%s, %s, %s, %s, %s, %s, %s)
-                    RETURNING id
-                """, (
-                    data['name'],
-                    data['email'], 
-                    data['phone'],
-                    data['company'],
-                    data['service_area'],
-                    data.get('subscription_tier', 'basic'),
-                    data.get('status', 'active')
-                ))
-                contractor_id = cur.fetchone()[0]
-                conn.commit()
-                return jsonify({'success': True, 'contractor_id': contractor_id}), 201
+        contractor = Contractor(
+            name=data['name'],
+            email=data['email'],
+            phone=data['phone'],
+            company=data.get('company', ''),
+            specialty=data.get('specialty', 'general'),
+            service_area=data.get('service_area', ''),
+            subscription_tier=data.get('subscription_tier', 'basic'),
+            isActive=data.get('status', 'active') == 'active'
+        )
+        db.session.add(contractor)
+        db.session.commit()
+        
+        return jsonify({'success': True, 'id': contractor.id}), 201
     except Exception as e:
+        db.session.rollback()
         return jsonify({'error': str(e)}), 500
+
+
