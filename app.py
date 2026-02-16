@@ -2,6 +2,7 @@ from flask import Flask, request, jsonify
 from flask_cors import CORS
 from werkzeug.utils import secure_filename
 from models import db, InspectionReport, Conversation, Question, Contractor, Lead, Analytics, WarrantyDocument, ReportWarranty, WarrantyQuery
+from database import SessionLocal
 from utils import (
     extract_text_from_pdf,
     generate_summary_from_report,
@@ -26,6 +27,12 @@ from collections import OrderedDict
 #app = Flask(__name__)
 app = Flask(__name__, static_folder='.', static_url_path='')
 
+def get_db():
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
 @app.route('/')
 def index():
     with open('index.html', 'r', encoding='utf-8') as f:
