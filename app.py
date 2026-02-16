@@ -604,3 +604,73 @@ with app.app_context():
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=False)
+# ============================================================================
+# PDF GENERATION ENDPOINT
+# ============================================================================
+
+from reportlab.lib.pagesizes import letter
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, PageBreak
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.lib.units import inch
+from io import BytesIO
+from flask import send_file
+
+@app.route('/api/report/<report_id>/generate-pdf', methods=['GET'])
+def generate_pdf_report(report_id):
+    """Generate a PDF version of the inspection report"""
+    try:
+        report = InspectionReport.query.get(report_id)
+        if not report:
+            return jsonify({'error': 'Report not found'}), 404
+        
+        # Create PDF in memory
+        buffer = BytesIO()
+        doc = SimpleDocTemplate(buffer, pagesize=letter, 
+                                rightMargin=72, leftMargin=72,
+                                topMargin=72, bottomMargin=18)
+        
+        # Container for PDF elements
+        story = []
+        styles = getSampleStyleSheet()
+        
+        # Title
+        title_style = ParagraphStyle(
+            'CustomTitle',
+            parent=styles['Heading1'],
+            fontSize=24,
+            textColor='#1a73e8',
+            spaceAfter=30
+        )
+        story.append(Paragraph("Assure Inspections AI Report", title_style))
+        story.append(Spacer(1, 12))
+        
+        # Property Info
+        story.append(Paragraph(f"<b>Address:</b> {report.address}", styles['Normal']))
+        story.append(Paragraph(f"<b>Customer:</b> {report.customerName}", styles['Normal']))
+        story.append(Paragraph(f"<b>Inspector:</b> {report.inspectorName}", styles['Normal']))
+        story.append(Paragraph(f"<b>Date:</b> {report.inspectionDate.strftime('%Y-%m-%d')}", styles['Normal']))
+        story.append(Spacer(1, 20))
+        
+        # Summary Section
+        story.append(Paragraph("<b>AI-Generated Summary</b>", styles['Heading2']))
+        story.append(Spacer(1, 12))
+        for line in report.summary.split('\n'):
+            if line.strip():
+                story.append(Paragraph(line, styles['Normal']))
+                story.append(Spacer(1, 6))
+        
+        # Build PDF
+        doc.build(story)
+        buffer.seek(0)
+        
+        return send_file(
+            buffer,
+            as_attachment=True,
+            download_name=f"inspection_report_{report.shareToken}.pdf",
+            mimetype='application/pdf'
+        )
+        
+    except Exception as e:
+        print(f"PDF generation error: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+
