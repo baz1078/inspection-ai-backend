@@ -53,12 +53,20 @@ db.init_app(app)
 CORS(app, resources={r"/api/*": {"origins": "*"}})
 @app.after_request
 def set_headers(response):
-    response.headers['Content-Security-Policy'] = "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdnjs.cloudflare.com"
-    response.headers['Access-Control-Allow-Origin'] = '*'
+    # Allow your frontend to access the data
+    response.headers['Access-Control-Allow-Origin'] = 'https://assure-inspections-web.onrender.com'
+    response.headers['Access-Control-Allow-Methods'] = 'GET, POST, OPTIONS'
     response.headers['Access-Control-Allow-Headers'] = 'Content-Type'
-    response.headers['Access-Control-Allow-Methods'] = 'GET, POST, PUT, OPTIONS'
-    response.headers['Content-Security-Policy'] = "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdnjs.cloudflare.com"
-    return response 
+    
+    # Loosen CSP to allow the browser to process the PDF blob
+    response.headers['Content-Security-Policy'] = (
+        "default-src 'self' https://assure-inspections-web.onrender.com; "
+        "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdnjs.cloudflare.com; "
+        "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "
+        "font-src 'self' https://fonts.gstatic.com; "
+        "connect-src 'self' https://inspection-ai-backend-test.onrender.com;"
+    )
+    return response
 
 # Create upload folder
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
