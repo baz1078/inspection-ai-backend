@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Assure Home Inspections</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.2/jspdf.umd.min.js"></script>
     <style>
         * {
             margin: 0;
@@ -543,6 +544,37 @@
             pointer-events: none;
         }
 
+        .chat-fab {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            width: 56px;
+            height: 56px;
+            border-radius: 50%;
+            background: var(--accent-teal);
+            border: none;
+            color: white;
+            font-size: 24px;
+            cursor: pointer;
+            box-shadow: 0 4px 20px rgba(20, 184, 166, 0.4);
+            z-index: 99;
+            transition: transform 0.2s ease, opacity 0.2s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .chat-fab:hover {
+            transform: scale(1.1);
+            box-shadow: 0 6px 28px rgba(20, 184, 166, 0.5);
+        }
+
+        .chat-fab.fab-hidden {
+            transform: scale(0);
+            opacity: 0;
+            pointer-events: none;
+        }
+
         .chat-panel-header {
             padding: 16px;
             border-bottom: 1px solid var(--border-color);
@@ -1051,7 +1083,7 @@
                             <h4>📋 For Realtors</h4>
                             <p>Share this report with your buyer</p>
                             <div class="realtor-card-buttons">
-                                <button onclick="alert('PDF generation coming soon!')">Generate PDF</button>
+                                <button onclick="generatePDF()">Generate PDF</button>
                                 <button onclick="copyShareLink()">Share Link</button>
                             </div>
                         </div>
@@ -1074,6 +1106,8 @@
                         <button onclick="askQuestion()">Send</button>
                     </div>
                 </div>
+
+                <button class="chat-fab ${state.chatVisible ? 'fab-hidden' : ''}" id="chatFab" onclick="toggleChat(true)">💬</button>
 
                 ${state.showConfirmModal ? `
                     <div class="modal-overlay" onclick="if(event.target === this) { state.showConfirmModal = false; }">
@@ -1314,35 +1348,30 @@
         function toggleChat(show) {
             state.chatVisible = show;
             const panel = document.getElementById('chatPanel');
+            const fab = document.getElementById('chatFab');
             if (panel) {
                 if (show) {
                     panel.classList.remove('chat-hidden');
+                    if (fab) fab.classList.add('fab-hidden');
                     setTimeout(() => {
                         const input = document.getElementById('question');
                         if (input) input.focus();
                     }, 300);
                 } else {
                     panel.classList.add('chat-hidden');
+                    if (fab) fab.classList.remove('fab-hidden');
                 }
             }
         }
 
         function copyShareLink() {
-            if (state.shareToken) {
-                const link = window.location.origin + '/report/' + state.shareToken;
-                navigator.clipboard.writeText(link).then(() => {
-                    alert('Share link copied to clipboard!');
-                }).catch(() => {
-                    prompt('Copy this link:', link);
-                });
-            } else {
-                const link = window.location.origin + '/report/' + state.reportId;
-                navigator.clipboard.writeText(link).then(() => {
-                    alert('Share link copied to clipboard!');
-                }).catch(() => {
-                    prompt('Copy this link:', link);
-                });
-            }
+            const token = state.shareToken || state.reportId;
+            const link = window.location.origin + '/report/' + token;
+            navigator.clipboard.writeText(link).then(() => {
+                alert('Link copied!\n\n' + link);
+            }).catch(() => {
+                prompt('Copy this link:', link);
+            });
         }
 
         function resetApp() {
@@ -1354,6 +1383,153 @@
             const div = document.createElement('div');
             div.textContent = text;
             return div.innerHTML;
+        }
+
+        function generatePDF() {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+            const pageWidth = doc.internal.pageSize.getWidth();
+            let y = 20;
+
+            // Header
+            doc.setFillColor(15, 20, 25);
+            doc.rect(0, 0, pageWidth, 40, 'F');
+            doc.setTextColor(20, 184, 166);
+            doc.setFontSize(22);
+            doc.setFont('helvetica', 'bold');
+            doc.text('Assure Home Inspections', pageWidth / 2, 18, { align: 'center' });
+            doc.setTextColor(161, 161, 161);
+            doc.setFontSize(11);
+            doc.text('AI-Powered Inspection Summary', pageWidth / 2, 28, { align: 'center' });
+            doc.setTextColor(255, 255, 255);
+            doc.setFontSize(9);
+            doc.text(new Date().toLocaleDateString(), pageWidth / 2, 36, { align: 'center' });
+
+            y = 50;
+
+            // Property info
+            doc.setTextColor(50, 50, 50);
+            doc.setFontSize(10);
+            doc.setFont('helvetica', 'normal');
+            doc.text('Property:', 20, y);
+            doc.setFont('helvetica', 'bold');
+            doc.text(state.address || 'N/A', 50, y);
+            y += 8;
+            doc.setFont('helvetica', 'normal');
+            doc.text('Prepared for:', 20, y);
+            doc.setFont('helvetica', 'bold');
+            doc.text(state.customerName || 'N/A', 55, y);
+            y += 14;
+
+            // Condition
+            doc.setDrawColor(20, 184, 166);
+            doc.setLineWidth(0.5);
+            doc.line(20, y, pageWidth - 20, y);
+            y += 10;
+            doc.setFontSize(16);
+            doc.setTextColor(20, 184, 166);
+            doc.text('Overall Condition: Good', pageWidth / 2, y, { align: 'center' });
+            y += 8;
+            doc.setFontSize(10);
+            doc.setTextColor(120, 120, 120);
+            doc.text('3 Items Need Attention  |  8 Functioning Well', pageWidth / 2, y, { align: 'center' });
+            y += 14;
+
+            // Budget section
+            doc.setFontSize(13);
+            doc.setTextColor(50, 50, 50);
+            doc.setFont('helvetica', 'bold');
+            doc.text('Budget for Repairs', 20, y);
+            y += 8;
+            doc.setFontSize(10);
+            doc.setFont('helvetica', 'normal');
+            doc.setTextColor(80, 80, 80);
+            doc.text('Now - 12 Months:  $800 - 1,200  (Preventive maintenance)', 25, y);
+            y += 7;
+            doc.text('5 Year Outlook:  $5,000 - 8,000  (Long-term replacements)', 25, y);
+            y += 14;
+
+            // Issues section
+            doc.setFontSize(13);
+            doc.setTextColor(50, 50, 50);
+            doc.setFont('helvetica', 'bold');
+            doc.text('What Needs Attention', 20, y);
+            y += 10;
+
+            const issues = [
+                { icon: 'Electrical', cost: '$50 - 300', timeline: 'Handle now or cosmetic' },
+                { icon: 'Plumbing', cost: '$500 - 800', timeline: 'Handle in 12 months' },
+                { icon: 'HVAC', cost: 'Future', timeline: 'Monitor, plan 5-10 years' }
+            ];
+
+            doc.setFontSize(10);
+            issues.forEach(issue => {
+                doc.setFont('helvetica', 'bold');
+                doc.setTextColor(50, 50, 50);
+                doc.text(issue.icon, 25, y);
+                doc.setFont('helvetica', 'normal');
+                doc.setTextColor(217, 70, 166);
+                doc.text(issue.cost, 70, y);
+                doc.setTextColor(120, 120, 120);
+                doc.text(issue.timeline, 110, y);
+                y += 8;
+            });
+
+            y += 8;
+
+            // Checklist
+            doc.setFontSize(13);
+            doc.setTextColor(50, 50, 50);
+            doc.setFont('helvetica', 'bold');
+            doc.text('Inspection Checklist', 20, y);
+            y += 10;
+
+            const checks = [
+                { pass: true, text: 'No structural damage found' },
+                { pass: true, text: 'Passes all Illinois code requirements' },
+                { pass: true, text: 'No water intrusion detected' },
+                { pass: false, text: 'Sewer line has scaling (preventive care)' },
+                { pass: true, text: 'HVAC functioning properly' }
+            ];
+
+            doc.setFontSize(10);
+            doc.setFont('helvetica', 'normal');
+            checks.forEach(item => {
+                doc.setTextColor(item.pass ? 20 : 200, item.pass ? 184 : 150, item.pass ? 166 : 0);
+                doc.text(item.pass ? 'PASS' : 'WARN', 25, y);
+                doc.setTextColor(80, 80, 80);
+                doc.text(item.text, 45, y);
+                y += 7;
+            });
+
+            y += 10;
+
+            // AI Summary
+            if (state.summary) {
+                doc.setFontSize(13);
+                doc.setTextColor(50, 50, 50);
+                doc.setFont('helvetica', 'bold');
+                doc.text('AI Analysis Summary', 20, y);
+                y += 8;
+                doc.setFontSize(9);
+                doc.setFont('helvetica', 'normal');
+                doc.setTextColor(80, 80, 80);
+                const summaryLines = doc.splitTextToSize(state.summary, pageWidth - 40);
+                doc.text(summaryLines, 20, y);
+            }
+
+            // Footer
+            const pageHeight = doc.internal.pageSize.getHeight();
+            doc.setDrawColor(20, 184, 166);
+            doc.setLineWidth(0.3);
+            doc.line(20, pageHeight - 15, pageWidth - 20, pageHeight - 15);
+            doc.setFontSize(8);
+            doc.setTextColor(150, 150, 150);
+            doc.text('Generated by Assure Home Inspections AI  |  assureinspections.com', pageWidth / 2, pageHeight - 8, { align: 'center' });
+
+            // Save
+            const filename = (state.address || 'inspection-report').replace(/[^a-zA-Z0-9]/g, '_') + '.pdf';
+            doc.save(filename);
         }
 
         render();
