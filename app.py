@@ -53,19 +53,9 @@ db.init_app(app)
 CORS(app, resources={r"/api/*": {"origins": "*"}})
 @app.after_request
 def set_headers(response):
-    # Allow your frontend to access the data
-    response.headers['Access-Control-Allow-Origin'] = 'https://assure-inspections-web.onrender.com'
-    response.headers['Access-Control-Allow-Methods'] = 'GET, POST, OPTIONS'
+    response.headers['Access-Control-Allow-Origin'] = '*'
+    response.headers['Access-Control-Allow-Methods'] = 'GET, POST, PUT, OPTIONS'
     response.headers['Access-Control-Allow-Headers'] = 'Content-Type'
-    
-    # Loosen CSP to allow the browser to process the PDF blob
-    response.headers['Content-Security-Policy'] = (
-        "default-src 'self' https://assure-inspections-web.onrender.com; "
-        "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdnjs.cloudflare.com; "
-        "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "
-        "font-src 'self' https://fonts.gstatic.com; "
-        "connect-src 'self' https://inspection-ai-backend-test.onrender.com;"
-    )
     return response
 
 # Create upload folder
@@ -366,6 +356,45 @@ def get_contractors():
         }), 200
         
     except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/admin/contractors', methods=['POST'])
+def create_contractor():
+    try:
+        data = request.get_json()
+        if not data or 'name' not in data or 'specialty' not in data:
+            return jsonify({'error': 'Name and specialty are required'}), 400
+        
+        contractor = Contractor(
+            name=data['name'],
+            specialty=data['specialty'],
+            phone=data.get('phone', ''),
+            email=data.get('email', ''),
+            city=data.get('city', ''),
+            state=data.get('state', ''),
+            zipCodes=data.get('zip_codes', ''),
+            rating=float(data.get('rating', 0)),
+            reviewCount=int(data.get('review_count', 0)),
+            description=data.get('description', ''),
+            website=data.get('website', ''),
+            isLicensed=data.get('is_licensed', True),
+            isBonded=data.get('is_bonded', True),
+            isInsured=data.get('is_insured', True),
+            costPerLead=float(data.get('cost_per_lead', 25.0)),
+            isActive=True
+        )
+        
+        db.session.add(contractor)
+        db.session.commit()
+        
+        return jsonify({
+            'success': True,
+            'contractor_id': contractor.id,
+            'message': f'Contractor {contractor.name} added successfully'
+        }), 201
+        
+    except Exception as e:
+        db.session.rollback()
         return jsonify({'error': str(e)}), 500
 
 @app.route('/api/admin/leads', methods=['GET'])
