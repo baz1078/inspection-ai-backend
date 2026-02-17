@@ -314,11 +314,11 @@ def upload_report():
         
         # Extract text
         print("Extracting text from PDF...")
-        extractedText = extract_text_from_pdf(filepath)
+        extractedText = extract_text_from_pdf(filepath).replace('\x00', '')
         
         # Generate summary
         print("Generating AI summary...")
-        summary = generate_summary_from_report(extractedText)
+        summary = generate_summary_from_report(extractedText).replace('\x00', '')
         
         # Create database record
         report = InspectionReport(
