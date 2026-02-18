@@ -88,9 +88,6 @@ PRICING RULES:
     return raw
 
 
-def generate_punchlist(answer_text, issue_type, question):
-    # ... keep exactly as-is ...
-
 
 def generate_punchlist(answer_text, issue_type, question):
     """Generate AI punchlist filtered by issue type for contractor - from Q&A answer"""

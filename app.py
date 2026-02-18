@@ -5,6 +5,7 @@ from models import db, InspectionReport, Conversation, Question, Contractor, Lea
 from utils import (
     extract_text_from_pdf,
     generate_summary_from_report,
+    generate_structured_analysis,
     InspectionReportQA,
     save_uploaded_file,
     generate_punchlist,
@@ -129,6 +130,13 @@ from reportlab.pdfgen import canvas
 from reportlab.lib.pagesizes import LETTER
 from reportlab.lib.colors import HexColor
 from reportlab.lib.utils import simpleSplit
+
+@app.route('/api/analysis/<report_id>', methods=['GET'])
+def get_analysis(report_id):
+    report = InspectionReport.query.get(report_id)
+    if not report or not report.analysis_json:
+        return jsonify({"error": "No analysis available"}), 404
+    return jsonify(json.loads(report.analysis_json))
 
 @app.route('/api/generate-pdf/<report_id>', methods=['GET'])
 def generate_pdf(report_id):
@@ -319,6 +327,16 @@ def upload_report():
         # Generate summary
         print("Generating AI summary...")
         summary = generate_summary_from_report(extractedText).replace('\x00', '')
+
+        # Generate structured analysis (NEW)
+        print("Generating structured analysis...")
+        try:
+            analysis_raw = generate_structured_analysis(extractedText)
+            json.loads(analysis_raw)  # validate it's real JSON
+            analysis_json = analysis_raw
+            except Exception as e:
+            print(f"Structured analysis failed: {e}")
+            analysis_json = None
         
         # Create database record
         report = InspectionReport(
@@ -334,6 +352,7 @@ def upload_report():
             fileSize=os.path.getsize(filepath),
             extractedText=extractedText,
             summary=summary,
+            analysis_json=analysis_json,
             isShared=True,
             shareToken=str(uuid.uuid4())[:8] 
         )
