@@ -134,19 +134,257 @@ from reportlab.lib.utils import simpleSplit
 @app.route('/api/analysis/<report_id>', methods=['GET'])
 def get_analysis(report_id):
     report = InspectionReport.query.get(report_id)
-    if not report:
-        return jsonify({"error": "Report not found"}), 404
-    if not report.analysis_json:
-        try:
-            print(f"Generating structured analysis for report {report_id}...")
-            analysis_raw = generate_structured_analysis(report.extractedText)
-            json.loads(analysis_raw)
-            report.analysis_json = analysis_raw
-            db.session.commit()
-        except Exception as e:
-            print(f"Structured analysis failed: {e}")
-            return jsonify({"error": "Analysis generation failed"}), 500
+    if not report or not report.analysis_json:
+        return jsonify({"error": "No analysis available"}), 404
     return jsonify(json.loads(report.analysis_json))
+
+@app.route('/api/punchlist-pdf/<report_id>', methods=['GET'])
+def generate_punchlist_pdf(report_id):
+    try:
+        report = InspectionReport.query.get(report_id)
+        if not report:
+            return jsonify({'error': 'Report not found'}), 404
+
+        analysis = {}
+        if report.analysis_json:
+            try:
+                analysis = json.loads(report.analysis_json)
+            except:
+                pass
+
+        TEAL       = HexColor('#14b8a6')
+        PINK       = HexColor('#d946a6')
+        AMBER      = HexColor('#f59e0b')
+        GREEN      = HexColor('#22c55e')
+        DARK_BG    = HexColor('#0f1419')
+        WHITE      = HexColor('#ffffff')
+        GRAY       = HexColor('#a1a1a1')
+        DARK_TEXT  = HexColor('#1f2937')
+        LIGHT_GRAY = HexColor('#6b7280')
+        ROW_ALT    = HexColor('#f9fafb')
+        ROW_URGENT = HexColor('#fff7ed')
+
+        buffer = io.BytesIO()
+        p = canvas.Canvas(buffer, pagesize=LETTER)
+        w, h = LETTER
+
+        def check_page(y_pos, needed=40):
+            if y_pos < needed:
+                p.showPage()
+                p.setFillColor(DARK_BG)
+                p.rect(0, h - 36, w, 36, fill=True, stroke=False)
+                p.setFillColor(TEAL)
+                p.setFont("Helvetica-Bold", 11)
+                p.drawString(60, h - 23, "Assure Home Inspections — Punchlist (continued)")
+                return h - 55
+            return y_pos
+
+        # HEADER
+        p.setFillColor(DARK_BG)
+        p.rect(0, h - 72, w, 72, fill=True, stroke=False)
+        p.setFillColor(TEAL)
+        p.setFont("Helvetica-Bold", 22)
+        p.drawCentredString(w / 2, h - 30, "Assure Home Inspections")
+        p.setFillColor(WHITE)
+        p.setFont("Helvetica", 10)
+        p.drawCentredString(w / 2, h - 46, "Contractor Punchlist — AI Generated")
+        p.setFillColor(GRAY)
+        p.setFont("Helvetica", 8)
+        p.drawCentredString(w / 2, h - 60, datetime.utcnow().strftime("%B %d, %Y"))
+        y = h - 90
+
+        # PROPERTY INFO
+        p.setFillColor(DARK_TEXT)
+        p.setFont("Helvetica", 9)
+        p.drawString(60, y, "Property:")
+        p.setFont("Helvetica-Bold", 9)
+        p.drawString(115, y, report.address or "Unknown Address")
+        y -= 14
+        p.setFont("Helvetica", 9)
+        p.drawString(60, y, "Prepared for:")
+        p.setFont("Helvetica-Bold", 9)
+        p.drawString(115, y, report.customerName or "N/A")
+        if report.customerPhone:
+            p.setFont("Helvetica", 9)
+            p.drawString(300, y, "Phone: " + report.customerPhone)
+        if report.customerEmail:
+            p.setFont("Helvetica", 9)
+            p.drawString(430, y, "Email: " + report.customerEmail)
+        y -= 20
+
+        # CONDITION + BUDGETS
+        condition = analysis.get("condition", "N/A")
+        cond_color = GREEN if condition == "Good" else (AMBER if condition == "Fair" else PINK)
+        p.setFillColor(cond_color)
+        p.roundRect(60, y - 6, 80, 22, 6, fill=True, stroke=False)
+        p.setFillColor(WHITE)
+        p.setFont("Helvetica-Bold", 12)
+        p.drawCentredString(100, y + 4, condition)
+
+        budget_now = analysis.get("budget_now", "N/A")
+        budget_5yr = analysis.get("budget_5yr", "N/A")
+        currency   = analysis.get("currency", "USD")
+        p.setFillColor(DARK_TEXT)
+        p.setFont("Helvetica", 9)
+        p.drawString(160, y + 10, "Now - 12 months (" + currency + "):")
+        p.setFillColor(PINK)
+        p.setFont("Helvetica-Bold", 10)
+        p.drawString(290, y + 10, budget_now)
+        p.setFillColor(DARK_TEXT)
+        p.setFont("Helvetica", 9)
+        p.drawString(160, y - 2, "5-Year outlook (" + currency + "):")
+        p.setFillColor(TEAL)
+        p.setFont("Helvetica-Bold", 10)
+        p.drawString(290, y - 2, budget_5yr)
+        y -= 30
+
+        # DIVIDER
+        p.setStrokeColor(TEAL)
+        p.setLineWidth(1.5)
+        p.line(60, y, w - 60, y)
+        y -= 18
+
+        cols = [60, 230, 340, 430, 510]
+        headers = ["Issue", "Trade Required", "Est. Cost", "Timeline", "Priority"]
+
+        # URGENT ITEMS
+        urgent_items = analysis.get("urgent_items", [])
+        if urgent_items:
+            p.setFillColor(DARK_TEXT)
+            p.setFont("Helvetica-Bold", 13)
+            p.drawString(60, y, "Urgent - Action Required Now")
+            y -= 18
+            p.setFillColor(DARK_BG)
+            p.rect(55, y - 4, w - 110, 16, fill=True, stroke=False)
+            p.setFillColor(TEAL)
+            p.setFont("Helvetica-Bold", 8)
+            for i, hdr in enumerate(headers):
+                p.drawString(cols[i], y + 2, hdr)
+            y -= 18
+            for idx, item in enumerate(urgent_items):
+                y = check_page(y, 18)
+                if idx % 2 == 0:
+                    p.setFillColor(ROW_URGENT)
+                    p.rect(55, y - 4, w - 110, 16, fill=True, stroke=False)
+                p.setFillColor(DARK_TEXT)
+                p.setFont("Helvetica-Bold", 8)
+                p.drawString(cols[0], y + 2, str(item.get("name", ""))[:38])
+                p.setFont("Helvetica", 8)
+                p.setFillColor(LIGHT_GRAY)
+                p.drawString(cols[1], y + 2, str(item.get("trade", ""))[:20])
+                p.setFillColor(PINK)
+                p.setFont("Helvetica-Bold", 8)
+                p.drawString(cols[2], y + 2, str(item.get("cost", "TBD")))
+                p.setFillColor(AMBER)
+                p.setFont("Helvetica", 8)
+                p.drawString(cols[3], y + 2, str(item.get("timeline", ""))[:18])
+                p.setFillColor(PINK)
+                p.setFont("Helvetica-Bold", 8)
+                p.drawString(cols[4], y + 2, "URGENT")
+                y -= 16
+            y -= 10
+
+        # MAINTENANCE ITEMS
+        maint_items = analysis.get("maintenance_items", [])
+        if maint_items:
+            y = check_page(y, 60)
+            p.setFillColor(DARK_TEXT)
+            p.setFont("Helvetica-Bold", 13)
+            p.drawString(60, y, "Maintenance - Plan and Budget")
+            y -= 18
+            p.setFillColor(DARK_BG)
+            p.rect(55, y - 4, w - 110, 16, fill=True, stroke=False)
+            p.setFillColor(TEAL)
+            p.setFont("Helvetica-Bold", 8)
+            for i, hdr in enumerate(headers):
+                p.drawString(cols[i], y + 2, hdr)
+            y -= 18
+            for idx, item in enumerate(maint_items):
+                y = check_page(y, 18)
+                if idx % 2 == 0:
+                    p.setFillColor(ROW_ALT)
+                    p.rect(55, y - 4, w - 110, 16, fill=True, stroke=False)
+                p.setFillColor(DARK_TEXT)
+                p.setFont("Helvetica-Bold", 8)
+                p.drawString(cols[0], y + 2, str(item.get("name", ""))[:38])
+                p.setFont("Helvetica", 8)
+                p.setFillColor(LIGHT_GRAY)
+                p.drawString(cols[1], y + 2, str(item.get("trade", ""))[:20])
+                p.setFillColor(TEAL)
+                p.setFont("Helvetica-Bold", 8)
+                p.drawString(cols[2], y + 2, str(item.get("cost", "TBD")))
+                p.setFillColor(LIGHT_GRAY)
+                p.setFont("Helvetica", 8)
+                p.drawString(cols[3], y + 2, str(item.get("timeline", ""))[:18])
+                p.setFillColor(LIGHT_GRAY)
+                p.setFont("Helvetica-Bold", 8)
+                p.drawString(cols[4], y + 2, "PLAN")
+                y -= 16
+            y -= 10
+
+        # CHECKLIST
+        checklist = analysis.get("checklist", [])
+        if checklist:
+            y = check_page(y, 60)
+            p.setFillColor(DARK_TEXT)
+            p.setFont("Helvetica-Bold", 13)
+            p.drawString(60, y, "Inspection Checklist")
+            y -= 18
+            for item in checklist:
+                y = check_page(y, 14)
+                passed = item.get("passed", True)
+                text   = item.get("text", "")
+                badge_color = GREEN if passed else AMBER
+                label = "PASS" if passed else "WARN"
+                p.setFillColor(badge_color)
+                p.roundRect(60, y - 3, 34, 13, 4, fill=True, stroke=False)
+                p.setFillColor(WHITE)
+                p.setFont("Helvetica-Bold", 7)
+                p.drawCentredString(77, y + 3, label)
+                p.setFillColor(DARK_TEXT)
+                p.setFont("Helvetica", 9)
+                lines = simpleSplit(text, "Helvetica", 9, w - 220)
+                p.drawString(102, y + 3, lines[0] if lines else text)
+                y -= 14
+            y -= 10
+
+        # SUMMARY NOTES
+        if report.summary:
+            y = check_page(y, 60)
+            p.setStrokeColor(TEAL)
+            p.setLineWidth(0.5)
+            p.line(60, y, w - 60, y)
+            y -= 16
+            p.setFillColor(DARK_TEXT)
+            p.setFont("Helvetica-Bold", 11)
+            p.drawString(60, y, "Inspector Notes")
+            y -= 14
+            p.setFillColor(LIGHT_GRAY)
+            p.setFont("Helvetica", 8)
+            for line in simpleSplit(report.summary, "Helvetica", 8, w - 120):
+                y = check_page(y, 12)
+                p.drawString(60, y, line)
+                y -= 11
+
+        # FOOTER
+        p.setStrokeColor(TEAL)
+        p.setLineWidth(0.5)
+        p.line(60, 35, w - 60, 35)
+        p.setFillColor(LIGHT_GRAY)
+        p.setFont("Helvetica", 7)
+        p.drawCentredString(w / 2, 23, "Generated by Assure Home Inspections AI  |  assureinspections.com  |  For contractor use only")
+
+        p.showPage()
+        p.save()
+        buffer.seek(0)
+
+        fname = (report.address or 'punchlist').replace(' ', '_').replace(',', '') + '_punchlist.pdf'
+        return send_file(buffer, as_attachment=True, download_name=fname, mimetype='application/pdf')
+
+    except Exception as e:
+        print("Punchlist PDF Error: " + str(e))
+        return jsonify({'error': str(e)}), 500
+
 
 @app.route('/api/generate-pdf/<report_id>', methods=['GET'])
 def generate_pdf(report_id):
@@ -334,11 +572,20 @@ def upload_report():
         print("Extracting text from PDF...")
         extractedText = extract_text_from_pdf(filepath).replace('\x00', '')
         
-        # Generate summary only - structured analysis fetched separately to avoid timeout
+        # Generate summary
         print("Generating AI summary...")
         summary = generate_summary_from_report(extractedText).replace('\x00', '')
-        analysis_json = None  # will be generated on-demand via /api/analysis/<id>
 
+        # Generate structured analysis (NEW)
+        print("Generating structured analysis...")
+        try:
+            analysis_raw = generate_structured_analysis(extractedText)
+            json.loads(analysis_raw)  # validate it's real JSON
+            analysis_json = analysis_raw
+        except Exception as e:
+            print(f"Structured analysis failed: {e}")
+            analysis_json = None
+        
         # Create database record
         report = InspectionReport(
             address=request.form.get('address', 'Unknown Address'),

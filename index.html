@@ -325,9 +325,29 @@
         }
 
         .issue-icon {
-            font-size: 36px;
-            margin-bottom: 12px;
+            width: 52px;
+            height: 52px;
+            border-radius: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 14px auto;
+            font-size: 22px;
         }
+        .issue-icon i {
+            font-size: 22px;
+            line-height: 1;
+        }
+        .icon-electric  { background: rgba(251, 191, 36, 0.15); color: #fbbf24; }
+        .icon-plumbing  { background: rgba(59, 130, 246, 0.15); color: #3b82f6; }
+        .icon-hvac      { background: rgba(99, 205, 218, 0.15); color: #63cdda; }
+        .icon-roof      { background: rgba(168, 85, 247, 0.15); color: #a855f7; }
+        .icon-structural{ background: rgba(249, 115, 22, 0.15); color: #f97316; }
+        .icon-pest      { background: rgba(132, 204, 22, 0.15); color: #84cc16; }
+        .icon-mold      { background: rgba(20, 184, 166, 0.15); color: #14b8a6; }
+        .icon-radon     { background: rgba(239, 68, 68, 0.15);  color: #ef4444; }
+        .icon-sewer     { background: rgba(100, 116, 139, 0.15);color: #64748b; }
+        .icon-general   { background: rgba(148, 163, 184, 0.15);color: #94a3b8; }
 
         .issue-title {
             font-size: 14px;
@@ -463,19 +483,36 @@
 
         .realtor-card-buttons button {
             flex: 1;
-            padding: 10px;
-            border: 1px solid var(--accent-teal);
+            padding: 11px 10px;
             border-radius: 8px;
-            background: rgba(20, 184, 166, 0.1);
-            color: var(--accent-teal);
             font-weight: 600;
             cursor: pointer;
             font-size: 12px;
             transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            letter-spacing: 0.3px;
         }
-
-        .realtor-card-buttons button:hover {
-            background: rgba(20, 184, 166, 0.2);
+        .realtor-card-buttons button.btn-primary-report {
+            background: var(--accent-teal);
+            color: #0f1419;
+            border: none;
+        }
+        .realtor-card-buttons button.btn-primary-report:hover {
+            background: #0fa89a;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(20,184,166,0.3);
+        }
+        .realtor-card-buttons button.btn-secondary-report {
+            background: transparent;
+            color: var(--accent-teal);
+            border: 1px solid rgba(20, 184, 166, 0.4);
+        }
+        .realtor-card-buttons button.btn-secondary-report:hover {
+            background: rgba(20, 184, 166, 0.08);
+            border-color: var(--accent-teal);
         }
 
         /* ACTION BUTTONS */
@@ -911,6 +948,7 @@
         ::-webkit-scrollbar-thumb { background: var(--border-color); border-radius: 3px; }
         ::-webkit-scrollbar-thumb:hover { background: var(--accent-teal); }
     </style>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/bold/style.css">
 </head>
 <body>
     <div id="app"></div>
@@ -1085,8 +1123,11 @@
                             <h4>📋 For Realtors</h4>
                             <p>Share this report with your buyer</p>
                             <div class="realtor-card-buttons">
-                                <button onclick="generatePDF()">Generate PDF</button>
-                                <button onclick="copyShareLink()">Share Link</button>
+                                <button class="btn-primary-report" onclick="generatePunchlist()"><i class="ph-bold ph-wrench"></i> Contractor Punchlist</button>
+                                <button class="btn-secondary-report" onclick="generateOverview()"><i class="ph-bold ph-file-text"></i> Overview Report</button>
+                            </div>
+                            <div style="margin-top:8px;">
+                                <button class="btn-secondary-report" style="width:100%;padding:8px;border-radius:8px;border:1px solid rgba(20,184,166,0.3);background:transparent;color:var(--accent-teal);font-size:11px;cursor:pointer;font-weight:600;" onclick="copyShareLink()"><i class="ph-bold ph-share-network"></i> Share Link</button>
                             </div>
                         </div>
 
@@ -1402,30 +1443,29 @@
         }
 
         function getTradeIcon(trade) {
-            const icons = {
-                'electrician': '⚡', 'electrical': '⚡',
-                'plumber': '💧', 'plumbing': '💧',
-                'hvac': '❄️', 'heating': '❄️', 'cooling': '❄️',
-                'roofer': '🏠', 'roofing': '🏠',
-                'structural': '🏗️', 'foundation': '🏗️',
-                'general': '🔧', 'handyman': '🔧',
-                'pest': '🐛', 'pest control': '🐛',
-                'mold': '🧫', 'mold inspector': '🧫',
-                'radon': '☢️', 'radon mitigation': '☢️',
-                'sewer': '🚿', 'drain': '🚿',
-                'insulation': '🧱', 'window': '🪟',
-            };
             const key = (trade || 'general').toLowerCase();
-            for (const [match, icon] of Object.entries(icons)) {
-                if (key.includes(match)) return icon;
-            }
-            return '🔧';
+            if (key.includes('electric'))  return '<i class="ph-bold ph-lightning icon-electric"></i>';
+            if (key.includes('plumb') || key.includes('plumber')) return '<i class="ph-bold ph-drop icon-plumbing"></i>';
+            if (key.includes('hvac') || key.includes('heat') || key.includes('cool') || key.includes('furnace')) return '<i class="ph-bold ph-thermometer icon-hvac"></i>';
+            if (key.includes('roof'))      return '<i class="ph-bold ph-house-simple icon-roof"></i>';
+            if (key.includes('struct') || key.includes('found')) return '<i class="ph-bold ph-buildings icon-structural"></i>';
+            if (key.includes('pest'))      return '<i class="ph-bold ph-bug icon-pest"></i>';
+            if (key.includes('mold'))      return '<i class="ph-bold ph-plant icon-mold"></i>';
+            if (key.includes('radon'))     return '<i class="ph-bold ph-radioactive icon-radon"></i>';
+            if (key.includes('sewer') || key.includes('drain')) return '<i class="ph-bold ph-pipe icon-sewer"></i>';
+            return '<i class="ph-bold ph-wrench icon-general"></i>';
         }
 
-        function generatePDF() {
+        function generatePunchlist() {
+            if (!state.reportId) return alert('No report loaded');
+            window.open(API_URL + '/api/punchlist-pdf/' + state.reportId, '_blank');
+        }
+        function generateOverview() {
             if (!state.reportId) return alert('No report loaded');
             window.open(API_URL + '/api/generate-pdf/' + state.reportId, '_blank');
         }
+        // legacy alias
+        function generatePDF() { generatePunchlist(); }
 
         render();
     </script>
