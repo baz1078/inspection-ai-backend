@@ -334,7 +334,7 @@ def upload_report():
             analysis_raw = generate_structured_analysis(extractedText)
             json.loads(analysis_raw)  # validate it's real JSON
             analysis_json = analysis_raw
-            except Exception as e:
+        except Exception as e:
             print(f"Structured analysis failed: {e}")
             analysis_json = None
         
