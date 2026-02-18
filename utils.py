@@ -33,7 +33,29 @@ def create_ai_client():
 
 
 def generate_summary_from_report(report_text):
-    # ... keep exactly as-is ...
+    """Generate a human-readable AI summary from inspection report text"""
+    client = create_ai_client()
+
+    system_prompt = """You are an expert home inspection analyst. Read the inspection report and produce a clear, 
+professional narrative summary for a home buyer.
+
+RULES:
+- Write in plain English, no jargon
+- Highlight the most important findings first (safety issues, urgent repairs)
+- Group findings logically (structural, electrical, plumbing, HVAC, etc.)
+- Be factual and neutral - do not alarm or downplay
+- Do NOT include cost estimates (those come from structured analysis)
+- Do NOT use markdown headers or bullet points - write in paragraphs
+- Keep it under 600 words
+- Start with a one-sentence overview of the property and inspection date"""
+
+    message = client.messages.create(
+        model="claude-sonnet-4-5-20250929",
+        max_tokens=1000,
+        system=system_prompt,
+        messages=[{"role": "user", "content": report_text}]
+    )
+
     return message.content[0].text
 
 
