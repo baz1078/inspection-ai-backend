@@ -134,8 +134,18 @@ from reportlab.lib.utils import simpleSplit
 @app.route('/api/analysis/<report_id>', methods=['GET'])
 def get_analysis(report_id):
     report = InspectionReport.query.get(report_id)
-    if not report or not report.analysis_json:
-        return jsonify({"error": "No analysis available"}), 404
+    if not report:
+        return jsonify({"error": "Report not found"}), 404
+    if not report.analysis_json:
+        try:
+            print(f"Generating structured analysis for report {report_id}...")
+            analysis_raw = generate_structured_analysis(report.extractedText)
+            json.loads(analysis_raw)
+            report.analysis_json = analysis_raw
+            db.session.commit()
+        except Exception as e:
+            print(f"Structured analysis failed: {e}")
+            return jsonify({"error": "Analysis generation failed"}), 500
     return jsonify(json.loads(report.analysis_json))
 
 @app.route('/api/generate-pdf/<report_id>', methods=['GET'])
@@ -324,20 +334,11 @@ def upload_report():
         print("Extracting text from PDF...")
         extractedText = extract_text_from_pdf(filepath).replace('\x00', '')
         
-        # Generate summary
+        # Generate summary only - structured analysis fetched separately to avoid timeout
         print("Generating AI summary...")
         summary = generate_summary_from_report(extractedText).replace('\x00', '')
+        analysis_json = None  # will be generated on-demand via /api/analysis/<id>
 
-        # Generate structured analysis (NEW)
-        print("Generating structured analysis...")
-        try:
-            analysis_raw = generate_structured_analysis(extractedText)
-            json.loads(analysis_raw)  # validate it's real JSON
-            analysis_json = analysis_raw
-        except Exception as e:
-            print(f"Structured analysis failed: {e}")
-            analysis_json = None
-        
         # Create database record
         report = InspectionReport(
             address=request.form.get('address', 'Unknown Address'),
