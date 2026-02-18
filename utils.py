@@ -33,26 +33,63 @@ def create_ai_client():
 
 
 def generate_summary_from_report(report_text):
-    """Generate AI summary"""
+    # ... keep exactly as-is ...
+    return message.content[0].text
+
+
+def generate_structured_analysis(extracted_text):
+    """Returns structured JSON analysis - separate from summary to protect existing flow"""
     client = create_ai_client()
     
-    system_prompt = """You are an expert at summarizing home inspection reports in a professional, balanced way.
-Your job is to create a brief summary (2-3 paragraphs) that:
-1. Clearly explains what was inspected
-2. Highlights findings in order of priority
-3. Uses calm, professional language - not alarmist
-4. Presents issues factually without exaggeration
+    system_prompt = """You are an expert home inspection analyst. Analyze this inspection report 
+and return ONLY a valid JSON object, no markdown, no backticks, no explanation:
+{
+  "condition": "Good" or "Fair" or "Poor",
+  "budget_now": "$X,XXX - $X,XXX",
+  "budget_5yr": "$XX,XXX - $XX,XXX",
+  "currency": "USD" or "CAD",
+  "location": "City, State/Province detected from report",
+  "urgent_items": [
+    {"name": "Issue", "cost": "$X,XXX", "timeline": "Immediate", "trade": "Electrician"}
+  ],
+  "maintenance_items": [
+    {"name": "Issue", "cost": "$X,XXX", "timeline": "1-3 years", "trade": "Roofer"}
+  ],
+  "checklist": [
+    {"passed": true, "text": "Roof in acceptable condition"},
+    {"passed": false, "text": "GFCI outlets missing in kitchen and bathroom"}
+  ]
+}
 
-Do NOT make up information. Only summarize what's in the report."""
-    
+PRICING RULES:
+- Detect the property address from the report
+- If US property: use USD and local metro contractor rates
+- If Canadian property: use CAD and local provincial contractor rates  
+- Be specific to the metro area (Chicagoland vs rural IL, Edmonton vs Calgary, etc.)
+- Base estimates on current contractor rates for that market
+- Be conservative - give ranges, not single numbers"""
+
     message = client.messages.create(
         model="claude-sonnet-4-5-20250929",
-        max_tokens=500,
+        max_tokens=2000,
         system=system_prompt,
-        messages=[{"role": "user", "content": f"Please summarize this inspection report:\n\n{report_text}"}]
+        messages=[{"role": "user", "content": extracted_text}]
     )
     
-    return message.content[0].text
+    raw = message.content[0].text.replace('\x00', '')
+    
+    raw = raw.strip()
+    if raw.startswith('```'):
+        raw = raw.split('\n', 1)[1]
+    if raw.endswith('```'):
+        raw = raw.rsplit('```', 1)[0]
+    raw = raw.strip()
+    
+    return raw
+
+
+def generate_punchlist(answer_text, issue_type, question):
+    # ... keep exactly as-is ...
 
 
 def generate_punchlist(answer_text, issue_type, question):

@@ -20,6 +20,8 @@ class InspectionReport(db.Model):
     fileSize = db.Column(db.Integer)
     extractedText = db.Column(db.Text)
     summary = db.Column(db.Text)
+    analysis_json = db.Column(db.Text, nullable=True)
+    is_paid = db.Column(db.Boolean, default=False)
     shareToken = db.Column(db.String(100), unique=True)
     isShared = db.Column(db.Boolean, default=True)
     createdAt = db.Column(db.DateTime, default=datetime.utcnow)

@@ -992,6 +992,8 @@
         }
 
         function renderDashboardScreen() {
+            const a = state.analysis; // shorthand, null if not available
+
             return `
                 <div class="dashboard-screen">
                     <div class="dashboard-header">
@@ -1007,75 +1009,76 @@
 
                         <div class="hero-card">
                             <div class="condition-label">Home Condition</div>
-                            <div class="condition-status">Good</div>
-                            <div class="condition-note">(Typical for homes built 1990-2000)</div>
+                            <div class="condition-status">${a ? a.condition : 'Analyzing...'}</div>
+                            <div class="condition-note">${a ? a.location : ''}</div>
                             <div class="condition-summary">
                                 <div class="condition-summary-item">
-                                    <div class="condition-summary-number">3</div>
+                                    <div class="condition-summary-number">${a ? a.urgent_items.length : '-'}</div>
                                     <div class="condition-summary-label">Items Need Attention</div>
                                 </div>
                                 <div class="condition-summary-item">
-                                    <div class="condition-summary-number">8</div>
+                                    <div class="condition-summary-number">${a ? a.checklist.filter(i => i.passed).length : '-'}</div>
                                     <div class="condition-summary-label">Functioning Well ✅</div>
                                 </div>
                             </div>
                         </div>
 
-                        <div class="section-title">Budget for Repairs</div>
+                        <div class="section-title">Budget for Repairs ${a && a.currency ? `(${a.currency})` : ''}</div>
                         <div class="budget-grid">
                             <div class="budget-card">
                                 <div class="budget-card-label">Now - 12 Months</div>
-                                <div class="budget-card-amount">$800 - 1,200</div>
-                                <div class="budget-card-description">Preventive maintenance</div>
+                                <div class="budget-card-amount">${a ? a.budget_now : '...'}</div>
+                                <div class="budget-card-description">Immediate repairs & maintenance</div>
                             </div>
                             <div class="budget-card">
                                 <div class="budget-card-label">5 Year Outlook</div>
-                                <div class="budget-card-amount">$5,000 - 8,000</div>
+                                <div class="budget-card-amount">${a ? a.budget_5yr : '...'}</div>
                                 <div class="budget-card-description">Long-term replacements</div>
                             </div>
                         </div>
 
                         <div class="section-title">What Needs Attention</div>
                         <div class="issues-grid">
-                            <div class="issue-card" onclick="askQuestionCard('Tell me more about the electrical issues')">
-                                <div class="issue-icon">🔧</div>
-                                <div class="issue-title">Electrical</div>
-                                <div class="issue-cost">$50 - 300</div>
-                                <div class="issue-timeline">Handle now or cosmetic</div>
-                            </div>
-                            <div class="issue-card" onclick="askQuestionCard('Tell me about the plumbing issues')">
-                                <div class="issue-icon">💧</div>
-                                <div class="issue-title">Plumbing</div>
-                                <div class="issue-cost">$500 - 800</div>
-                                <div class="issue-timeline">Handle in 12 months</div>
-                            </div>
-                            <div class="issue-card" onclick="askQuestionCard('What about the HVAC system?')">
-                                <div class="issue-icon">❄️</div>
-                                <div class="issue-title">HVAC</div>
-                                <div class="issue-cost">Future</div>
-                                <div class="issue-timeline">Monitor, plan 5-10 years</div>
-                            </div>
+                            ${a && a.urgent_items.length > 0 ? a.urgent_items.map(item => `
+                                <div class="issue-card" onclick="askQuestionCard('Tell me more about the ${escapeHtml(item.name)} issue and what I should do')">
+                                    <div class="issue-icon">${getTradeIcon(item.trade)}</div>
+                                    <div class="issue-title">${escapeHtml(item.name)}</div>
+                                    <div class="issue-cost">${escapeHtml(item.cost)}</div>
+                                    <div class="issue-timeline">${escapeHtml(item.timeline)}</div>
+                                </div>
+                            `).join('') : `
+                                <div class="issue-card">
+                                    <div class="issue-icon">✅</div>
+                                    <div class="issue-title">No urgent issues</div>
+                                    <div class="issue-cost">-</div>
+                                    <div class="issue-timeline">Looking good</div>
+                                </div>
+                            `}
                         </div>
 
-                        <div class="comparison-section">
-                            <div class="comparison-badge">✓ Better Than Average</div>
-                            <div class="comparison-text">Homes in Naperville built 1990-2000 typically have 4-5 issues. This home has 3.</div>
-                            <div class="comparison-bar">
-                                <div class="comparison-bar-label">Naperville Average</div>
-                                <div class="comparison-bar-value">4.2 issues</div>
+                        ${a && a.maintenance_items && a.maintenance_items.length > 0 ? `
+                            <div class="section-title">Maintenance & Future Planning</div>
+                            <div class="issues-grid">
+                                ${a.maintenance_items.map(item => `
+                                    <div class="issue-card" onclick="askQuestionCard('Tell me about the ${escapeHtml(item.name)} and when I should address it')">
+                                        <div class="issue-icon">${getTradeIcon(item.trade)}</div>
+                                        <div class="issue-title">${escapeHtml(item.name)}</div>
+                                        <div class="issue-cost">${escapeHtml(item.cost)}</div>
+                                        <div class="issue-timeline">${escapeHtml(item.timeline)}</div>
+                                    </div>
+                                `).join('')}
                             </div>
-                            <div class="comparison-bar">
-                                <div class="comparison-bar-label">This Home</div>
-                                <div class="comparison-bar-value">3 issues</div>
-                            </div>
-                        </div>
+                        ` : ''}
 
                         <div class="checklist-section">
-                            <div class="checklist-item"><div class="checklist-icon">✓</div><div>No structural damage found</div></div>
-                            <div class="checklist-item"><div class="checklist-icon">✓</div><div>Passes all Illinois code requirements</div></div>
-                            <div class="checklist-item"><div class="checklist-icon">✓</div><div>No water intrusion detected</div></div>
-                            <div class="checklist-item"><div class="checklist-icon">⚠️</div><div>Sewer line has scaling (preventive care)</div></div>
-                            <div class="checklist-item"><div class="checklist-icon">✓</div><div>HVAC functioning properly</div></div>
+                            ${a && a.checklist ? a.checklist.map(item => `
+                                <div class="checklist-item">
+                                    <div class="checklist-icon">${item.passed ? '✓' : '⚠️'}</div>
+                                    <div>${escapeHtml(item.text)}</div>
+                                </div>
+                            `).join('') : `
+                                <div class="checklist-item"><div class="checklist-icon">...</div><div>Loading analysis...</div></div>
+                            `}
                         </div>
 
                         <div class="realtor-card">
@@ -1135,6 +1138,7 @@
             `;
         }
 
+
         function setupUploadHandlers() {
             const fileInput = document.getElementById('fileInput');
             const dropZone = document.getElementById('dropZone');
@@ -1183,6 +1187,19 @@
                     state.shareToken = data.share_token || null;
                     state.screen = 'dashboard';
                     state.messages = [];
+
+                    // Fetch structured analysis
+                    try {
+                        const analysisRes = await fetch(`${API_URL}/api/analysis/${state.reportId}`);
+                        if (analysisRes.ok) {
+                            state.analysis = await analysisRes.json();
+                        } else {
+                            state.analysis = null;
+                        }
+                    } catch (e) {
+                        console.log('Analysis not available:', e);
+                        state.analysis = null;
+                    }
                     render();
                     setTimeout(() => document.getElementById('question')?.focus(), 100);
                 } else {
@@ -1382,6 +1399,27 @@
             const div = document.createElement('div');
             div.textContent = text;
             return div.innerHTML;
+        }
+
+        function getTradeIcon(trade) {
+            const icons = {
+                'electrician': '⚡', 'electrical': '⚡',
+                'plumber': '💧', 'plumbing': '💧',
+                'hvac': '❄️', 'heating': '❄️', 'cooling': '❄️',
+                'roofer': '🏠', 'roofing': '🏠',
+                'structural': '🏗️', 'foundation': '🏗️',
+                'general': '🔧', 'handyman': '🔧',
+                'pest': '🐛', 'pest control': '🐛',
+                'mold': '🧫', 'mold inspector': '🧫',
+                'radon': '☢️', 'radon mitigation': '☢️',
+                'sewer': '🚿', 'drain': '🚿',
+                'insulation': '🧱', 'window': '🪟',
+            };
+            const key = (trade || 'general').toLowerCase();
+            for (const [match, icon] of Object.entries(icons)) {
+                if (key.includes(match)) return icon;
+            }
+            return '🔧';
         }
 
         function generatePDF() {
