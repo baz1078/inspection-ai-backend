@@ -1170,8 +1170,10 @@
                                 <input type="tel" id="modalPhone" value="${escapeHtml(state.customerPhone || '')}">
                             </div>
                             <div class="modal-buttons">
-                                <button class="btn-confirm" onclick="confirmQuote()">Send Request</button>
-                                <button class="btn-cancel" onclick="state.showConfirmModal=false">Cancel</button>
+                                <button class="btn-confirm" onclick="confirmQuote()" ${state.quoteSending ? 'disabled' : ''}>
+                                    ${state.quoteSending ? '⏳ Sending...' : 'Send Request'}
+                                </button>
+                                <button class="btn-cancel" onclick="state.showConfirmModal=false;render()" ${state.quoteSending ? 'disabled' : ''}>Cancel</button>
                             </div>
                         </div>
                     </div>
@@ -1372,6 +1374,7 @@
         function requestQuote(qId, cId) {
             state.showConfirmModal = true;
             state.pendingQuote = { qId, cId };
+            render();
         }
 
         async function confirmQuote() {
@@ -1383,21 +1386,29 @@
             state.customerName = name;
             state.customerEmail = email;
             state.customerPhone = phone;
+            state.quoteSending = true;
+            render();
             
             try {
-                const res = await fetch(`${API_URL}/api/referral-request`, {
+                const res = await fetch(`${API_URL}/api/request-quote`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ report_id: state.reportId, question_id: qId, contractor_id: cId, customer_name: name, customer_email: email, customer_phone: phone })
                 });
                 if (res.ok) {
-                    alert('Request sent! Contractor will reach out soon.');
                     state.showConfirmModal = false;
                     state.pendingQuote = null;
+                    state.quoteSending = false;
+                    render();
+                    alert('Request sent! Contractor will reach out soon.');
                 } else {
-                    alert('Error sending request');
+                    state.quoteSending = false;
+                    render();
+                    alert('Error sending request. Please try again.');
                 }
             } catch (e) {
+                state.quoteSending = false;
+                render();
                 alert('Error: ' + e.message);
             }
         }
@@ -1432,7 +1443,7 @@
         }
 
         function resetApp() {
-            state = { screen: 'upload', customerName: '', customerEmail: '', customerPhone: '', uploading: false, reportId: null, summary: null, address: null, messages: [], loading: false, pendingQuote: null, warrantyId: null, warrantyBuilderName: null, warrantyType: null, warrantyLoaded: false, showConfirmModal: false, chatVisible: true, shareToken: null };
+            state = { screen: 'upload', customerName: '', customerEmail: '', customerPhone: '', uploading: false, reportId: null, summary: null, address: null, messages: [], loading: false, pendingQuote: null, warrantyId: null, warrantyBuilderName: null, warrantyType: null, warrantyLoaded: false, showConfirmModal: false, quoteSending: false, chatVisible: true, shareToken: null };
             render();
         }
 
