@@ -1390,7 +1390,7 @@
             render();
             
             try {
-                const res = await fetch(`${API_URL}/api/request-quote`, {
+                const res = await fetch(`${API_URL}/api/referral-request`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ report_id: state.reportId, question_id: qId, contractor_id: cId, customer_name: name, customer_email: email, customer_phone: phone })
