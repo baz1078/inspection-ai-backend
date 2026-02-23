@@ -86,10 +86,26 @@ and return ONLY a valid JSON object, no markdown, no backticks, no explanation:
 PRICING RULES:
 - Detect the property address from the report
 - If US property: use USD and local metro contractor rates
-- If Canadian property: use CAD and local provincial contractor rates  
+- If Canadian property: use CAD and local provincial contractor rates
 - Be specific to the metro area (Chicagoland vs rural IL, Edmonton vs Calgary, etc.)
-- Base estimates on current contractor rates for that market
-- Be conservative - give ranges, not single numbers"""
+
+BUDGET NOW (0-12 months):
+- ONLY include items the inspector explicitly flagged as deficient, defective, or requiring repair
+- Do NOT include items described only as "aging," "older," "monitor," or "near end of life" — those belong in maintenance_items only if inspector recommended action
+- Give realistic mid-range estimates, not worst-case replacement costs
+
+BUDGET 5-YEAR (budget_5yr field):
+- ONLY include items where the inspector explicitly noted replacement is needed or likely within 5 years
+- Do NOT automatically add aging-but-functional systems (roof, HVAC, water heater) unless the inspector specifically flagged them for replacement
+- This field should reflect the SUM of maintenance_items costs only — do not add speculative replacements
+- If no 5-year items were explicitly flagged by the inspector, return a range of "$500 - $2,000" for routine upkeep
+- If your estimate would exceed $15,000, stop and re-evaluate — you are likely including items NOT documented in the report
+- NEVER exceed $25,000 unless the inspector explicitly documented multiple major system failures
+
+GENERAL:
+- Be conservative — give ranges, not single numbers
+- When uncertain, go lower and note that contractor quotes are recommended
+- Only include what is documented in the report, not what "could" happen"""
 
     message = client.messages.create(
         model="claude-sonnet-4-5-20250929",
