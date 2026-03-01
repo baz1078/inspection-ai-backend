@@ -193,50 +193,58 @@ def generate_punchlist_pdf(report_id):
         p.drawCentredString(w / 2, h - 60, datetime.utcnow().strftime("%B %d, %Y"))
         y = h - 90
 
-        # PROPERTY INFO
+        # CONDITION BADGE (above property info)
+        condition = analysis.get("condition", "N/A")
+        cond_color = GREEN if condition == "Well Maintained" else (AMBER if condition == "Needs TLC" else PINK)
+        badge_width = 110
+        p.setFillColor(cond_color)
+        p.roundRect(60, y - 6, badge_width, 22, 6, fill=True, stroke=False)
+        p.setFillColor(WHITE)
+        p.setFont("Helvetica-Bold", 11)
+        p.drawCentredString(60 + badge_width / 2, y + 4, condition)
+        y -= 32
+
+        # PROPERTY INFO - aligned grid
+        label_x = 60
+        value_x = 130
         p.setFillColor(DARK_TEXT)
         p.setFont("Helvetica", 9)
-        p.drawString(60, y, "Property:")
+        p.drawString(label_x, y, "Property:")
         p.setFont("Helvetica-Bold", 9)
-        p.drawString(115, y, report.address or "Unknown Address")
+        p.drawString(value_x, y, report.address or "Unknown Address")
         y -= 14
         p.setFont("Helvetica", 9)
-        p.drawString(60, y, "Prepared for:")
+        p.drawString(label_x, y, "Prepared for:")
         p.setFont("Helvetica-Bold", 9)
-        p.drawString(115, y, report.customerName or "N/A")
-        if report.customerPhone:
-            p.setFont("Helvetica", 9)
-            p.drawString(300, y, "Phone: " + report.customerPhone)
-        if report.customerEmail:
-            p.setFont("Helvetica", 9)
-            p.drawString(430, y, "Email: " + report.customerEmail)
-        y -= 20
+        p.drawString(value_x, y, report.customerName or "N/A")
+        p.setFont("Helvetica", 9)
+        p.drawString(310, y, "Phone:")
+        p.setFont("Helvetica-Bold", 9)
+        p.drawString(340, y, report.customerPhone or "N/A")
+        p.setFont("Helvetica", 9)
+        p.drawString(430, y, "Email:")
+        p.setFont("Helvetica-Bold", 9)
+        p.drawString(458, y, report.customerEmail or "N/A")
+        y -= 18
 
-        # CONDITION + BUDGETS
-        condition = analysis.get("condition", "N/A")
-        cond_color = GREEN if condition == "Good" else (AMBER if condition == "Fair" else PINK)
-        p.setFillColor(cond_color)
-        p.roundRect(60, y - 6, 80, 22, 6, fill=True, stroke=False)
-        p.setFillColor(WHITE)
-        p.setFont("Helvetica-Bold", 12)
-        p.drawCentredString(100, y + 4, condition)
-
+        # BUDGETS
         budget_now = analysis.get("budget_now", "N/A")
         budget_5yr = analysis.get("budget_5yr", "N/A")
         currency   = analysis.get("currency", "USD")
         p.setFillColor(DARK_TEXT)
         p.setFont("Helvetica", 9)
-        p.drawString(160, y + 10, "Now - 12 months (" + currency + "):")
-        p.setFillColor(PINK)
-        p.setFont("Helvetica-Bold", 10)
-        p.drawString(290, y + 10, budget_now)
-        p.setFillColor(DARK_TEXT)
-        p.setFont("Helvetica", 9)
-        p.drawString(160, y - 2, "5-Year outlook (" + currency + "):")
+        p.drawString(label_x, y, "Now - 12 months (" + currency + "):")
         p.setFillColor(TEAL)
         p.setFont("Helvetica-Bold", 10)
-        p.drawString(290, y - 2, budget_5yr)
-        y -= 30
+        p.drawString(value_x + 90, y, budget_now)
+        y -= 14
+        p.setFillColor(DARK_TEXT)
+        p.setFont("Helvetica", 9)
+        p.drawString(label_x, y, "5-Year outlook (" + currency + "):")
+        p.setFillColor(TEAL)
+        p.setFont("Helvetica-Bold", 10)
+        p.drawString(value_x + 90, y, budget_5yr)
+        y -= 20
 
         # DIVIDER
         p.setStrokeColor(TEAL)
@@ -280,7 +288,7 @@ def generate_punchlist_pdf(report_id):
                 p.drawString(cols[3], y + 2, str(item.get("timeline", ""))[:18])
                 p.setFillColor(PINK)
                 p.setFont("Helvetica-Bold", 8)
-                p.drawString(cols[4], y + 2, "URGENT")
+                p.drawString(cols[4], y + 2, "High Priority")
                 y -= 16
             y -= 10
 
@@ -335,7 +343,7 @@ def generate_punchlist_pdf(report_id):
                 passed = item.get("passed", True)
                 text   = item.get("text", "")
                 badge_color = GREEN if passed else AMBER
-                label = "PASS" if passed else "WARN"
+                label = "GOOD" if passed else "NOTE"
                 p.setFillColor(badge_color)
                 p.roundRect(60, y - 3, 34, 13, 4, fill=True, stroke=False)
                 p.setFillColor(WHITE)
@@ -513,7 +521,7 @@ def generate_pdf(report_id):
         for passed, text in checks:
             p.setFillColor(TEAL if passed else HexColor('#c89600'))
             p.setFont("Helvetica-Bold", 9)
-            p.drawString(70, y, "PASS" if passed else "WARN")
+            p.drawString(70, y, "GOOD" if passed else "NOTE")
             p.setFillColor(DARK_TEXT)
             p.setFont("Helvetica", 10)
             p.drawString(110, y, text)

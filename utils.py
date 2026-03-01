@@ -66,7 +66,7 @@ def generate_structured_analysis(extracted_text):
     system_prompt = """You are an expert home inspection analyst. Analyze this inspection report 
 and return ONLY a valid JSON object, no markdown, no backticks, no explanation:
 {
-  "condition": "Good" or "Fair" or "Poor",
+  "condition": "Well Maintained" or "Needs TLC" or "Needs Work",
   "budget_now": "$X,XXX - $X,XXX",
   "budget_5yr": "$XX,XXX - $XX,XXX",
   "currency": "USD" or "CAD",
