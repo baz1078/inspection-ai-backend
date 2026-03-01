@@ -367,6 +367,42 @@
             color: var(--text-secondary);
         }
 
+        /* PRIORITY DOTS */
+        .issue-priority-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            display: inline-block;
+            margin-right: 6px;
+            flex-shrink: 0;
+            box-shadow: 0 0 6px currentColor;
+        }
+        .priority-red   { background: #ef4444; color: #ef4444; }
+        .priority-yellow{ background: #f59e0b; color: #f59e0b; }
+        .priority-green { background: #22c55e; color: #22c55e; }
+
+        .issue-timeline-row {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+
+        /* CONDITION CIRCLE */
+        .condition-circle {
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            display: inline-block;
+            margin-right: 10px;
+            vertical-align: middle;
+            box-shadow: 0 0 10px currentColor;
+        }
+        .circle-good { background: #22c55e; color: #22c55e; }
+        .circle-fair { background: #f59e0b; color: #f59e0b; }
+        .circle-poor { background: #ef4444; color: #ef4444; }
+
         /* COMPARISON */
         .comparison-section {
             background: var(--card-bg);
@@ -1047,7 +1083,10 @@
 
                         <div class="hero-card">
                             <div class="condition-label">Home Condition</div>
-                            <div class="condition-status">${a ? a.condition : 'Analyzing...'}</div>
+                            <div class="condition-status">
+                                ${a ? `<span class="condition-circle ${a.condition === 'Good' ? 'circle-good' : a.condition === 'Fair' ? 'circle-fair' : 'circle-poor'}"></span>` : ''}
+                                ${a ? a.condition : 'Analyzing...'}
+                            </div>
                             <div class="condition-note">${a ? a.location : ''}</div>
                             <div class="condition-summary">
                                 <div class="condition-summary-item">
@@ -1082,7 +1121,10 @@
                                     <div class="issue-icon">${getTradeIcon(item.trade)}</div>
                                     <div class="issue-title">${escapeHtml(item.name)}</div>
                                     <div class="issue-cost">${escapeHtml(item.cost)}</div>
-                                    <div class="issue-timeline">${escapeHtml(item.timeline)}</div>
+                                    <div class="issue-timeline-row">
+                                        <span class="issue-priority-dot ${getPriorityColor(item.timeline)}"></span>
+                                        ${escapeHtml(item.timeline)}
+                                    </div>
                                 </div>
                             `).join('') : `
                                 <div class="issue-card">
@@ -1102,7 +1144,10 @@
                                         <div class="issue-icon">${getTradeIcon(item.trade)}</div>
                                         <div class="issue-title">${escapeHtml(item.name)}</div>
                                         <div class="issue-cost">${escapeHtml(item.cost)}</div>
-                                        <div class="issue-timeline">${escapeHtml(item.timeline)}</div>
+                                        <div class="issue-timeline-row">
+                                            <span class="issue-priority-dot ${getPriorityColor(item.timeline)}"></span>
+                                            ${escapeHtml(item.timeline)}
+                                        </div>
                                     </div>
                                 `).join('')}
                             </div>
@@ -1451,6 +1496,14 @@
             const div = document.createElement('div');
             div.textContent = text;
             return div.innerHTML;
+        }
+
+        function getPriorityColor(timeline) {
+            if (!timeline) return 'priority-yellow';
+            const t = timeline.toLowerCase();
+            if (t.includes('immediate') || t.includes('now') || t.includes('urgent') || t.includes('safety')) return 'priority-red';
+            if (t.includes('1-3') || t.includes('0-6') || t.includes('6 month') || t.includes('soon')) return 'priority-yellow';
+            return 'priority-green';
         }
 
         function getTradeIcon(trade) {
