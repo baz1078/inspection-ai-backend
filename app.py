@@ -280,13 +280,13 @@ def generate_punchlist_pdf(report_id):
                 p.setFont("Helvetica", 8)
                 p.setFillColor(LIGHT_GRAY)
                 p.drawString(cols[1], y + 2, str(item.get("trade", ""))[:20])
-                p.setFillColor(PINK)
+                p.setFillColor(TEAL)
                 p.setFont("Helvetica-Bold", 8)
                 p.drawString(cols[2], y + 2, str(item.get("cost", "TBD")))
                 p.setFillColor(AMBER)
                 p.setFont("Helvetica", 8)
                 p.drawString(cols[3], y + 2, str(item.get("timeline", ""))[:18])
-                p.setFillColor(PINK)
+                p.setFillColor(TEAL)
                 p.setFont("Helvetica-Bold", 8)
                 p.drawString(cols[4], y + 2, "High Priority")
                 y -= 16
@@ -343,7 +343,7 @@ def generate_punchlist_pdf(report_id):
                 passed = item.get("passed", True)
                 text   = item.get("text", "")
                 badge_color = GREEN if passed else AMBER
-                label = "GOOD" if passed else "NOTE"
+                label = "SATS" if passed else "ATTN"
                 p.setFillColor(badge_color)
                 p.roundRect(60, y - 3, 34, 13, 4, fill=True, stroke=False)
                 p.setFillColor(WHITE)
@@ -497,7 +497,7 @@ def generate_pdf(report_id):
             p.setFillColor(DARK_TEXT)
             p.setFont("Helvetica-Bold", 10)
             p.drawString(70, y, name)
-            p.setFillColor(PINK)
+            p.setFillColor(TEAL)
             p.setFont("Helvetica-Bold", 10)
             p.drawString(170, y, cost)
             p.setFillColor(LIGHT_GRAY)
@@ -521,7 +521,7 @@ def generate_pdf(report_id):
         for passed, text in checks:
             p.setFillColor(TEAL if passed else HexColor('#c89600'))
             p.setFont("Helvetica-Bold", 9)
-            p.drawString(70, y, "GOOD" if passed else "NOTE")
+            p.drawString(70, y, "SATS" if passed else "ATTN")
             p.setFillColor(DARK_TEXT)
             p.setFont("Helvetica", 10)
             p.drawString(110, y, text)
