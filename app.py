@@ -330,49 +330,151 @@ def generate_punchlist_pdf(report_id):
                 y -= 16
             y -= 10
 
-        # CHECKLIST
+        # CHECKLIST - grouped: ATTN first, SATS second
         checklist = analysis.get("checklist", [])
         if checklist:
             y = check_page(y, 60)
+
+            # Title + legend on same line
             p.setFillColor(DARK_TEXT)
             p.setFont("Helvetica-Bold", 13)
             p.drawString(60, y, "Inspection Checklist")
-            y -= 18
-            for item in checklist:
-                y = check_page(y, 14)
-                passed = item.get("passed", True)
-                text   = item.get("text", "")
-                badge_color = GREEN if passed else AMBER
-                label = "SATS" if passed else "ATTN"
-                p.setFillColor(badge_color)
-                p.roundRect(60, y - 3, 34, 13, 4, fill=True, stroke=False)
-                p.setFillColor(WHITE)
-                p.setFont("Helvetica-Bold", 7)
-                p.drawCentredString(77, y + 3, label)
-                p.setFillColor(DARK_TEXT)
-                p.setFont("Helvetica", 9)
-                lines = simpleSplit(text, "Helvetica", 9, w - 220)
-                p.drawString(102, y + 3, lines[0] if lines else text)
-                y -= 14
-            y -= 10
-
-        # SUMMARY NOTES
-        if report.summary:
-            y = check_page(y, 60)
-            p.setStrokeColor(TEAL)
-            p.setLineWidth(0.5)
-            p.line(60, y, w - 60, y)
-            y -= 16
-            p.setFillColor(DARK_TEXT)
-            p.setFont("Helvetica-Bold", 11)
-            p.drawString(60, y, "Inspector Notes")
-            y -= 14
+            # Legend - right side
+            legend_x = w - 60
+            p.setFont("Helvetica", 7)
             p.setFillColor(LIGHT_GRAY)
-            p.setFont("Helvetica", 8)
-            for line in simpleSplit(report.summary, "Helvetica", 8, w - 120):
-                y = check_page(y, 12)
-                p.drawString(60, y, line)
-                y -= 11
+            p.drawRightString(legend_x, y + 2, "SATS = Satisfactory condition     ATTN = Needs attention or follow-up")
+            y -= 20
+
+            attn_items = [i for i in checklist if not i.get("passed", True)]
+            sats_items = [i for i in checklist if i.get("passed", True)]
+
+            # ATTN GROUP
+            if attn_items:
+                p.setFillColor(LIGHT_GRAY)
+                p.setFont("Helvetica", 7)
+                p.drawString(60, y, "▸  ITEMS REQUIRING ATTENTION")
+                y -= 12
+                for item in attn_items:
+                    y = check_page(y, 16)
+                    text = item.get("text", "")
+                    # Row background
+                    p.setFillColor(HexColor('#fffbeb'))
+                    p.rect(55, y - 4, w - 110, 16, fill=True, stroke=False)
+                    # Badge
+                    p.setFillColor(AMBER)
+                    p.roundRect(60, y - 2, 34, 13, 4, fill=True, stroke=False)
+                    p.setFillColor(WHITE)
+                    p.setFont("Helvetica-Bold", 7)
+                    p.drawCentredString(77, y + 4, "ATTN")
+                    # Text
+                    p.setFillColor(DARK_TEXT)
+                    p.setFont("Helvetica", 8.5)
+                    lines = simpleSplit(text, "Helvetica", 8.5, w - 180)
+                    p.drawString(102, y + 3, lines[0] if lines else text)
+                    y -= 15
+                y -= 6
+
+            # SATS GROUP
+            if sats_items:
+                y = check_page(y, 20)
+                p.setFillColor(LIGHT_GRAY)
+                p.setFont("Helvetica", 7)
+                p.drawString(60, y, "▸  SATISFACTORY ITEMS")
+                y -= 12
+                for item in sats_items:
+                    y = check_page(y, 16)
+                    text = item.get("text", "")
+                    # Row background
+                    p.setFillColor(HexColor('#f0fdf4'))
+                    p.rect(55, y - 4, w - 110, 16, fill=True, stroke=False)
+                    # Badge
+                    p.setFillColor(GREEN)
+                    p.roundRect(60, y - 2, 34, 13, 4, fill=True, stroke=False)
+                    p.setFillColor(WHITE)
+                    p.setFont("Helvetica-Bold", 7)
+                    p.drawCentredString(77, y + 4, "SATS")
+                    # Text
+                    p.setFillColor(DARK_TEXT)
+                    p.setFont("Helvetica", 8.5)
+                    lines = simpleSplit(text, "Helvetica", 8.5, w - 180)
+                    p.drawString(102, y + 3, lines[0] if lines else text)
+                    y -= 15
+            y -= 14
+
+        # INSPECTOR NOTES - styled card
+        if report.summary:
+            y = check_page(y, 80)
+            # Dark header bar
+            p.setFillColor(DARK_BG)
+            p.rect(55, y - 4, w - 110, 22, fill=True, stroke=False)
+            p.setFillColor(TEAL)
+            p.setFont("Helvetica-Bold", 11)
+            p.drawString(68, y + 4, "Inspector Notes")
+            y -= 18
+
+            # Paragraphs with left border
+            paragraphs = [p2.strip() for p2 in report.summary.split('\n') if p2.strip()]
+            if len(paragraphs) <= 1:
+                # If no newlines, split by sentence groups (~3 sentences each)
+                import re
+                sentences = re.split(r'(?<=[.!?])\s+', report.summary.strip())
+                paragraphs = []
+                chunk = []
+                for i, s in enumerate(sentences):
+                    chunk.append(s)
+                    if len(chunk) == 3 or i == len(sentences) - 1:
+                        paragraphs.append(' '.join(chunk))
+                        chunk = []
+
+            for para in paragraphs:
+                lines = simpleSplit(para, "Helvetica", 8, w - 145)
+                needed = len(lines) * 11 + 14
+                y = check_page(y, needed)
+                # Left border line
+                p.setStrokeColor(TEAL)
+                p.setLineWidth(1.5)
+                p.line(60, y + 2, 60, y - needed + 14)
+                p.setLineWidth(0.5)
+                # Para text
+                p.setFillColor(HexColor('#4b5563'))
+                p.setFont("Helvetica", 8)
+                for line in lines:
+                    p.drawString(72, y, line)
+                    y -= 11
+                y -= 8
+
+        # DISCLAIMER
+        y = check_page(y, 60)
+        y -= 10
+        disclaimer_text = (
+            "Important Notice — Cost Estimates Only: All figures in this report are approximations based on "
+            "regional contractor averages and are provided for budgeting guidance only. Actual costs will vary "
+            "based on contractor, scope of work, materials, and site conditions. This report does not constitute "
+            "a warranty, guarantee, or professional cost assessment. Obtain multiple licensed contractor quotes "
+            "before committing to any repair work. Assure Home Inspections and Speqtr are not liable for "
+            "discrepancies between estimated and actual repair costs."
+        )
+        disc_lines = simpleSplit(disclaimer_text, "Helvetica", 7.5, w - 140)
+        box_h = len(disc_lines) * 10 + 16
+        y = check_page(y, box_h + 10)
+        # Box background
+        p.setFillColor(HexColor('#f8fafc'))
+        p.rect(55, y - box_h + 8, w - 110, box_h, fill=True, stroke=False)
+        # Teal left accent
+        p.setFillColor(TEAL)
+        p.rect(55, y - box_h + 8, 3, box_h, fill=True, stroke=False)
+        # Label
+        p.setFillColor(DARK_TEXT)
+        p.setFont("Helvetica-Bold", 7.5)
+        p.drawString(66, y + 2, "⚠  Estimates & Disclaimer")
+        y -= 12
+        p.setFillColor(LIGHT_GRAY)
+        p.setFont("Helvetica", 7.5)
+        for line in disc_lines:
+            p.drawString(66, y, line)
+            y -= 10
+        y -= 10
 
         # FOOTER
         p.setStrokeColor(TEAL)
