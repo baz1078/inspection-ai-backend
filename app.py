@@ -142,7 +142,15 @@ def get_analysis(report_id):
     report = InspectionReport.query.get(report_id)
     if not report or not report.analysis_json:
         return jsonify({"error": "No analysis available"}), 404
-    return jsonify(json.loads(report.analysis_json))
+    analysis = json.loads(report.analysis_json)
+    analysis['_meta'] = {
+        'summary': report.summary,
+        'address': report.address,
+        'share_token': report.shareToken,
+        'customer_name': report.customerName,
+        'customer_email': report.customerEmail,
+    }
+    return jsonify(analysis)
 
 @app.route('/api/punchlist-pdf/<report_id>', methods=['GET'])
 def generate_punchlist_pdf(report_id):

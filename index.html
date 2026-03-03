@@ -1075,7 +1075,26 @@
             showConfirmModal: false,
             chatVisible: true
         };
+        // Load report from URL on page load
+        const urlParams = new URLSearchParams(window.location.search);
+        const urlReportId = urlParams.get('report_id');
+        if (urlReportId) {
+            state.screen = 'dashboard';
+            state.reportId = urlReportId;
+            fetch(`${API_URL}/api/analysis/${urlReportId}`)
+                .then(r => r.json())
+                .then(data => {
+                    state.analysis = data;
+                    state.summary = data._meta.summary;
+                    state.address = data._meta.address;
+                    state.shareToken = data._meta.share_token;
+                    state.customerName = data._meta.customer_name;
+                    state.customerEmail = data._meta.customer_email;
+                    render();
+                });
+        }
 
+        
         function render() {
             const app = document.getElementById('app');
             if (state.screen === 'upload') {
