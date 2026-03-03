@@ -1086,7 +1086,7 @@
                 .then(data => {
                     state.analysis = data;
                     state.summary = data._meta.summary;
-                    state.address = data.address || data.location || data._meta.address;
+                    state.address = data.location || data._meta.address;
                     state.shareToken = data._meta.share_token;
                     state.customerName = data._meta.customer_name;
                     state.customerEmail = data._meta.customer_email;
