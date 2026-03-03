@@ -71,6 +71,7 @@ and return ONLY a valid JSON object, no markdown, no backticks, no explanation:
   "budget_5yr": "$XX,XXX - $XX,XXX",
   "currency": "USD" or "CAD",
   "location": "City, State/Province detected from report",
+  "address": "Full property address from report e.g. 123 Main St, Calgary, AB",
   "urgent_items": [
     {"name": "Issue", "cost": "$X,XXX", "timeline": "Immediate", "trade": "Electrician"}
   ],
