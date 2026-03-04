@@ -18,6 +18,8 @@ from warranty_utils import (
 )
 import uuid
 import os
+import stripe
+stripe.api_key = os.getenv('STRIPE_SECRET_KEY')
 from datetime import datetime
 import re
 import json
@@ -1182,6 +1184,44 @@ def upload_warranty(report_id):
         return jsonify({'error': str(e)}), 500
 
 # Warranty endpoints removed - functionality moved to unified /api/ask endpoint
+# ============================================================================
+# STRIPE PAYMENT
+# ============================================================================
+
+@app.route('/api/create-checkout/<report_id>', methods=['POST'])
+def create_checkout(report_id):
+    try:
+        session = stripe.checkout.Session.create(
+            payment_method_types=['card'],
+            line_items=[{
+                'price': 'price_1T76JzBBFtZ2bcRJvOkXbYiJ',
+                'quantity': 1,
+            }],
+            mode='payment',
+            success_url=request.host_url + 'dashboard?report_id=' + report_id + '&paid=true',
+            cancel_url=request.host_url + 'dashboard?report_id=' + report_id,
+            metadata={'report_id': report_id}
+        )
+        return jsonify({'checkout_url': session.url})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/stripe-webhook', methods=['POST'])
+def stripe_webhook():
+    payload = request.get_data()
+    sig_header = request.headers.get('Stripe-Signature')
+    webhook_secret = os.getenv('STRIPE_WEBHOOK_SECRET')
+    try:
+        event = stripe.Webhook.construct_event(payload, sig_header, webhook_secret)
+        if event['type'] == 'checkout.session.completed':
+            report_id = event['data']['object']['metadata']['report_id']
+            report = InspectionReport.query.get(report_id)
+            if report:
+                report.is_paid = True
+                db.session.commit()
+    except Exception as e:
+        return jsonify({'error': str(e)}), 400
+    return jsonify({'status': 'ok'})
 
 # ============================================================================
 # ERROR HANDLERS
