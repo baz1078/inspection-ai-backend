@@ -1297,11 +1297,10 @@
                                 <li>🔗 Shareable report link</li>
                                 <li>💬 Unlimited AI chat questions</li>
                             </ul>
-                            <a href="${STRIPE_CHECKOUT_URL}?client_reference_id=${state.reportId}" target="_blank"
-                               style="display:block;background:var(--accent-teal);color:#fff;padding:12px;border-radius:8px;font-weight:700;font-size:15px;text-decoration:none;margin-bottom:10px;"
-                               onclick="state.showPaywall=false;render();">
+                            <button id="paywallBtn" onclick="startCheckout()"
+                               style="display:block;width:100%;background:var(--accent-teal);color:#fff;padding:12px;border-radius:8px;font-weight:700;font-size:15px;border:none;cursor:pointer;margin-bottom:10px;">
                                 Unlock for $29 →
-                            </a>
+                            </button>
                             <button onclick="state.showPaywall=false;render();" style="background:transparent;border:none;color:var(--text-secondary);font-size:13px;cursor:pointer;">Maybe later</button>
                         </div>
                     </div>
@@ -1586,7 +1585,18 @@
             }
         }
 
-        const STRIPE_CHECKOUT_URL = 'https://buy.stripe.com/test_6oU9AS3Xh2C0gNs9sk1Nu00'; // TODO: replace with real Stripe link
+        async function startCheckout() {
+            const btn = document.getElementById('paywallBtn');
+            if (btn) { btn.textContent = 'Redirecting...'; btn.style.opacity = '0.7'; btn.style.pointerEvents = 'none'; }
+            try {
+                const res = await fetch(`${API_URL}/api/create-checkout/${state.reportId}`, { method: 'POST' });
+                const data = await res.json();
+                if (data.checkout_url) { window.location.href = data.checkout_url; }
+                else { alert('Could not start checkout. Please try again.'); }
+            } catch(e) {
+                alert('Error: ' + e.message);
+            }
+        }
 
         function copyShareLink() {
             if (!state.isPaid) { state.showPaywall = true; render(); return; }
