@@ -108,7 +108,7 @@ Return this exact structure:
   "checklist": [
     {{"passed": true, "text": "System or component description"}},
     {{"passed": false, "text": "Issue description"}},
-    {{"passed": true, "notable": true, "text": "Item not tested or limited inspection"}}
+    {{"passed": true, "notable": true, "text": "Item not tested or limited inspection — e.g. AC not tested due to temperature"}}
   ]
 }}
 
@@ -256,8 +256,13 @@ Items to price:
         except Exception:
             return 0
 
-    now_mid = (now_low + now_high) // 2 if (now_low or now_high) else 0
-    yr5_mid = (yr5_low + yr5_high) // 2 if (yr5_low or yr5_high) else 0
+    now_low = sum(parse_cost_low(i.get("cost")) for i in findings.get("urgent_items", []))
+    now_high = sum(parse_cost_high(i.get("cost")) for i in findings.get("urgent_items", []))
+    yr5_low = sum(parse_cost_low(i.get("cost")) for i in findings.get("maintenance_items", []))
+    yr5_high = sum(parse_cost_high(i.get("cost")) for i in findings.get("maintenance_items", []))
+
+    now_mid = (now_low + now_high) // 2
+    yr5_mid = (yr5_low + yr5_high) // 2
 
     sym = "$"
     findings["budget_now"] = f"~{sym}{now_mid:,}" if now_mid else f"~{sym}1,500"

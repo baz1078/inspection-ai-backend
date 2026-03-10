@@ -161,6 +161,10 @@
             letter-spacing: 0.05em;
         }
 
+        .dashboard-header-address {
+            display: none;
+        }
+
         .dashboard-header button {
             padding: 8px 16px;
             background: var(--accent-teal);
@@ -537,13 +541,8 @@
             min-width: 20px;
         }
 
-        .checklist-notable {
-            color: var(--text-secondary);
-            font-weight: 600;
-            font-size: 16px;
-        }
+        .checklist-notable { color: var(--text-secondary); font-weight: 700; font-size: 18px; }
 
-        /* LEGEND CARD */
         .legend-card {
             background: var(--card-bg);
             border: 1px solid var(--border-color);
@@ -554,29 +553,10 @@
             flex-direction: column;
             gap: 10px;
         }
-
-        .legend-row {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            font-size: 13px;
-        }
-
-        .legend-text {
-            color: var(--text-secondary);
-        }
-
-        .legend-text strong {
-            color: var(--text-primary);
-        }
-
-        .legend-notable-dash {
-            font-size: 18px;
-            font-weight: 700;
-            color: var(--text-secondary);
-            min-width: 12px;
-            text-align: center;
-        }
+        .legend-row { display: flex; align-items: center; gap: 10px; font-size: 13px; }
+        .legend-text { color: var(--text-secondary); }
+        .legend-text strong { color: var(--text-primary); }
+        .legend-notable-dash { font-size: 18px; font-weight: 700; color: var(--text-secondary); min-width: 12px; text-align: center; }
 
         /* WARRANTY */
         .warranty-badge {
@@ -1289,7 +1269,7 @@
                                 return 0;
                             }).map(item => `
                                 <div class="checklist-item">
-                                    <div class="checklist-icon ${item.notable ? 'checklist-notable' : (item.passed ? 'checklist-pass' : 'checklist-fail')}">${item.notable ? '—' : (item.passed ? '✓' : '⚠️')}</div>
+                                    <div class="checklist-icon ${item.notable ? 'checklist-notable' : ''}">${item.notable ? '—' : (item.passed ? '✓' : '⚠️')}</div>
                                     <div>${escapeHtml(item.text)}</div>
                                 </div>
                             `).join('') : `
