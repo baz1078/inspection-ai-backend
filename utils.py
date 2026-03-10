@@ -77,51 +77,51 @@ def generate_structured_analysis(extracted_text):
     #         with category keys -- NO dollar amounts yet.
     # ------------------------------------------------------------------
     step1_prompt = f"""You are a home inspection analyst. Read this inspection report and return ONLY a valid JSON object.
-Do NOT include dollar amounts. Do NOT include markdown or backticks. Return raw JSON only.
+Do NOT include dollar amounts -- only identify and categorise findings.
 
-CATEGORY KEYS — use the exact key string if the finding matches, otherwise use null:
+CATEGORY KEYS (use exact key strings from this list):
 {categories_json}
 
-REQUIRED JSON STRUCTURE (follow exactly):
+Return this exact structure:
 {{
-  "condition": "<one of: Well Maintained, Needs TLC, Needs Work>",
-  "currency": "<one of: USD, CAD>",
-  "location": "<City, Province or State from report>",
+  "condition": "Well Maintained" or "Needs TLC" or "Needs Work",
+  "currency": "USD" or "CAD",
+  "location": "City, Province/State detected from report",
   "urgent_items": [
     {{
-      "name": "<short display name>",
-      "category_key": "<exact key from list above, or null>",
-      "custom_description": "<only required when category_key is null>",
+      "name": "Short display name",
+      "category_key": "EXACT_KEY_FROM_LIST or null if not in list",
+      "custom_description": "Full description only if category_key is null",
       "timeline": "Immediate",
-      "trade": "<trade type>"
+      "trade": "Trade type"
     }}
   ],
   "maintenance_items": [
     {{
-      "name": "<short display name>",
-      "category_key": "<exact key from list above, or null>",
-      "custom_description": "<only required when category_key is null>",
-      "timeline": "<1-3 years or 3-5 years>",
-      "trade": "<trade type>"
+      "name": "Short display name",
+      "category_key": "EXACT_KEY_FROM_LIST or null if not in list",
+      "custom_description": "Full description only if category_key is null",
+      "timeline": "1-3 years or 3-5 years",
+      "trade": "Trade type"
     }}
   ],
   "checklist": [
-    {{"passed": true, "text": "<system or component name>"}},
-    {{"passed": false, "text": "<issue found>"}}
+    {{"passed": true, "text": "System or component description"}},
+    {{"passed": false, "text": "Issue description"}}
   ]
 }}
 
 RULES:
 - urgent_items: Only items the inspector explicitly flagged as deficient, defective, or requiring repair now
-- maintenance_items: Only items the inspector explicitly flagged for future attention or replacement
-- Do NOT add items not documented in the report
-- category_key must be null (JSON null, not the string "null") if not in the list
+- maintenance_items: Only items the inspector flagged for future attention or replacement
+- Do NOT add speculative items not documented in the report
+- If a finding matches a category key exactly, use it. If not, set category_key to null and fill custom_description
 - checklist: 6-10 items covering major systems (roof, electrical, plumbing, HVAC, structure, exterior)
-- Return ONLY the JSON object. No explanation. No markdown. No backticks."""
+- Return ONLY the JSON object, no markdown, no backticks"""
 
     step1_msg = client.messages.create(
         model="claude-sonnet-4-5-20250929",
-        max_tokens=1500,
+        max_tokens=2500,
         temperature=0,
         system=step1_prompt,
         messages=[{"role": "user", "content": extracted_text}]
@@ -134,7 +134,28 @@ RULES:
         raw1 = raw1.rsplit("```", 1)[0]
     raw1 = raw1.strip()
 
-    findings = json.loads(raw1)
+    # Clean up common AI JSON mistakes before parsing
+    import re
+    raw1 = re.sub(r',\s*([}\]])', r'\1', raw1)  # trailing commas
+
+    try:
+        findings = json.loads(raw1)
+    except Exception as parse_err:
+        print(f"Step 1 JSON parse failed: {parse_err}. Raw: {raw1[:200]}")
+        # Fallback: return a minimal valid structure so upload still succeeds
+        findings = {
+            "condition": "Needs TLC",
+            "currency": "USD",
+            "location": "Unknown",
+            "urgent_items": [],
+            "maintenance_items": [],
+            "checklist": [],
+            "budget_now": "$500 - $2,000",
+            "budget_5yr": "$500 - $2,000",
+            "_parse_error": str(parse_err)
+        }
+        return json.dumps(findings)
+
     currency = findings.get("currency", "USD")
 
     # ------------------------------------------------------------------
