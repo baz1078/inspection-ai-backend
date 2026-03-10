@@ -60,71 +60,190 @@ RULES:
 
 
 def generate_structured_analysis(extracted_text):
-    """Returns structured JSON analysis - separate from summary to protect existing flow"""
+    """
+    Two-step analysis:
+    Step 1 - AI identifies findings and maps them to category keys (small prompt, low tokens).
+    Step 2 - Python prices known categories from lookup table.
+             AI prices only the unmatched items (minimises token cost).
+    """
+    from cost_lookup import COST_TABLE, get_cost, format_cost_range, get_all_categories
+
     client = create_ai_client()
-    
-    system_prompt = """You are an expert home inspection analyst. Analyze this inspection report 
-and return ONLY a valid JSON object, no markdown, no backticks, no explanation:
-{
+    categories_list = get_all_categories()
+    categories_json = json.dumps(categories_list)
+
+    # ------------------------------------------------------------------
+    # STEP 1: AI reads the report and returns structured findings
+    #         with category keys -- NO dollar amounts yet.
+    # ------------------------------------------------------------------
+    step1_prompt = f"""You are a home inspection analyst. Read this inspection report and return ONLY a valid JSON object.
+Do NOT include dollar amounts -- only identify and categorise findings.
+
+CATEGORY KEYS (use exact key strings from this list):
+{categories_json}
+
+Return this exact structure:
+{{
   "condition": "Well Maintained" or "Needs TLC" or "Needs Work",
-  "budget_now": "$X,XXX - $X,XXX",
-  "budget_5yr": "$XX,XXX - $XX,XXX",
   "currency": "USD" or "CAD",
-  "location": "City, State/Province detected from report",
+  "location": "City, Province/State detected from report",
   "urgent_items": [
-    {"name": "Issue", "cost": "$X,XXX", "timeline": "Immediate", "trade": "Electrician"}
+    {{
+      "name": "Short display name",
+      "category_key": "EXACT_KEY_FROM_LIST or null if not in list",
+      "custom_description": "Full description only if category_key is null",
+      "timeline": "Immediate",
+      "trade": "Trade type"
+    }}
   ],
   "maintenance_items": [
-    {"name": "Issue", "cost": "$X,XXX", "timeline": "1-3 years", "trade": "Roofer"}
+    {{
+      "name": "Short display name",
+      "category_key": "EXACT_KEY_FROM_LIST or null if not in list",
+      "custom_description": "Full description only if category_key is null",
+      "timeline": "1-3 years or 3-5 years",
+      "trade": "Trade type"
+    }}
   ],
   "checklist": [
-    {"passed": true, "text": "Roof in acceptable condition"},
-    {"passed": false, "text": "GFCI outlets missing in kitchen and bathroom"}
+    {{"passed": true, "text": "System or component description"}},
+    {{"passed": false, "text": "Issue description"}}
   ]
-}
+}}
 
-PRICING RULES:
-- Detect the property address from the report
-- If US property: use USD and local metro contractor rates
-- If Canadian property: use CAD and local provincial contractor rates
-- Be specific to the metro area (Chicagoland vs rural IL, Edmonton vs Calgary, etc.)
+RULES:
+- urgent_items: Only items the inspector explicitly flagged as deficient, defective, or requiring repair now
+- maintenance_items: Only items the inspector flagged for future attention or replacement
+- Do NOT add speculative items not documented in the report
+- If a finding matches a category key exactly, use it. If not, set category_key to null and fill custom_description
+- checklist: 6-10 items covering major systems (roof, electrical, plumbing, HVAC, structure, exterior)
+- Return ONLY the JSON object, no markdown, no backticks"""
 
-BUDGET NOW (0-12 months):
-- ONLY include items the inspector explicitly flagged as deficient, defective, or requiring repair
-- Do NOT include items described only as "aging," "older," "monitor," or "near end of life" — those belong in maintenance_items only if inspector recommended action
-- Give realistic mid-range estimates, not worst-case replacement costs
-
-BUDGET 5-YEAR (budget_5yr field):
-- ONLY include items where the inspector explicitly noted replacement is needed or likely within 5 years
-- Do NOT automatically add aging-but-functional systems (roof, HVAC, water heater) unless the inspector specifically flagged them for replacement
-- This field should reflect the SUM of maintenance_items costs only — do not add speculative replacements
-- If no 5-year items were explicitly flagged by the inspector, return a range of "$500 - $2,000" for routine upkeep
-- If your estimate would exceed $15,000, stop and re-evaluate — you are likely including items NOT documented in the report
-- NEVER exceed $25,000 unless the inspector explicitly documented multiple major system failures
-
-GENERAL:
-- Be conservative — give ranges, not single numbers
-- When uncertain, go lower and note that contractor quotes are recommended
-- Only include what is documented in the report, not what "could" happen"""
-
-    message = client.messages.create(
+    step1_msg = client.messages.create(
         model="claude-sonnet-4-5-20250929",
-        max_tokens=2000,
-        system=system_prompt,
+        max_tokens=1500,
+        temperature=0,
+        system=step1_prompt,
         messages=[{"role": "user", "content": extracted_text}]
     )
-    
-    raw = message.content[0].text.replace('\x00', '')
-    
-    raw = raw.strip()
-    if raw.startswith('```'):
-        raw = raw.split('\n', 1)[1]
-    if raw.endswith('```'):
-        raw = raw.rsplit('```', 1)[0]
-    raw = raw.strip()
-    
-    return raw
 
+    raw1 = step1_msg.content[0].text.replace("\x00", "").strip()
+    if raw1.startswith("```"):
+        raw1 = raw1.split("\n", 1)[1]
+    if raw1.endswith("```"):
+        raw1 = raw1.rsplit("```", 1)[0]
+    raw1 = raw1.strip()
+
+    findings = json.loads(raw1)
+    currency = findings.get("currency", "USD")
+
+    # ------------------------------------------------------------------
+    # STEP 2: Price each item -- lookup table first, AI fallback for unknown
+    # ------------------------------------------------------------------
+    unknown_items = []
+
+    def price_item(item):
+        key = item.get("category_key")
+        if key and key in COST_TABLE:
+            cost_data = get_cost(key, currency)
+            item["cost"] = format_cost_range(cost_data["low"], cost_data["high"], currency)
+            item["cost_note"] = cost_data["note"]
+            item["cost_source"] = "lookup_table"
+        else:
+            item["cost"] = None
+            item["cost_source"] = "pending"
+            unknown_items.append(item)
+        return item
+
+    findings["urgent_items"] = [price_item(i) for i in findings.get("urgent_items", [])]
+    findings["maintenance_items"] = [price_item(i) for i in findings.get("maintenance_items", [])]
+
+    # ------------------------------------------------------------------
+    # STEP 2b: Batch AI pricing for unknown items only
+    # ------------------------------------------------------------------
+    if unknown_items:
+        unknown_descriptions = [
+            f"- {i.get('name')}: {i.get('custom_description', i.get('name'))}"
+            for i in unknown_items
+        ]
+        unknown_text = "\n".join(unknown_descriptions)
+
+        step2_prompt = f"""You are a home repair cost estimator. Provide cost estimates for these repair items.
+Currency: {currency}
+Location: {findings.get('location', 'Unknown')}
+
+For each item return a cost range based on real {currency} contractor rates for that region.
+Be conservative. Only include what is documented. Return ONLY a JSON array:
+[
+  {{"name": "exact item name from list", "cost": "$X,XXX - $X,XXX", "cost_note": "brief context"}}
+]
+
+Items to price:
+{unknown_text}"""
+
+        step2_msg = client.messages.create(
+            model="claude-sonnet-4-5-20250929",
+            max_tokens=600,
+            temperature=0,
+            messages=[{"role": "user", "content": step2_prompt}]
+        )
+
+        raw2 = step2_msg.content[0].text.replace("\x00", "").strip()
+        if raw2.startswith("```"):
+            raw2 = raw2.split("\n", 1)[1]
+        if raw2.endswith("```"):
+            raw2 = raw2.rsplit("```", 1)[0]
+        raw2 = raw2.strip()
+
+        try:
+            ai_prices = json.loads(raw2)
+            price_map = {p["name"]: p for p in ai_prices}
+            for item in unknown_items:
+                match = price_map.get(item["name"])
+                if match:
+                    item["cost"] = match.get("cost", "Get contractor quote")
+                    item["cost_note"] = match.get("cost_note", "")
+                    item["cost_source"] = "ai_estimate"
+                else:
+                    item["cost"] = "Get contractor quote"
+                    item["cost_note"] = ""
+                    item["cost_source"] = "ai_estimate"
+        except Exception:
+            for item in unknown_items:
+                item["cost"] = "Get contractor quote"
+                item["cost_source"] = "ai_estimate"
+
+    # ------------------------------------------------------------------
+    # STEP 3: Calculate budget totals from priced items
+    # ------------------------------------------------------------------
+    def parse_cost_low(cost_str):
+        if not cost_str or cost_str == "Get contractor quote":
+            return 0
+        try:
+            parts = cost_str.replace("$", "").replace(",", "").split("-")
+            return int(float(parts[0].strip()))
+        except Exception:
+            return 0
+
+    def parse_cost_high(cost_str):
+        if not cost_str or cost_str == "Get contractor quote":
+            return 0
+        try:
+            parts = cost_str.replace("$", "").replace(",", "").split("-")
+            return int(float(parts[-1].strip()))
+        except Exception:
+            return 0
+
+    now_low = sum(parse_cost_low(i.get("cost")) for i in findings.get("urgent_items", []))
+    now_high = sum(parse_cost_high(i.get("cost")) for i in findings.get("urgent_items", []))
+    yr5_low = sum(parse_cost_low(i.get("cost")) for i in findings.get("maintenance_items", []))
+    yr5_high = sum(parse_cost_high(i.get("cost")) for i in findings.get("maintenance_items", []))
+
+    sym = "$"
+    findings["budget_now"] = f"{sym}{now_low:,} - {sym}{now_high:,}" if now_low or now_high else f"{sym}500 - {sym}2,000"
+    findings["budget_5yr"] = f"{sym}{yr5_low:,} - {sym}{yr5_high:,}" if yr5_low or yr5_high else f"{sym}500 - {sym}2,000"
+
+    return json.dumps(findings)
 
 
 def generate_punchlist(answer_text, issue_type, question):
