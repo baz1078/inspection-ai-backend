@@ -77,47 +77,47 @@ def generate_structured_analysis(extracted_text):
     #         with category keys -- NO dollar amounts yet.
     # ------------------------------------------------------------------
     step1_prompt = f"""You are a home inspection analyst. Read this inspection report and return ONLY a valid JSON object.
-Do NOT include dollar amounts -- only identify and categorise findings.
+Do NOT include dollar amounts. Do NOT include markdown or backticks. Return raw JSON only.
 
-CATEGORY KEYS (use exact key strings from this list):
+CATEGORY KEYS — use the exact key string if the finding matches, otherwise use null:
 {categories_json}
 
-Return this exact structure:
+REQUIRED JSON STRUCTURE (follow exactly):
 {{
-  "condition": "Well Maintained" or "Needs TLC" or "Needs Work",
-  "currency": "USD" or "CAD",
-  "location": "City, Province/State detected from report",
+  "condition": "<one of: Well Maintained, Needs TLC, Needs Work>",
+  "currency": "<one of: USD, CAD>",
+  "location": "<City, Province or State from report>",
   "urgent_items": [
     {{
-      "name": "Short display name",
-      "category_key": "EXACT_KEY_FROM_LIST or null if not in list",
-      "custom_description": "Full description only if category_key is null",
+      "name": "<short display name>",
+      "category_key": "<exact key from list above, or null>",
+      "custom_description": "<only required when category_key is null>",
       "timeline": "Immediate",
-      "trade": "Trade type"
+      "trade": "<trade type>"
     }}
   ],
   "maintenance_items": [
     {{
-      "name": "Short display name",
-      "category_key": "EXACT_KEY_FROM_LIST or null if not in list",
-      "custom_description": "Full description only if category_key is null",
-      "timeline": "1-3 years or 3-5 years",
-      "trade": "Trade type"
+      "name": "<short display name>",
+      "category_key": "<exact key from list above, or null>",
+      "custom_description": "<only required when category_key is null>",
+      "timeline": "<1-3 years or 3-5 years>",
+      "trade": "<trade type>"
     }}
   ],
   "checklist": [
-    {{"passed": true, "text": "System or component description"}},
-    {{"passed": false, "text": "Issue description"}}
+    {{"passed": true, "text": "<system or component name>"}},
+    {{"passed": false, "text": "<issue found>"}}
   ]
 }}
 
 RULES:
 - urgent_items: Only items the inspector explicitly flagged as deficient, defective, or requiring repair now
-- maintenance_items: Only items the inspector flagged for future attention or replacement
-- Do NOT add speculative items not documented in the report
-- If a finding matches a category key exactly, use it. If not, set category_key to null and fill custom_description
+- maintenance_items: Only items the inspector explicitly flagged for future attention or replacement
+- Do NOT add items not documented in the report
+- category_key must be null (JSON null, not the string "null") if not in the list
 - checklist: 6-10 items covering major systems (roof, electrical, plumbing, HVAC, structure, exterior)
-- Return ONLY the JSON object, no markdown, no backticks"""
+- Return ONLY the JSON object. No explanation. No markdown. No backticks."""
 
     step1_msg = client.messages.create(
         model="claude-sonnet-4-5-20250929",
