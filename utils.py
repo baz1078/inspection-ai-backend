@@ -87,6 +87,7 @@ Return this exact structure:
   "condition": "Satisfactory" or "Maintenance" or "Immediate",
   "currency": "USD" or "CAD",
   "location": "City, Province/State detected from report",
+  "address": "Full street address detected from report, e.g. 687 Cranston Avenue SE, Calgary, Alberta or null if not found",
   "urgent_items": [
     {{
       "name": "Short display name",
@@ -190,12 +191,14 @@ RULES:
         ]
         unknown_text = "\n".join(unknown_descriptions)
 
-        step2_prompt = f"""You are a home repair cost estimator. Provide cost estimates for these repair items.
+        step2_prompt = f"""You are a home repair cost estimator. You MUST provide a dollar cost range for every item listed.
 Currency: {currency}
 Location: {findings.get('location', 'Unknown')}
 
-For each item return a cost range based on real {currency} contractor rates for that region.
-Be conservative. Only include what is documented. Return ONLY a JSON array:
+For each item return a realistic cost range based on {currency} contractor rates for that region.
+You MUST always return a dollar amount — never say "varies" or leave cost empty.
+If you are uncertain, provide a conservative wide range (e.g. $500 - $3,000).
+Return ONLY a JSON array:
 [
   {{"name": "exact item name from list", "cost": "$X,XXX - $X,XXX", "cost_note": "brief context"}}
 ]
@@ -223,23 +226,23 @@ Items to price:
             for item in unknown_items:
                 match = price_map.get(item["name"])
                 if match:
-                    item["cost"] = match.get("cost", "Get contractor quote")
+                    item["cost"] = match.get("cost", "$500 - $2,500")
                     item["cost_note"] = match.get("cost_note", "")
                     item["cost_source"] = "ai_estimate"
                 else:
-                    item["cost"] = "Get contractor quote"
+                    item["cost"] = "$500 - $2,500"
                     item["cost_note"] = ""
                     item["cost_source"] = "ai_estimate"
         except Exception:
             for item in unknown_items:
-                item["cost"] = "Get contractor quote"
+                item["cost"] = "$500 - $2,500"
                 item["cost_source"] = "ai_estimate"
 
     # ------------------------------------------------------------------
     # STEP 3: Calculate budget totals from priced items
     # ------------------------------------------------------------------
     def parse_cost_low(cost_str):
-        if not cost_str or cost_str == "Get contractor quote":
+        if not cost_str:
             return 0
         try:
             parts = cost_str.replace("$", "").replace(",", "").split("-")
@@ -248,7 +251,7 @@ Items to price:
             return 0
 
     def parse_cost_high(cost_str):
-        if not cost_str or cost_str == "Get contractor quote":
+        if not cost_str:
             return 0
         try:
             parts = cost_str.replace("$", "").replace(",", "").split("-")
