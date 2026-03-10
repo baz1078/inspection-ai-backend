@@ -84,7 +84,7 @@ CATEGORY KEYS (use exact key strings from this list):
 
 Return this exact structure:
 {{
-  "condition": "Well Maintained" or "Needs TLC" or "Needs Work",
+  "condition": "Satisfactory" or "Maintenance" or "Immediate",
   "currency": "USD" or "CAD",
   "location": "City, Province/State detected from report",
   "urgent_items": [
@@ -107,7 +107,8 @@ Return this exact structure:
   ],
   "checklist": [
     {{"passed": true, "text": "System or component description"}},
-    {{"passed": false, "text": "Issue description"}}
+    {{"passed": false, "text": "Issue description"}},
+    {{"passed": true, "notable": true, "text": "Item not tested or limited inspection"}}
   ]
 }}
 
@@ -144,7 +145,7 @@ RULES:
         print(f"Step 1 JSON parse failed: {parse_err}. Raw: {raw1[:200]}")
         # Fallback: return a minimal valid structure so upload still succeeds
         findings = {
-            "condition": "Needs TLC",
+            "condition": "Maintenance",
             "currency": "USD",
             "location": "Unknown",
             "urgent_items": [],
@@ -255,14 +256,12 @@ Items to price:
         except Exception:
             return 0
 
-    now_low = sum(parse_cost_low(i.get("cost")) for i in findings.get("urgent_items", []))
-    now_high = sum(parse_cost_high(i.get("cost")) for i in findings.get("urgent_items", []))
-    yr5_low = sum(parse_cost_low(i.get("cost")) for i in findings.get("maintenance_items", []))
-    yr5_high = sum(parse_cost_high(i.get("cost")) for i in findings.get("maintenance_items", []))
+    now_mid = (now_low + now_high) // 2 if (now_low or now_high) else 0
+    yr5_mid = (yr5_low + yr5_high) // 2 if (yr5_low or yr5_high) else 0
 
     sym = "$"
-    findings["budget_now"] = f"{sym}{now_low:,} - {sym}{now_high:,}" if now_low or now_high else f"{sym}500 - {sym}2,000"
-    findings["budget_5yr"] = f"{sym}{yr5_low:,} - {sym}{yr5_high:,}" if yr5_low or yr5_high else f"{sym}500 - {sym}2,000"
+    findings["budget_now"] = f"~{sym}{now_mid:,}" if now_mid else f"~{sym}1,500"
+    findings["budget_5yr"] = f"~{sym}{yr5_mid:,}" if yr5_mid else f"~{sym}1,500"
 
     return json.dumps(findings)
 
