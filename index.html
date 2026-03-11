@@ -229,6 +229,10 @@
             margin-bottom: 24px;
         }
 
+        @media (max-width: 480px) {
+            .condition-status { font-size: 36px; }
+        }
+
         .condition-note {
             font-size: 14px;
             color: var(--text-secondary);
@@ -1191,12 +1195,12 @@
                             ${a && a.address ? `<div class="condition-note">${escapeHtml(a.address)}</div>` : ''}
                             <div class="condition-summary">
                                 <div class="condition-summary-item">
-                                    <div class="condition-summary-number">${a ? (a.urgent_items.length + (a.maintenance_items ? a.maintenance_items.length : 0)) : '-'}</div>
-                                    <div class="condition-summary-label">Items Need Attention</div>
+                                    <div class="condition-summary-number" style="color:#ef4444">${a ? a.urgent_items.length : '-'}</div>
+                                    <div class="condition-summary-label">Immediate</div>
                                 </div>
                                 <div class="condition-summary-item">
-                                    <div class="condition-summary-number">${a ? a.checklist.filter(i => i.passed && !i.notable).length : '-'}</div>
-                                    <div class="condition-summary-label">Satisfactory</div>
+                                    <div class="condition-summary-number" style="color:#f59e0b">${a ? (a.maintenance_items ? a.maintenance_items.length : 0) : '-'}</div>
+                                    <div class="condition-summary-label">Attention</div>
                                 </div>
                             </div>
                         </div>
@@ -1218,17 +1222,19 @@
                         <div class="legend-card">
                             <div class="legend-row"><span class="issue-priority-dot priority-red"></span><span class="legend-text"><strong>Immediate</strong> — Requires prompt attention or repair</span></div>
                             <div class="legend-row"><span class="issue-priority-dot priority-yellow"></span><span class="legend-text"><strong>Maintenance</strong> — Monitor or plan within 1–3 years</span></div>
-                            <div class="legend-row"><span class="legend-notable-dash">- -</span><span class="legend-text"><strong>Notable</strong> — Item observed but not fully tested (e.g. AC off due to temperature)</span></div>
+                            <div class="legend-row"><span class="legend-notable-dash">- -</span><span class="legend-text"><strong>Notable</strong> — Item observed but not fully tested</span></div>
                         </div>
 
                         <div class="section-title">What Needs Attention</div>
                         <div class="issues-grid">
                             ${a && a.urgent_items.length > 0 ? a.urgent_items.map(item => `
                                 <div class="issue-card" onclick="askQuestionCard('Tell me more about the ${escapeHtml(item.name)} issue and what I should do')">
-                                    <div class="issue-title">${escapeHtml(item.name)}</div>
+                                    <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;">
+                                        <span class="issue-priority-dot priority-red" style="flex-shrink:0;"></span>
+                                        <div class="issue-title" style="margin-bottom:0;">${escapeHtml(item.name)}</div>
+                                    </div>
                                     <div class="issue-cost">${escapeHtml(item.cost)}</div>
                                     <div class="issue-timeline-row">
-                                        <span class="issue-priority-dot ${getPriorityColor(item.timeline)}"></span>
                                         ${escapeHtml(item.timeline)}
                                     </div>
                                 </div>
@@ -1269,7 +1275,12 @@
                                 return 0;
                             }).map(item => `
                                 <div class="checklist-item">
-                                    <div class="checklist-icon ${item.notable ? 'checklist-notable' : ''}">${item.notable ? '- -' : (item.passed ? '✓' : '⚠️')}</div>
+                                    ${item.notable
+                                        ? `<div class="checklist-icon checklist-notable">- -</div>`
+                                        : item.passed
+                                            ? `<div class="checklist-icon">✓</div>`
+                                            : `<div style="display:flex;align-items:center;min-width:20px;padding-top:2px;"><span class="issue-priority-dot priority-yellow" style="margin:0;"></span></div>`
+                                    }
                                     <div>${escapeHtml(item.text)}</div>
                                 </div>
                             `).join('') : `

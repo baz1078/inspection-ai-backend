@@ -114,11 +114,11 @@ Return this exact structure:
 }}
 
 RULES:
-- urgent_items: Only items the inspector explicitly flagged as deficient, defective, or requiring repair now
-- maintenance_items: Only items the inspector flagged for future attention or replacement
+- urgent_items: ONLY include items where the inspector explicitly used language such as: "Material Defect", "safety concern", "safety hazard", "repair immediately", "prior to closing", "requires immediate repair", "unsafe", or similarly direct urgency language. Do NOT upgrade severity based on subject matter alone — a cracked foundation is NOT urgent unless the inspector used urgent language about it.
+- maintenance_items: All other items the inspector flagged for repair, monitoring, or future attention
 - Do NOT add speculative items not documented in the report
 - If a finding matches a category key exactly, use it. If not, set category_key to null and fill custom_description
-- checklist: 6-10 items covering major systems (roof, electrical, plumbing, HVAC, structure, exterior)
+- checklist: Minimum 7 items, up to 10, covering major systems (roof, electrical, plumbing, HVAC, structure, exterior, attic, basement/crawlspace). Skew toward passed items where inspector found no issues — end the report on a positive note.
 - Return ONLY the JSON object, no markdown, no backticks"""
 
     step1_msg = client.messages.create(
