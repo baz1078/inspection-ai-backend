@@ -185,30 +185,32 @@ RULES:
     # STEP 2b: Batch AI pricing for unknown items only
     # ------------------------------------------------------------------
     if unknown_items:
-        unknown_descriptions = [
-            f"- {i.get('name')}: {i.get('custom_description', i.get('name'))}"
-            for i in unknown_items
-        ]
-        unknown_text = "\n".join(unknown_descriptions)
+        # Number each item by index so AI returns by index — no name matching needed
+        numbered_items = []
+        for idx, i in enumerate(unknown_items):
+            desc = i.get('custom_description') or i.get('name')
+            numbered_items.append(f"{idx}. {i.get('name')}: {desc}")
+        unknown_text = "\n".join(numbered_items)
 
-        step2_prompt = f"""You are a home repair cost estimator. You MUST provide a dollar cost range for every item listed.
+        step2_prompt = f"""You are a home repair cost estimator. You MUST return a cost for every single numbered item below.
 Currency: {currency}
 Location: {findings.get('location', 'Unknown')}
 
-For each item return a realistic cost range based on {currency} contractor rates for that region.
-You MUST always return a dollar amount — never say "varies" or leave cost empty.
-If you are uncertain, provide a conservative wide range (e.g. $500 - $3,000).
-Return ONLY a JSON array:
+Return realistic contractor cost ranges in {currency} for that region.
+Return ONLY a JSON array with one entry per item, using the same index number:
 [
-  {{"name": "exact item name from list", "cost": "$X,XXX - $X,XXX", "cost_note": "brief context"}}
+  {{"index": 0, "cost": "$X - $X", "cost_note": "brief context"}},
+  {{"index": 1, "cost": "$X - $X", "cost_note": "brief context"}}
 ]
 
-Items to price:
+Every index must be present. Never omit an item. Never say "varies".
+
+Items:
 {unknown_text}"""
 
         step2_msg = client.messages.create(
             model="claude-sonnet-4-5-20250929",
-            max_tokens=600,
+            max_tokens=800,
             temperature=0,
             messages=[{"role": "user", "content": step2_prompt}]
         )
@@ -222,21 +224,24 @@ Items to price:
 
         try:
             ai_prices = json.loads(raw2)
-            price_map = {p["name"]: p for p in ai_prices}
-            for item in unknown_items:
-                match = price_map.get(item["name"])
-                if match:
-                    item["cost"] = match.get("cost", "$500 - $2,500")
+            # Map by index — guaranteed to match regardless of name
+            price_map = {p["index"]: p for p in ai_prices}
+            for idx, item in enumerate(unknown_items):
+                match = price_map.get(idx)
+                if match and match.get("cost"):
+                    item["cost"] = match["cost"]
                     item["cost_note"] = match.get("cost_note", "")
                     item["cost_source"] = "ai_estimate"
                 else:
+                    # This should never happen — AI was told every index must be present
+                    print(f"WARNING: AI did not return cost for index {idx}: {item.get('name')}")
                     item["cost"] = "$500 - $2,500"
-                    item["cost_note"] = ""
-                    item["cost_source"] = "ai_estimate"
-        except Exception:
+                    item["cost_source"] = "ai_estimate_fallback"
+        except Exception as e:
+            print(f"Step 2b parse error: {e}. Raw: {raw2[:200]}")
             for item in unknown_items:
                 item["cost"] = "$500 - $2,500"
-                item["cost_source"] = "ai_estimate"
+                item["cost_source"] = "ai_estimate_fallback"
 
     # ------------------------------------------------------------------
     # STEP 3: Calculate budget totals from priced items
