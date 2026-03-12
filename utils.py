@@ -82,33 +82,6 @@ Do NOT include dollar amounts -- only identify and categorise findings.
 CATEGORY KEYS (use exact key strings from this list):
 {categories_json}
 
-═══════════════════════════════════════════════
-STEP 1 — IDENTIFY THIS REPORT'S PRIORITY SYSTEM
-═══════════════════════════════════════════════
-Before classifying anything, read the first few pages of this report to find the inspector's own
-priority or severity system. Look for a legend, key, or introductory section that defines their tiers.
-
-Examples of what different reports use:
-- "Material Defect" vs general finding (Castle-style)
-- "Immediate Attention / HIGH PRIORITY" vs "Attention / MODERATE PRIORITY" (dot-legend style)
-- "Poor" vs "Fair" vs "Good" (rating scale style)
-- "Safety Concern" vs "Recommended Repair" (label style)
-- Solid dot vs outline dot (visual systems — described in text legends)
-
-Whatever THIS report's highest severity tier is called, that maps to urgent_items.
-Whatever THIS report's lower/moderate severity tier is called, that maps to maintenance_items.
-Do NOT rely on any fixed keywords — use the inspector's own language and system.
-
-═══════════════════════════════════════════════
-STEP 2 — MULTIPLIER NOTATION
-═══════════════════════════════════════════════
-Some reports use notation like "7x", "4x", "(3 locations)", or "multiple locations" after an item name.
-This means ONE issue found in multiple places — NOT multiple separate items.
-Create ONE item only. You may note the count in the name, e.g. "Foundation Cracks (7 locations)".
-
-═══════════════════════════════════════════════
-STEP 3 — RETURN THE JSON
-═══════════════════════════════════════════════
 Return this exact structure:
 {{
   "condition": "Satisfactory" or "Maintenance" or "Immediate",
@@ -141,18 +114,16 @@ Return this exact structure:
 }}
 
 RULES:
-- urgent_items: Items the inspector placed in their HIGHEST severity tier (as identified in Step 1)
-- maintenance_items: Items the inspector placed in their MODERATE or lower severity tier
-- Items marked "Not Inspected" or "Not Tested" with a reason: add to checklist as notable, not as urgent or maintenance
+- urgent_items: Only items the inspector explicitly flagged as deficient, defective, or requiring repair now
+- maintenance_items: Only items the inspector flagged for future attention or replacement
 - Do NOT add speculative items not documented in the report
-- Do NOT create duplicate items for multiplier notation (7x = one item, not seven)
 - If a finding matches a category key exactly, use it. If not, set category_key to null and fill custom_description
-- checklist: Minimum 7 items, up to 10, covering major systems (roof, electrical, plumbing, HVAC, structure, exterior, attic, basement/crawlspace). Skew toward passed items where the inspector found no issues — end the report on a positive note.
+- checklist: 6-10 items covering major systems (roof, electrical, plumbing, HVAC, structure, exterior)
 - Return ONLY the JSON object, no markdown, no backticks"""
 
     step1_msg = client.messages.create(
         model="claude-sonnet-4-5-20250929",
-        max_tokens=2500,
+        max_tokens=4000,
         temperature=0,
         system=step1_prompt,
         messages=[{"role": "user", "content": extracted_text}]
@@ -169,23 +140,53 @@ RULES:
     import re
     raw1 = re.sub(r',\s*([}\]])', r'\1', raw1)  # trailing commas
 
+    def attempt_parse(raw):
+        cleaned = re.sub(r',\s*([}\]])', r'\1', raw)
+        return json.loads(cleaned)
+
     try:
-        findings = json.loads(raw1)
+        findings = attempt_parse(raw1)
     except Exception as parse_err:
-        print(f"Step 1 JSON parse failed: {parse_err}. Raw: {raw1[:200]}")
-        # Fallback: return a minimal valid structure so upload still succeeds
-        findings = {
-            "condition": "Maintenance",
-            "currency": "USD",
-            "location": "Unknown",
-            "urgent_items": [],
-            "maintenance_items": [],
-            "checklist": [],
-            "budget_now": "$500 - $2,000",
-            "budget_5yr": "$500 - $2,000",
-            "_parse_error": str(parse_err)
-        }
-        return json.dumps(findings)
+        print(f"Step 1 JSON parse failed: {parse_err}. Attempting auto-recovery...")
+
+        # AUTO-RECOVERY: Send broken JSON back to AI and ask it to fix it
+        try:
+            recovery_msg = client.messages.create(
+                model="claude-sonnet-4-5-20250929",
+                max_tokens=4000,
+                temperature=0,
+                messages=[{
+                    "role": "user",
+                    "content": f"""The following JSON is malformed or truncated. Fix it and return ONLY valid JSON with no markdown, no backticks, no explanation.
+If the JSON was truncated mid-write, complete it correctly based on what was already written.
+Ensure all arrays and objects are properly closed.
+
+Broken JSON:
+{raw1}"""
+                }]
+            )
+            raw1_fixed = recovery_msg.content[0].text.replace("\x00", "").strip()
+            if raw1_fixed.startswith("```"):
+                raw1_fixed = raw1_fixed.split("\n", 1)[1]
+            if raw1_fixed.endswith("```"):
+                raw1_fixed = raw1_fixed.rsplit("```", 1)[0]
+            raw1_fixed = raw1_fixed.strip()
+            findings = attempt_parse(raw1_fixed)
+            print(f"Auto-recovery succeeded.")
+        except Exception as recovery_err:
+            print(f"Auto-recovery failed: {recovery_err}. Using minimal fallback.")
+            findings = {
+                "condition": "Maintenance",
+                "currency": "USD",
+                "location": "Unknown",
+                "address": None,
+                "urgent_items": [],
+                "maintenance_items": [],
+                "checklist": [],
+                "_parse_error": str(parse_err),
+                "_recovery_error": str(recovery_err)
+            }
+            return json.dumps(findings)
 
     currency = findings.get("currency", "USD")
 
