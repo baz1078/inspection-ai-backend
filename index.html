@@ -1229,14 +1229,12 @@
                         <div class="issues-grid">
                             ${a && a.urgent_items.length > 0 ? a.urgent_items.map(item => `
                                 <div class="issue-card" onclick="askQuestionCard('Tell me more about the ${escapeHtml(item.name)} issue and what I should do')">
-                                    <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;">
+                                    <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">
                                         <span class="issue-priority-dot priority-red" style="flex-shrink:0;"></span>
-                                        <div class="issue-title" style="margin-bottom:0;">${escapeHtml(item.name)}</div>
+                                        <span style="font-size:13px;font-weight:700;color:#ffffff;">Immediate</span>
                                     </div>
+                                    <div class="issue-title" style="margin-bottom:10px;">${escapeHtml(item.name)}</div>
                                     <div class="issue-cost">${escapeHtml(item.cost)}</div>
-                                    <div class="issue-timeline-row">
-                                        ${escapeHtml(item.timeline)}
-                                    </div>
                                 </div>
                             `).join('') : `
                                 <div class="issue-card">
@@ -1660,8 +1658,7 @@
             if (!timeline) return 'priority-yellow';
             const t = timeline.toLowerCase();
             if (t.includes('immediate') || t.includes('now') || t.includes('urgent') || t.includes('safety')) return 'priority-red';
-            if (t.includes('1-3') || t.includes('0-6') || t.includes('6 month') || t.includes('soon')) return 'priority-yellow';
-            return 'priority-green';
+            return 'priority-yellow';
         }
 
         function getTradeIcon(trade, size='large') {
