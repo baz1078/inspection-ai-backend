@@ -1108,9 +1108,7 @@
             border-radius: 8px;
             overflow: hidden;
         }
-        .cat-row.cat-row-findings {
-            border-left-color: #f59e0b;
-        }
+        .cat-row.cat-row-findings { border-left-color: #f59e0b; }
         .cat-header {
             padding: 12px 16px;
             display: flex;
@@ -1284,10 +1282,10 @@
 
                         <div class="hero-card">
                             <div class="condition-label">Home Condition</div>
-                            <div class="condition-status" style="${a ? (a.condition === 'Immediate' ? 'color:#ef4444' : a.condition === 'Maintenance' ? 'color:#f59e0b' : 'color:#14b8a6') : ''}">
-                                ${a ? (a.condition === 'Functioning Well' ? 'Satisfactory' : a.condition) : 'Analyzing...'}
-                            </div>
-                            ${a && a.address ? `<div class="condition-note">${escapeHtml(a.address)}</div>` : ''}
+                            <div class="condition-status" style="color:#14b8a6">Needs Attention</div>
+                            <div class="condition-note" style="max-width:520px;margin:0 auto 8px;">This report identified findings across multiple systems — common in homes of this age. Here's what to know about your home.</div>
+                            ${a && a.inspector_name ? `<div style="font-size:13px;color:var(--text-secondary);margin-bottom:4px;">Inspected by <strong style="color:var(--text-primary);">${escapeHtml(a.inspector_name)}</strong></div>` : ''}
+                            ${a && a.address ? `<div class="condition-note" style="margin-bottom:0;">${escapeHtml(a.address)}</div>` : ''}
                             <div class="condition-summary">
                                 <div class="condition-summary-item">
                                     <div class="condition-summary-number" style="color:#ef4444">${a ? a.urgent_items.length : '-'}</div>
@@ -1296,6 +1294,10 @@
                                 <div class="condition-summary-item">
                                     <div class="condition-summary-number" style="color:#f59e0b">${a ? (a.maintenance_items ? a.maintenance_items.length : 0) : '-'}</div>
                                     <div class="condition-summary-label">Attention</div>
+                                </div>
+                                <div class="condition-summary-item">
+                                    <div class="condition-summary-number" style="color:#22c55e">${a && a.checklist ? a.checklist.filter(i => i.passed && !i.notable).length : '-'}</div>
+                                    <div class="condition-summary-label">Satisfactory</div>
                                 </div>
                             </div>
                         </div>
