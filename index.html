@@ -388,6 +388,7 @@
         .maint-row {
             background: var(--card-bg);
             border: 1px solid var(--border-color);
+            border-left: 3px solid #f59e0b;
             border-radius: 8px;
             padding: 13px 18px;
             display: flex;
@@ -397,7 +398,7 @@
             transition: all 0.2s;
         }
 
-        .maint-row:hover { border-color: var(--accent-teal); }
+        .maint-row:hover { border-color: var(--accent-teal); border-left-color: #f59e0b; }
 
         .maint-row-left {
             display: flex;
@@ -1103,8 +1104,12 @@
         .cat-row {
             background: var(--card-bg);
             border: 1px solid var(--border-color);
+            border-left: 3px solid #22c55e;
             border-radius: 8px;
             overflow: hidden;
+        }
+        .cat-row.cat-row-findings {
+            border-left-color: #f59e0b;
         }
         .cat-header {
             padding: 12px 16px;
@@ -1338,7 +1343,6 @@
                                 ${a.maintenance_items.map(item => `
                                     <div class="maint-row" onclick="askQuestionCard('Tell me about the ${escapeHtml(item.name)} and when I should address it')">
                                         <div class="maint-row-left">
-                                            <span class="issue-priority-dot ${getPriorityColor(item.timeline)}"></span>
                                             ${escapeHtml(item.name)}
                                         </div>
                                         <div class="maint-row-right">
@@ -1828,10 +1832,9 @@
                             <span class="cat-item-name">${escapeHtml(item.name)}</span>
                             <span class="cat-item-cost">${escapeHtml(item.cost || '')}</span>
                         </div>`).join('');
-                return `<div class="cat-row">
+                return `<div class="cat-row ${empty ? '' : 'cat-row-findings'}">
                     <div class="cat-header" onclick="toggleCat('${cat}')">
                         <div class="cat-header-left">
-                            <span class="cat-indicator ${empty ? 'cat-indicator-green' : 'cat-indicator-yellow'}"></span>
                             <span class="cat-name">${cat}</span>
                             ${!empty ? `<span class="cat-count-badge">${items.length}</span>` : ''}
                         </div>
