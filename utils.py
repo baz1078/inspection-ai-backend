@@ -164,7 +164,8 @@ RULES:
             break
         except Exception as e:
             last_err = e
-            print(f"Step 1 failed at max_tokens={max_tok}: {e}. {'Retrying with more tokens...' if max_tok < 16000 else 'All retries exhausted.'}")
+            retry_msg = 'Retrying with more tokens...' if max_tok < 16000 else 'All retries exhausted.'
+            print(f"Step 1 failed at max_tokens={max_tok}: {last_err}. {retry_msg}")
 
     if findings is None:
         print(f"Using minimal fallback after all retries failed.")
@@ -642,7 +643,6 @@ Customer Question: {question}"""
         self.question_count += 1
         
         return assistant_message
-
 
 
 def allowed_file(filename):
