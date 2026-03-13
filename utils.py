@@ -664,4 +664,4 @@ def save_uploaded_file(file, upload_folder='uploads'):
     filepath = os.path.join(upload_folder, filename)
     
     file.save(filepath)
-    return filepath-e
+    return filepath
