@@ -106,19 +106,29 @@ Return this exact structure:
       "trade": "Trade type"
     }}
   ],
+  "category_items": [
+    {{
+      "name": "Short display name",
+      "category": "Roof or Exterior or Garage or Attic or Interior or Kitchen or Laundry or Bathroom or Mechanical or Structure",
+      "category_key": "EXACT_KEY_FROM_LIST or null if not in list",
+      "custom_description": "Full description only if category_key is null",
+      "trade": "Trade type"
+    }}
+  ],
   "checklist": [
-    {{"passed": true, "text": "System or component description"}},
-    {{"passed": false, "text": "Issue description"}},
-    {{"passed": true, "notable": true, "text": "Item not tested or limited inspection — e.g. AC not tested due to temperature"}}
+    {{"passed": true, "text": "Major system in good condition — e.g. Electrical panel 200A, adequate"}},
+    {{"passed": true, "notable": true, "text": "Item not inspected or limited scope — e.g. AC not tested due to temperature"}}
   ]
 }}
 
 RULES:
-- urgent_items: Only items the inspector explicitly flagged as deficient, defective, or requiring repair now
-- maintenance_items: Only items the inspector flagged for future attention or replacement
+- urgent_items: Only items the inspector explicitly flagged as deficient, defective, or requiring immediate repair
+- maintenance_items: Only items the inspector flagged for future attention or planned replacement
+- category_items: ALL other deficiencies and observations documented in the report that are NOT already in urgent_items or maintenance_items. Assign each to the closest category: Roof, Exterior, Garage, Attic, Interior, Kitchen, Laundry, Bathroom, Mechanical (covers HVAC/furnace/water heater/electrical panel), or Structure (covers foundation/basement/framing). Do not leave findings out — if it was documented, it belongs here.
+- Do NOT duplicate items across urgent_items, maintenance_items, and category_items
 - Do NOT add speculative items not documented in the report
 - If a finding matches a category key exactly, use it. If not, set category_key to null and fill custom_description
-- checklist: 6-10 items covering major systems (roof, electrical, plumbing, HVAC, structure, exterior)
+- checklist: 6-10 items summarizing major system status. passed:true for systems in good condition, notable:true for items not inspected or with limited scope. Do NOT repeat items already in urgent_items, maintenance_items, or category_items
 - Return ONLY the JSON object, no markdown, no backticks"""
 
     step1_msg = client.messages.create(
@@ -210,6 +220,7 @@ Broken JSON:
 
     findings["urgent_items"] = [price_item(i) for i in findings.get("urgent_items", [])]
     findings["maintenance_items"] = [price_item(i) for i in findings.get("maintenance_items", [])]
+    findings["category_items"] = [price_item(i) for i in findings.get("category_items", [])]
 
     # ------------------------------------------------------------------
     # STEP 2b: Batch AI pricing for unknown items only

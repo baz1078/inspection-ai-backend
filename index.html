@@ -1064,6 +1064,95 @@
             .chat-panel { width: calc(100vw - 24px); right: 12px; bottom: 12px; height: 350px; }
         }
 
+        /* SECTION LABELS - colored left border */
+        .section-label {
+            display: flex;
+            align-items: center;
+            font-size: 12px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin: 32px 0 16px 0;
+            padding-left: 12px;
+            position: relative;
+        }
+        .section-label::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 3px;
+            height: 16px;
+            border-radius: 2px;
+        }
+        .section-label-immediate { color: #ef4444; }
+        .section-label-immediate::before { background: #ef4444; }
+        .section-label-maintenance { color: #f59e0b; }
+        .section-label-maintenance::before { background: #f59e0b; }
+        .section-label-findings { color: var(--text-secondary); }
+        .section-label-findings::before { background: var(--text-secondary); }
+
+        /* CATEGORY ACCORDION */
+        .cat-accordion {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            margin-bottom: 32px;
+        }
+        .cat-row {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        .cat-header {
+            padding: 12px 16px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            cursor: pointer;
+            transition: background 0.2s;
+            user-select: none;
+        }
+        .cat-header:hover { background: rgba(255,255,255,0.03); }
+        .cat-header-left { display: flex; align-items: center; gap: 10px; }
+        .cat-indicator {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+        .cat-indicator-green { background: #22c55e; box-shadow: 0 0 6px #22c55e; }
+        .cat-indicator-gray { background: #64748b; }
+        .cat-name { font-size: 13px; font-weight: 600; color: var(--text-primary); }
+        .cat-count-badge {
+            background: rgba(255,255,255,0.08);
+            color: var(--text-secondary);
+            font-size: 11px;
+            padding: 1px 7px;
+            border-radius: 10px;
+        }
+        .cat-chevron {
+            color: var(--text-secondary);
+            font-size: 18px;
+            transition: transform 0.2s;
+            line-height: 1;
+        }
+        .cat-body { border-top: 1px solid var(--border-color); display: none; }
+        .cat-body.open { display: block; }
+        .cat-empty { padding: 12px 16px; font-size: 12px; color: #22c55e; font-style: italic; }
+        .cat-item {
+            padding: 10px 16px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-bottom: 1px solid rgba(45,55,72,0.5);
+        }
+        .cat-item:last-child { border-bottom: none; }
+        .cat-item-name { color: var(--text-secondary); flex: 1; padding-right: 16px; font-size: 13px; }
+        .cat-item-cost { color: var(--accent-teal); font-weight: 600; flex-shrink: 0; font-size: 12px; }
+
         ::-webkit-scrollbar { width: 6px; }
         ::-webkit-scrollbar-track { background: var(--dark-bg); }
         ::-webkit-scrollbar-thumb { background: var(--border-color); border-radius: 3px; }
@@ -1225,7 +1314,7 @@
                             <div class="legend-row"><span class="legend-notable-dash">- -</span><span class="legend-text"><strong>Notable</strong> — Item observed but not fully tested</span></div>
                         </div>
 
-                        <div class="section-title">What Needs Attention</div>
+                        <div class="section-label section-label-immediate">What Needs Attention</div>
                         <div class="issues-grid">
                             ${a && a.urgent_items.length > 0 ? a.urgent_items.map(item => `
                                 <div class="issue-card" onclick="askQuestionCard('Tell me more about the ${escapeHtml(item.name)} issue and what I should do')">
@@ -1247,7 +1336,7 @@
                         </div>
 
                         ${a && a.maintenance_items && a.maintenance_items.length > 0 ? `
-                            <div class="section-title">Maintenance & Future Planning</div>
+                            <div class="section-label section-label-maintenance">Maintenance & Future Planning</div>
                             <div class="maint-rows">
                                 ${a.maintenance_items.map(item => `
                                     <div class="maint-row" onclick="askQuestionCard('Tell me about the ${escapeHtml(item.name)} and when I should address it')">
@@ -1263,6 +1352,8 @@
                                 `).join('')}
                             </div>
                         ` : ''}
+
+                        ${renderCategoryAccordion(a)}
 
                         <div class="checklist-section">
                             ${a && a.checklist ? [...a.checklist].sort((x, y) => {
@@ -1722,6 +1813,48 @@
         }
         // legacy alias
         function generatePDF() { generatePunchlist(); }
+
+        function renderCategoryAccordion(a) {
+            if (!a || !a.category_items || a.category_items.length === 0) return '';
+            const CATS = ['Roof','Exterior','Garage','Attic','Interior','Kitchen','Laundry','Bathroom','Mechanical','Structure'];
+            const catMap = {};
+            CATS.forEach(c => catMap[c] = []);
+            a.category_items.forEach(item => {
+                const cat = item.category;
+                if (catMap.hasOwnProperty(cat)) catMap[cat].push(item);
+            });
+            const rows = CATS.map(cat => {
+                const items = catMap[cat];
+                const empty = items.length === 0;
+                const itemsHtml = empty
+                    ? `<div class="cat-empty">No findings noted at time of inspection</div>`
+                    : items.map(item => `
+                        <div class="cat-item">
+                            <span class="cat-item-name">${escapeHtml(item.name)}</span>
+                            <span class="cat-item-cost">${escapeHtml(item.cost || '')}</span>
+                        </div>`).join('');
+                return `<div class="cat-row">
+                    <div class="cat-header" onclick="toggleCat('${cat}')">
+                        <div class="cat-header-left">
+                            <span class="cat-indicator ${empty ? 'cat-indicator-green' : 'cat-indicator-gray'}"></span>
+                            <span class="cat-name">${cat}</span>
+                            ${!empty ? `<span class="cat-count-badge">${items.length}</span>` : ''}
+                        </div>
+                        <span class="cat-chevron" id="chev-${cat}">›</span>
+                    </div>
+                    <div class="cat-body" id="catbody-${cat}">${itemsHtml}</div>
+                </div>`;
+            }).join('');
+            return `<div class="section-label section-label-findings">All Findings by Category</div><div class="cat-accordion">${rows}</div>`;
+        }
+
+        function toggleCat(cat) {
+            const body = document.getElementById('catbody-' + cat);
+            const chev = document.getElementById('chev-' + cat);
+            if (!body) return;
+            const open = body.classList.toggle('open');
+            if (chev) chev.style.transform = open ? 'rotate(90deg)' : '';
+        }
 
         render();
     </script>
