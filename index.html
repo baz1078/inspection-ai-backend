@@ -1125,6 +1125,7 @@
         }
         .cat-indicator-green { background: #22c55e; box-shadow: 0 0 6px #22c55e; }
         .cat-indicator-gray { background: #64748b; }
+        .cat-indicator-yellow { background: #f59e0b; box-shadow: 0 0 6px rgba(245,158,11,0.5); }
         .cat-name { font-size: 13px; font-weight: 600; color: var(--text-primary); }
         .cat-count-badge {
             background: rgba(255,255,255,0.08);
@@ -1279,7 +1280,7 @@
                         <div class="hero-card">
                             <div class="condition-label">Home Condition</div>
                             <div class="condition-status" style="${a ? (a.condition === 'Immediate' ? 'color:#ef4444' : a.condition === 'Maintenance' ? 'color:#f59e0b' : 'color:#14b8a6') : ''}">
-                                ${a ? a.condition : 'Analyzing...'}
+                                ${a ? (a.condition === 'Functioning Well' ? 'Satisfactory' : a.condition) : 'Analyzing...'}
                             </div>
                             ${a && a.address ? `<div class="condition-note">${escapeHtml(a.address)}</div>` : ''}
                             <div class="condition-summary">
@@ -1318,10 +1319,6 @@
                         <div class="issues-grid">
                             ${a && a.urgent_items.length > 0 ? a.urgent_items.map(item => `
                                 <div class="issue-card" onclick="askQuestionCard('Tell me more about the ${escapeHtml(item.name)} issue and what I should do')">
-                                    <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">
-                                        <span class="issue-priority-dot priority-red" style="flex-shrink:0;"></span>
-                                        <span style="font-size:13px;font-weight:700;color:#ffffff;">Immediate</span>
-                                    </div>
                                     <div class="issue-title" style="margin-bottom:10px;">${escapeHtml(item.name)}</div>
                                     <div class="issue-cost">${escapeHtml(item.cost)}</div>
                                 </div>
@@ -1356,11 +1353,9 @@
                         ${renderCategoryAccordion(a)}
 
                         <div class="checklist-section">
-                            ${a && a.checklist ? [...a.checklist].sort((x, y) => {
+                            ${a && a.checklist ? [...a.checklist].filter(item => item.passed || item.notable).sort((x, y) => {
                                 if (x.notable && !y.notable) return 1;
                                 if (!x.notable && y.notable) return -1;
-                                if (!x.passed && y.passed) return -1;
-                                if (x.passed && !y.passed) return 1;
                                 return 0;
                             }).map(item => `
                                 <div class="checklist-item">
@@ -1836,7 +1831,7 @@
                 return `<div class="cat-row">
                     <div class="cat-header" onclick="toggleCat('${cat}')">
                         <div class="cat-header-left">
-                            <span class="cat-indicator ${empty ? 'cat-indicator-green' : 'cat-indicator-gray'}"></span>
+                            <span class="cat-indicator ${empty ? 'cat-indicator-green' : 'cat-indicator-yellow'}"></span>
                             <span class="cat-name">${cat}</span>
                             ${!empty ? `<span class="cat-count-badge">${items.length}</span>` : ''}
                         </div>

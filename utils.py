@@ -122,7 +122,7 @@ Return this exact structure:
 }}
 
 RULES:
-- urgent_items: Only items the inspector explicitly flagged as deficient, defective, or requiring immediate repair
+- urgent_items: Items that are deficient, defective, or meet any of these conditions regardless of how the inspector framed them: (1) a system cannot perform its core function right now, (2) involves mold, suspected asbestos, absent CO/smoke detectors, or standing water, (3) is a fire or life safety code issue, (4) involves electrical hazards near water, reversed polarity, fuse panel, or ungrounded outlets, (5) inspector states insurance companies may not cover it. Do not be anchored by words like "recommendation," "maintenance issue," or "for your information" — route based on the physical condition described, not the inspector's disclaimer language
 - maintenance_items: Only items the inspector flagged for future attention or planned replacement
 - category_items: ALL other deficiencies and observations documented in the report that are NOT already in urgent_items or maintenance_items. Assign each to the closest category: Roof, Exterior, Garage, Attic, Interior, Kitchen, Laundry, Bathroom, Mechanical (covers HVAC/furnace/water heater/electrical panel), or Structure (covers foundation/basement/framing). Do not leave findings out — if it was documented, it belongs here.
 - Do NOT duplicate items across urgent_items, maintenance_items, and category_items
