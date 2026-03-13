@@ -315,6 +315,7 @@
         .issue-card {
             background: var(--card-bg);
             border: 1px solid var(--border-color);
+            border-left: 3px solid #ef4444;
             border-radius: 12px;
             padding: 22px;
             text-align: left;
@@ -333,6 +334,7 @@
         .issue-card:hover {
             transform: translateY(-3px);
             border-color: var(--accent-teal);
+            border-left-color: #ef4444;
             box-shadow: 0 12px 40px rgba(0,0,0,0.3);
         }
 
@@ -1322,7 +1324,7 @@
                             <div class="legend-row"><span class="legend-notable-dash">- -</span><span class="legend-text"><strong>Notable</strong> — Item observed but not fully tested</span></div>
                         </div>
 
-                        <div class="section-label section-label-immediate">What Needs Attention</div>
+                        <div class="section-label section-label-immediate">Immediate</div>
                         <div class="issues-grid">
                             ${a && a.urgent_items.length > 0 ? a.urgent_items.map(item => `
                                 <div class="issue-card" onclick="askQuestionCard('Tell me more about the ${escapeHtml(item.name)} issue and what I should do')">
@@ -1340,7 +1342,7 @@
                         </div>
 
                         ${a && a.maintenance_items && a.maintenance_items.length > 0 ? `
-                            <div class="section-label section-label-maintenance">Maintenance & Future Planning</div>
+                            <div class="section-label section-label-maintenance">Attention</div>
                             <div class="maint-rows">
                                 ${a.maintenance_items.map(item => `
                                     <div class="maint-row" onclick="askQuestionCard('Tell me about the ${escapeHtml(item.name)} and when I should address it')">

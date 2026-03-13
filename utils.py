@@ -216,11 +216,27 @@ RULES:
             numbered_items.append(f"{idx}. {i.get('name')}: {desc}")
         unknown_text = "\n".join(numbered_items)
 
-        step2_prompt = f"""You are a home repair cost estimator. You MUST return a cost for every single numbered item below.
+        step2_prompt = f"""You are a home repair cost estimator with deep knowledge of contractor pricing across North America.
 Currency: {currency}
 Location: {findings.get('location', 'Unknown')}
 
-Return realistic contractor cost ranges in {currency} for that region.
+For each item below, think carefully about:
+- The actual scope of work required (a stopper repair is not the same as a full bathroom renovation)
+- The specific trade involved (electrician, plumber, handyman, general contractor)
+- Local market rates for {findings.get('location', 'the region')}
+- Material costs + labour combined
+- Do NOT default to a generic $500-$2,500 range — that is wrong for most items
+
+Examples of correct thinking:
+- "Sink stopper not operating" = handyman 1hr + $10 part = $75-$150
+- "Vegetation overgrowth contacting exterior" = landscaper 2hrs = $100-$250  
+- "Damaged vent covers" = $20 part + 30min labour = $75-$150
+- "Window trim cracking" = painter/carpenter 2hrs + caulk = $150-$400
+- "Toilet sealant missing" = plumber 1hr + $5 wax ring = $100-$200
+- "Baseboard detaching" = handyman 1hr + adhesive = $75-$200
+- "EIFS stucco moisture intrusion" = stucco specialist, major work = $2,000-$11,000
+- "Foundation crack" = structural engineer + epoxy injection = $500-$3,000
+
 Return ONLY a JSON array with one entry per item, using the same index number:
 [
   {{"index": 0, "cost": "$X - $X", "cost_note": "brief context"}},
