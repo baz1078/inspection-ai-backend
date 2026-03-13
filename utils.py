@@ -131,72 +131,54 @@ RULES:
 - checklist: 6-10 items summarizing major system status. passed:true for systems in good condition, notable:true for items not inspected or with limited scope. Do NOT repeat items already in urgent_items, maintenance_items, or category_items
 - Return ONLY the JSON object, no markdown, no backticks"""
 
-    step1_msg = client.messages.create(
-        model="claude-sonnet-4-5-20250929",
-        max_tokens=4000,
-        temperature=0,
-        system=step1_prompt,
-        messages=[{"role": "user", "content": extracted_text}]
-    )
-
-    raw1 = step1_msg.content[0].text.replace("\x00", "").strip()
-    if raw1.startswith("```"):
-        raw1 = raw1.split("\n", 1)[1]
-    if raw1.endswith("```"):
-        raw1 = raw1.rsplit("```", 1)[0]
-    raw1 = raw1.strip()
-
-    # Clean up common AI JSON mistakes before parsing
     import re
-    raw1 = re.sub(r',\s*([}\]])', r'\1', raw1)  # trailing commas
+
+    def clean_raw(raw):
+        raw = raw.replace("\x00", "").strip()
+        if raw.startswith("```"):
+            raw = raw.split("\n", 1)[1]
+        if raw.endswith("```"):
+            raw = raw.rsplit("```", 1)[0]
+        return raw.strip()
 
     def attempt_parse(raw):
         cleaned = re.sub(r',\s*([}\]])', r'\1', raw)
         return json.loads(cleaned)
 
-    try:
-        findings = attempt_parse(raw1)
-    except Exception as parse_err:
-        print(f"Step 1 JSON parse failed: {parse_err}. Attempting auto-recovery...")
-
-        # AUTO-RECOVERY: Send broken JSON back to AI and ask it to fix it
+    # Escalating retry: 8k -> 16k -> fallback
+    findings = None
+    last_err = None
+    for max_tok in [8000, 16000]:
         try:
-            recovery_msg = client.messages.create(
+            print(f"Step 1 attempt with max_tokens={max_tok}...")
+            step1_msg = client.messages.create(
                 model="claude-sonnet-4-5-20250929",
-                max_tokens=4000,
+                max_tokens=max_tok,
                 temperature=0,
-                messages=[{
-                    "role": "user",
-                    "content": f"""The following JSON is malformed or truncated. Fix it and return ONLY valid JSON with no markdown, no backticks, no explanation.
-If the JSON was truncated mid-write, complete it correctly based on what was already written.
-Ensure all arrays and objects are properly closed.
-
-Broken JSON:
-{raw1}"""
-                }]
+                system=step1_prompt,
+                messages=[{"role": "user", "content": extracted_text}]
             )
-            raw1_fixed = recovery_msg.content[0].text.replace("\x00", "").strip()
-            if raw1_fixed.startswith("```"):
-                raw1_fixed = raw1_fixed.split("\n", 1)[1]
-            if raw1_fixed.endswith("```"):
-                raw1_fixed = raw1_fixed.rsplit("```", 1)[0]
-            raw1_fixed = raw1_fixed.strip()
-            findings = attempt_parse(raw1_fixed)
-            print(f"Auto-recovery succeeded.")
-        except Exception as recovery_err:
-            print(f"Auto-recovery failed: {recovery_err}. Using minimal fallback.")
-            findings = {
-                "condition": "Maintenance",
-                "currency": "USD",
-                "location": "Unknown",
-                "address": None,
-                "urgent_items": [],
-                "maintenance_items": [],
-                "checklist": [],
-                "_parse_error": str(parse_err),
-                "_recovery_error": str(recovery_err)
-            }
-            return json.dumps(findings)
+            raw1 = clean_raw(step1_msg.content[0].text)
+            findings = attempt_parse(raw1)
+            print(f"Step 1 succeeded at max_tokens={max_tok}.")
+            break
+        except Exception as e:
+            last_err = e
+            print(f"Step 1 failed at max_tokens={max_tok}: {e}. {'Retrying with more tokens...' if max_tok < 16000 else 'All retries exhausted.'}")
+
+    if findings is None:
+        print(f"Using minimal fallback after all retries failed.")
+        findings = {
+            "condition": "Maintenance",
+            "currency": "USD",
+            "location": "Unknown",
+            "address": None,
+            "urgent_items": [],
+            "maintenance_items": [],
+            "checklist": [],
+            "_parse_error": str(last_err)
+        }
+        return json.dumps(findings)
 
     currency = findings.get("currency", "USD")
 
@@ -662,6 +644,7 @@ Customer Question: {question}"""
         return assistant_message
 
 
+
 def allowed_file(filename):
     """Check if file is PDF"""
     return '.' in filename and filename.rsplit('.', 1)[1].lower() == 'pdf'
@@ -681,4 +664,4 @@ def save_uploaded_file(file, upload_folder='uploads'):
     filepath = os.path.join(upload_folder, filename)
     
     file.save(filepath)
-    return filepath
+    return filepath-e
