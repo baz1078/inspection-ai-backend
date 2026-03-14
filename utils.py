@@ -127,7 +127,7 @@ RULES:
 - category_items: ALL other deficiencies and observations documented in the report that are NOT already in urgent_items or maintenance_items. Assign each to the closest category: Roof, Exterior, Garage, Attic, Interior, Kitchen, Laundry, Bathroom, Mechanical (covers HVAC/furnace/water heater/electrical panel), or Structure (covers foundation/basement/framing). Do not leave findings out — if it was documented, it belongs here.
 - Do NOT duplicate items across urgent_items, maintenance_items, and category_items
 - Do NOT add speculative items not documented in the report
-- If a finding matches a category key exactly, use it. If not, set category_key to null and fill custom_description
+- For category_key: choose the CLOSEST matching key from the list even if not exact — only set null if genuinely nothing is close. Examples: 'baseboard detaching' → BATH_BASEBOARD, 'vegetation overgrowth' → EXT_VEGETATION, 'dryer vent lint' → APPL_DRYER_VENT, 'drywall cracks' → INT_WALL_CRACK, 'handrail missing' → EXT_HANDRAIL, 'foundation paint' → EXT_FOUNDATION_PAINT, 'wall heater' → BATH_WALL_HEATER, 'bathtub sealant' → BATH_SHOWER_CAULK, 'window condensation' → WIN_SEAL_REPAIR, 'floor uneven' → STRUCT_CRAWLSPACE. Use your judgment — a reasonable match is always better than null
 - checklist: 6-10 items summarizing major system status. passed:true for systems in good condition, notable:true for items not inspected or with limited scope. Do NOT repeat items already in urgent_items, maintenance_items, or category_items
 - Return ONLY the JSON object, no markdown, no backticks"""
 
@@ -224,6 +224,68 @@ RULES:
         (["mold", "microbial"], "MOLD_MINOR"),
         (["asbestos"], "MOLD_MINOR"),
         (["sewer"], "PLUMB_SEWER_REPAIR"),
+        # New entries matching expanded lookup table
+        (["vegetation", "overgrowth", "shrub contacting", "plant contacting"], "EXT_VEGETATION"),
+        (["vent cover", "vent hood", "damaged vent"], "EXT_VENT_COVERS"),
+        (["grade", "drainage", "grading"], "EXT_GRADE_DRAINAGE"),
+        (["foundation paint", "foundation stain", "water staining"], "EXT_FOUNDATION_PAINT"),
+        (["stucco crack", "stucco patch"], "EXT_STUCCO_CRACK"),
+        (["eifs", "eifs stucco"], "EXT_EIFS_MOISTURE"),
+        (["woodpecker"], "EXT_WOODPECKER"),
+        (["handrail", "railing missing", "guardrail", "handrails", "lack handrail"], "EXT_HANDRAIL"),
+        (["driveway slab", "slab undermining", "driveway level", "mudjack"], "EXT_DRIVEWAY_LEVEL"),
+        (["retaining wall"], "EXT_RETAINING_WALL"),
+        (["mortar joint", "tuckpoint"], "EXT_MORTAR_JOINTS"),
+        (["roof sealant", "roof boot", "boot deteriorat"], "ROOF_BOOTS_SEALANT"),
+        (["gutter debris", "gutter clean", "gutter accumul"], "ROOF_GUTTER_CLEAN"),
+        (["flat roof penetration", "open penetration"], "ROOF_PENETRATION_FLAT"),
+        (["deck sealant", "deck trim", "deck seal"], "DECK_SEALANT"),
+        (["window crank", "crank hardware"], "WIN_CRANK_HARDWARE"),
+        (["cracked glass", "broken glass", "cracked window glass"], "WIN_CRACKED_GLASS"),
+        (["sewer cap", "sewer capping", "pipe capping"], "PLUMB_SEWER_CAP"),
+        (["sediment trap"], "PLUMB_SEDIMENT_TRAP"),
+        (["water heater vent", "heater vent not compliant"], "PLUMB_WATER_HEATER_VENT"),
+        (["ac line insul", "condensation drain line", "drain line not insul"], "HVAC_AC_LINE_INSULATION"),
+        (["attic platform", "service platform"], "HVAC_ATTIC_PLATFORM"),
+        (["range hood", "exhaust terminat", "vent to attic"], "APPL_RANGE_HOOD_VENT"),
+        (["dryer vent", "dryer lint", "dryer exhaust"], "APPL_DRYER_VENT"),
+        (["washer mold", "washer microbial", "washer blacken"], "LAUNDRY_MOLD"),
+        (["wall crack", "drywall crack", "drywall settlement", "settlement crack"], "INT_WALL_CRACK"),
+        (["closet light", "light globe", "unprotected bulb"], "INT_CLOSET_LIGHT"),
+        (["sink stopper", "stopper not operating"], "BATH_SINK_STOPPER"),
+        (["shower caulk", "tub caulk", "shower sealant", "bathtub sealant", "bath sealant"], "BATH_SHOWER_CAULK"),
+        (["shower sealant mold", "sealant microbial"], "BATH_SHOWER_CAULK_MOLD"),
+        (["wax ring", "toilet sealant"], "BATH_TOILET_WAX_RING"),
+        (["toilet unstable", "toilet loose", "toilet reset"], "BATH_TOILET_RESET"),
+        (["baseboard detach", "baseboard loose"], "BATH_BASEBOARD"),
+        (["window trim crack", "trim cracking"], "BATH_WINDOW_TRIM"),
+        (["wall heater", "bathroom heater"], "BATH_WALL_HEATER"),
+        (["bathroom moisture", "bathroom water damage"], "BATH_MOISTURE_DAMAGE"),
+        (["shower fixture leak", "shower leak", "active leak"], "BATH_SHOWER_LEAK"),
+        (["faucet loose", "faucet assembly"], "BATH_FAUCET_LOOSE"),
+        (["shower head leak"], "BATH_SHOWER_HEAD_LEAK"),
+        (["asbestos test", "asbestos inspect"], "ASBESTOS_TEST"),
+        (["asbestos ceiling", "asbestos tile", "asbestos insul", "suspected asbestos"], "ASBESTOS_INTERIOR"),
+        (["popcorn ceiling asbestos", "asbestos popcorn"], "ASBESTOS_POPCORN"),
+        (["foundation crack minor", "hairline crack", "vertical crack foundation"], "FOUND_CRACK_MINOR"),
+        (["foundation crack major", "horizontal crack", "bowing wall"], "FOUND_CRACK_MAJOR"),
+        (["basement waterproof interior"], "FOUND_WATERPROOF_INT"),
+        (["basement waterproof exterior"], "FOUND_WATERPROOF_EXT"),
+        (["basement water", "foundation leak", "water intrusion"], "FOUND_WATER_INTRUSION"),
+        (["structural engineer"], "STRUCT_ENGINEER_INSPECT"),
+        (["drywall patch", "drywall hole", "drywall repair small"], "INT_DRYWALL_PATCH"),
+        (["drywall large", "drywall repair large"], "INT_DRYWALL_LARGE"),
+        (["outlet repair", "outlet replace"], "ELEC_OUTLET_REPAIR"),
+        (["reverse polarity"], "ELEC_REVERSE_POLARITY"),
+        (["light switch"], "ELEC_LIGHT_SWITCH"),
+        (["light fixture", "light cover missing", "fixture missing"], "ELEC_LIGHT_FIXTURE"),
+        (["breaker replace", "circuit breaker"], "ELEC_BREAKER_REPLACE"),
+        (["dedicated circuit"], "ELEC_DEDICATED_CIRCUIT"),
+        (["pipe leak accessible", "exposed pipe leak"], "PLUMB_PIPE_LEAK_ACCESSIBLE"),
+        (["pipe leak wall", "leak in wall"], "PLUMB_PIPE_LEAK_WALL"),
+        (["drain repair", "drain pipe"], "PLUMB_DRAIN_REPAIR"),
+        (["garbage disposal"], "PLUMB_GARBAGE_DISPOSAL"),
+        (["bathtub crack", "tub chip", "tub crack"], "PLUMB_BATHTUB_REPAIR"),
     ]
 
     # Heuristic bands: last resort if AI returns null and no alias matches
@@ -371,7 +433,7 @@ Items:
 
         step2_msg = client.messages.create(
             model="claude-sonnet-4-5-20250929",
-            max_tokens=8000,
+            max_tokens=3000,
             temperature=0,
             messages=[{"role": "user", "content": step2_prompt}]
         )
