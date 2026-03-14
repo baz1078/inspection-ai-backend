@@ -368,7 +368,7 @@ NAME: {i.get('name')}
 DESCRIPTION: {desc}
 TRADE: {i.get('trade', '')}"""
             )
-        unknown_text = "
+        unknown_text = "\n\n".join(numbered_items)
 
 ".join(numbered_items)
 
