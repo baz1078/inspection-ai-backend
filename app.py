@@ -18,6 +18,7 @@ from warranty_utils import (
 )
 import uuid
 import os
+import threading
 import stripe
 stripe.api_key = os.getenv('STRIPE_SECRET_KEY')
 from datetime import datetime
@@ -73,6 +74,48 @@ os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 # In-memory cache for conversations (10 reports max)
 REPORT_CACHE = OrderedDict()
 MAX_CACHE_SIZE = 10
+
+# In-memory job status tracker for async analysis
+# Keys are report_id strings, values: {'status': 'processing'|'done'|'error', 'progress': 0-100}
+JOB_STATUS = {}
+
+def run_analysis_background(app_ctx, report_id, extracted_text):
+    """Run slow AI analysis in a background thread, update DB when done."""
+    with app_ctx:
+        try:
+            JOB_STATUS[report_id] = {'status': 'processing', 'progress': 15}
+
+            print(f"[BG {report_id}] Generating summary...")
+            summary = generate_summary_from_report(extracted_text).replace('\x00', '')
+            JOB_STATUS[report_id]['progress'] = 50
+
+            print(f"[BG {report_id}] Generating structured analysis...")
+            try:
+                analysis_raw = generate_structured_analysis(extracted_text)
+                json.loads(analysis_raw)  # validate JSON
+                analysis_json = analysis_raw
+            except Exception as e:
+                print(f"[BG {report_id}] Structured analysis failed: {e}")
+                analysis_json = None
+            JOB_STATUS[report_id]['progress'] = 88
+
+            report = InspectionReport.query.get(report_id)
+            if report:
+                report.summary = summary
+                report.analysis_json = analysis_json
+                db.session.commit()
+
+            qa_system = InspectionReportQA(extracted_text)
+            REPORT_CACHE[report_id] = qa_system
+            if len(REPORT_CACHE) > MAX_CACHE_SIZE:
+                REPORT_CACHE.popitem(last=False)
+
+            JOB_STATUS[report_id] = {'status': 'done', 'progress': 100}
+            print(f"[BG {report_id}] Analysis complete.")
+
+        except Exception as e:
+            print(f"[BG {report_id}] Background analysis error: {e}")
+            JOB_STATUS[report_id] = {'status': 'error', 'progress': 0}
 
 # ============================================================================
 # HELPER FUNCTIONS
@@ -686,33 +729,17 @@ def upload_report():
     try:
         if 'file' not in request.files:
             return jsonify({'error': 'No file provided'}), 400
-        
+
         file = request.files['file']
         if file.filename == '':
             return jsonify({'error': 'No file selected'}), 400
-        
-        # Save file
-        filepath = save_uploaded_file(file, app.config['UPLOAD_FOLDER'])
-        
-        # Extract text
-        print("Extracting text from PDF...")
-        extractedText = extract_text_from_pdf(filepath).replace('\x00', '')
-        
-        # Generate summary
-        print("Generating AI summary...")
-        summary = generate_summary_from_report(extractedText).replace('\x00', '')
 
-        # Generate structured analysis (NEW)
-        print("Generating structured analysis...")
-        try:
-            analysis_raw = generate_structured_analysis(extractedText)
-            json.loads(analysis_raw)  # validate it's real JSON
-            analysis_json = analysis_raw
-        except Exception as e:
-            print(f"Structured analysis failed: {e}")
-            analysis_json = None
-        
-        # Create database record
+        # Save file and extract text (fast — no AI yet)
+        filepath = save_uploaded_file(file, app.config['UPLOAD_FOLDER'])
+        print("Extracting text from PDF...")
+        extracted_text = extract_text_from_pdf(filepath).replace('\x00', '')
+
+        # Create DB record immediately with no summary/analysis yet
         report = InspectionReport(
             address=request.form.get('address', 'Unknown Address'),
             customerName=request.form.get('customer_name', 'Unknown'),
@@ -724,30 +751,50 @@ def upload_report():
             originalFilename=secure_filename(file.filename),
             filePath=filepath,
             fileSize=os.path.getsize(filepath),
-            extractedText=extractedText,
-            summary=summary,
-            analysis_json=analysis_json,
+            extractedText=extracted_text,
+            summary=None,
+            analysis_json=None,
             isShared=True,
-            shareToken=str(uuid.uuid4())[:8] 
+            shareToken=str(uuid.uuid4())[:8]
         )
-        
         db.session.add(report)
         db.session.commit()
-        
-        # Cache the conversation
-        qa_system = InspectionReportQA(extractedText)
-        REPORT_CACHE[report.id] = qa_system
-        if len(REPORT_CACHE) > MAX_CACHE_SIZE:
-            REPORT_CACHE.popitem(last=False)
-        
+
+        report_id = report.id
+        JOB_STATUS[report_id] = {'status': 'processing', 'progress': 5}
+
+        # Kick off AI analysis in background thread
+        ctx = app.app_context()
+        t = threading.Thread(
+            target=run_analysis_background,
+            args=(ctx, report_id, extracted_text),
+            daemon=True
+        )
+        t.start()
+
         return jsonify({
             'success': True,
-            'report_id': report.id,
+            'report_id': report_id,
             'shareToken': report.shareToken,
-            'summary': summary,
             'address': report.address,
-            'message': 'Report uploaded successfully'
-        }), 201
+            'message': 'Upload received — analysis running'
+        }), 202
+
+    except Exception as e:
+        print(f"Upload error: {e}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/status/<report_id>', methods=['GET'])
+def get_upload_status(report_id):
+    """Poll this endpoint to track background analysis progress."""
+    job = JOB_STATUS.get(report_id)
+    if not job:
+        # Not in memory — check DB (e.g. after server restart)
+        report = InspectionReport.query.get(report_id)
+        if report and report.analysis_json:
+            return jsonify({'status': 'done', 'progress': 100})
+        return jsonify({'status': 'unknown', 'progress': 0})
+    return jsonify(job)
         
     except Exception as e:
         db.session.rollback()
