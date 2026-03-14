@@ -752,7 +752,7 @@ def upload_report():
             filePath=filepath,
             fileSize=os.path.getsize(filepath),
             extractedText=extracted_text,
-            summary=None,
+            summary='Analysis in progress...',
             analysis_json=None,
             isShared=True,
             shareToken=str(uuid.uuid4())[:8]
