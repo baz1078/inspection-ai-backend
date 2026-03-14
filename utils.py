@@ -409,6 +409,22 @@ Items:
                 item["cost_note"] = band.get("note", "")
                 item["cost_source"] = "heuristic_fallback"
 
+    # Log pricing source breakdown for diagnostics
+    all_items = (
+        findings.get("urgent_items", []) +
+        findings.get("maintenance_items", []) +
+        findings.get("category_items", [])
+    )
+    source_counts = {}
+    for item in all_items:
+        src = item.get("cost_source", "unknown")
+        source_counts[src] = source_counts.get(src, 0) + 1
+    print(f"Pricing sources: {source_counts}")
+    for item in all_items:
+        src = item.get("cost_source", "unknown")
+        if src not in ("lookup_table",):
+            print(f"  [{src}] {item.get('name')} (key={item.get('category_key')})")
+
     # ------------------------------------------------------------------
     # STEP 3: Calculate budget totals from priced items
     # ------------------------------------------------------------------
