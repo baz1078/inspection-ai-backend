@@ -62,20 +62,17 @@ RULES:
 def generate_structured_analysis(extracted_text):
     """
     Two-step analysis:
-    Step 1 - AI identifies findings and maps them to category keys (small prompt, low tokens).
+    Step 1 - AI identifies findings and maps them to category keys.
     Step 2 - Python prices known categories from lookup table.
-             AI prices only the unmatched items (minimises token cost).
+             AI prices only unmatched items, with tighter, buyer-friendly ballpark ranges.
     """
     from cost_lookup import COST_TABLE, get_cost, format_cost_range, get_all_categories
+    import re
 
     client = create_ai_client()
     categories_list = get_all_categories()
     categories_json = json.dumps(categories_list)
 
-    # ------------------------------------------------------------------
-    # STEP 1: AI reads the report and returns structured findings
-    #         with category keys -- NO dollar amounts yet.
-    # ------------------------------------------------------------------
     step1_prompt = f"""You are a home inspection analyst. Read this inspection report and return ONLY a valid JSON object.
 Do NOT include dollar amounts -- only identify and categorise findings.
 
@@ -131,12 +128,11 @@ RULES:
 - checklist: 6-10 items summarizing major system status. passed:true for systems in good condition, notable:true for items not inspected or with limited scope. Do NOT repeat items already in urgent_items, maintenance_items, or category_items
 - Return ONLY the JSON object, no markdown, no backticks"""
 
-    import re
-
     def clean_raw(raw):
         raw = raw.replace("\x00", "").strip()
         if raw.startswith("```"):
-            raw = raw.split("\n", 1)[1]
+            parts = raw.split("\n", 1)
+            raw = parts[1] if len(parts) > 1 else ""
         if raw.endswith("```"):
             raw = raw.rsplit("```", 1)[0]
         return raw.strip()
@@ -145,7 +141,6 @@ RULES:
         cleaned = re.sub(r',\s*([}\]])', r'\1', raw)
         return json.loads(cleaned)
 
-    # Escalating retry: 8k -> 16k -> fallback
     findings = None
     last_err = None
     for max_tok in [8000, 16000]:
@@ -168,7 +163,7 @@ RULES:
             print(f"Step 1 failed at max_tokens={max_tok}: {last_err}. {retry_msg}")
 
     if findings is None:
-        print(f"Using minimal fallback after all retries failed.")
+        print("Using minimal fallback after all retries failed.")
         findings = {
             "condition": "Maintenance",
             "currency": "USD",
@@ -176,6 +171,7 @@ RULES:
             "address": None,
             "urgent_items": [],
             "maintenance_items": [],
+            "category_items": [],
             "checklist": [],
             "_parse_error": str(last_err)
         }
@@ -189,187 +185,203 @@ RULES:
         value = re.sub(r"\s+", " ", value)
         return value
 
-    def round_price(value):
-        if value <= 0:
-            return 0
-        if value < 200:
-            step = 25
-        elif value < 1000:
-            step = 50
-        elif value < 5000:
-            step = 100
-        else:
-            step = 250
-        return int(round(value / step) * step)
+    def get_item_text(item):
+        return normalize_text(" ".join([
+            item.get("name", ""),
+            item.get("custom_description", ""),
+            item.get("trade", "")
+        ]))
 
     def compress_range(low, high):
-        low = max(50, int(low))
-        high = max(low + 50, int(high))
+        if not low or not high or high <= low:
+            return low, high
         width = high - low
-        max_width = max(int(low * 1.85), 250)
-        if width > max_width:
-            high = low + max_width
-        low = round_price(low)
-        high = round_price(high)
+        if width > low * 2.2:
+            high = int(round(low * 4.0 / 50.0) * 50)
+        if high - low > 2500 and low < 3000:
+            high = int(round((low + 2500) / 50.0) * 50)
         if high <= low:
-            high = round_price(low + max(50, int(low * 0.25)))
-        return low, high
+            high = low + 150
+        return int(low), int(high)
 
-    def apply_scope_adjustment(item, low, high):
-        text = normalize_text(" ".join([
-            item.get("name", ""),
-            item.get("custom_description", ""),
-            item.get("trade", "")
-        ]))
+    def adjust_range_for_text(text, low, high):
+        if not low or not high:
+            return low, high
 
-        high_mult = 1.0
+        factor_low = 1.0
+        factor_high = 1.0
 
-        if any(word in text for word in ["minor", "small", "hairline", "loose", "single", "simple", "localized"]):
-            high_mult *= 0.85
-        if any(word in text for word in ["multiple", "several", "extensive", "widespread", "major"]):
-            high_mult *= 1.20
-        if any(word in text for word in ["active leak", "intrusion", "missing"]):
-            high_mult *= 1.10
-        if any(word in text for word in ["sealant", "caulk", "trim", "cover", "paint", "nail pops"]):
-            high_mult *= 0.82
-        if any(word in text for word in ["structural", "foundation", "eifs", "stucco moisture"]):
-            high_mult *= 1.15
+        if any(word in text for word in ["minor", "small", "hairline", "touch up", "touch-up", "sealant", "caulk", "nail pop", "discoloration"]):
+            factor_high *= 0.75
+        if any(word in text for word in ["localized", "single area", "single", "one area", "limited area"]):
+            factor_high *= 0.85
+        if any(word in text for word in ["extensive", "multiple", "several", "widespread", "active leak", "unsupported", "inadequate", "moisture intrusion"]):
+            factor_high *= 1.20
+        if any(word in text for word in ["replace", "replacement"]):
+            factor_low *= 1.05
+            factor_high *= 1.10
 
-        return compress_range(low, int(high * high_mult))
+        low = int(round(low * factor_low / 50.0) * 50)
+        high = int(round(high * factor_high / 50.0) * 50)
 
-    alias_rules = [
-        (["vegetation", "overgrowth", "branches", "shrubs", "tree touching"], "ROOF_GUTTERS_CLEAN"),
-        (["gutter debris", "gutters clogged", "gutter cleaning"], "ROOF_GUTTERS_CLEAN"),
-        (["vent cover", "vent cap", "damaged vent", "roof penetration", "roof boot", "open penetration"], "ROOF_MINOR_REPAIR"),
-        (["flashing", "counter flashing", "starter flashing"], "ROOF_MINOR_REPAIR"),
-        (["woodpecker", "siding damage", "trim damage", "exterior cladding"], "SIDING_REPAIR"),
-        (["stucco crack", "stucco patch", "parging", "eifs"], "SIDING_REPAIR"),
-        (["deck", "handrail", "railing", "landing", "stairs", "steps"], "DECK_REPAIR"),
-        (["driveway", "walkway", "slab settlement", "undermining", "concrete"], "DRIVEWAY_REPAIR"),
-        (["shower leak", "fixture leak", "plumbing leak", "active leak", "drip"], "PLUMB_LEAK_MINOR"),
-        (["toilet loose", "unstable toilet", "rocking toilet", "toilet reset"], "PLUMB_TOILET_REPAIR"),
-        (["sewer penetration", "cap penetration", "plumbing cap"], "PLUMB_LEAK_MINOR"),
-        (["window condensation", "fogged glass", "failed seal"], "WIN_SEAL_REPAIR"),
-        (["door", "weatherstrip", "threshold"], "DOOR_REPAIR"),
-        (["foundation crack", "foundation opening", "hairline foundation", "minor crack"], "FOUND_CRACK_MINOR"),
-        (["waterproofing", "moisture intrusion", "water staining", "grading drainage"], "FOUND_WATERPROOFING"),
-        (["garage door", "garage opener"], "GARAGE_DOOR"),
-        (["furnace service", "hvac tune", "filter", "belt"], "HVAC_SERVICE_TUNE"),
+        if high <= low:
+            high = low + 150
+
+        return compress_range(low, high)
+
+    heuristic_bands = {
+        "minor_service": {
+            "USD": (150, 450),
+            "CAD": (200, 550),
+            "note": "Typical small repair or service visit"
+        },
+        "minor_plumbing": {
+            "USD": (200, 600),
+            "CAD": (250, 750),
+            "note": "Typical localized plumbing repair"
+        },
+        "minor_roof_exterior": {
+            "USD": (200, 900),
+            "CAD": (250, 1100),
+            "note": "Typical localized exterior or roof repair"
+        },
+        "minor_landscape": {
+            "USD": (150, 600),
+            "CAD": (200, 750),
+            "note": "Typical trimming or basic landscaping service"
+        },
+        "minor_drywall_trim": {
+            "USD": (150, 700),
+            "CAD": (200, 850),
+            "note": "Typical patching or finish repair"
+        },
+        "concrete_moderate": {
+            "USD": (400, 1800),
+            "CAD": (500, 2200),
+            "note": "Typical localized concrete or leveling repair"
+        },
+        "handrail_install": {
+            "USD": (350, 1200),
+            "CAD": (450, 1500),
+            "note": "Typical residential handrail installation"
+        },
+        "deck_moderate": {
+            "USD": (400, 1800),
+            "CAD": (500, 2200),
+            "note": "Typical localized deck repair"
+        },
+        "stucco_patch": {
+            "USD": (250, 900),
+            "CAD": (300, 1100),
+            "note": "Typical localized stucco patch or crack repair"
+        },
+        "siding_patch": {
+            "USD": (350, 1500),
+            "CAD": (450, 1800),
+            "note": "Typical localized siding or trim repair"
+        },
+        "sealant_repair": {
+            "USD": (150, 450),
+            "CAD": (200, 550),
+            "note": "Typical removal and replacement of sealant"
+        },
+    }
+
+    keyword_to_band = [
+        (["shower sealant", "caulk", "sealant", "tub caulk", "shower caulk"], "sealant_repair"),
+        (["toilet", "faucet", "leak", "plumbing", "shower fixture", "sewer penetration", "capping"], "minor_plumbing"),
+        (["vent cover", "roof boot", "flashing", "penetration", "roof", "gutter", "downspout"], "minor_roof_exterior"),
+        (["vegetation", "shrub", "tree", "overgrowth", "landscap"], "minor_landscape"),
+        (["drywall", "nail pop", "settlement crack", "trim", "baseboard", "casing"], "minor_drywall_trim"),
+        (["driveway", "slab", "concrete", "undermining", "walkway"], "concrete_moderate"),
+        (["handrail", "railing", "guardrail"], "handrail_install"),
+        (["deck", "landing", "stairs", "step"], "deck_moderate"),
+        (["stucco"], "stucco_patch"),
+        (["woodpecker", "siding", "cladding", "trim board"], "siding_patch"),
     ]
 
-    def infer_category_key(item):
-        key = item.get("category_key")
-        if key and key in COST_TABLE:
-            return key
+    alias_key_map = [
+        (["gfci", "ungrounded outlet", "reverse polarity", "outlet", "switch"], "ELEC_OUTLETS_MINOR"),
+        (["smoke detector", "co detector", "carbon monoxide detector"], "ELEC_SMOKE_DETECTORS"),
+        (["toilet"], "PLUMB_TOILET_REPAIR"),
+        (["faucet"], "PLUMB_FAUCET_REPAIR"),
+        (["leak", "drip"], "PLUMB_LEAK_MINOR"),
+        (["water heater"], "PLUMB_WATER_HEATER"),
+        (["sump pump"], "PLUMB_SUMP_PUMP"),
+        (["furnace", "boiler", "hvac service"], "HVAC_SERVICE_TUNE"),
+        (["ac", "air conditioner", "condenser"], "HVAC_AC_REPLACE"),
+        (["duct"], "HVAC_DUCT_REPAIR"),
+        (["flashing", "boot", "shingle", "roof repair", "chimney flashing", "roof penetration"], "ROOF_MINOR_REPAIR"),
+        (["gutter"], "ROOF_MINOR_REPAIR"),
+    ]
 
-        text = normalize_text(" ".join([
-            item.get("name", ""),
-            item.get("custom_description", ""),
-            item.get("trade", "")
-        ]))
-
-        for patterns, mapped_key in alias_rules:
-            if any(pattern in text for pattern in patterns) and mapped_key in COST_TABLE:
-                return mapped_key
+    def infer_lookup_key(item):
+        text = get_item_text(item)
+        for phrases, key in alias_key_map:
+            if key in COST_TABLE and any(phrase in text for phrase in phrases):
+                return key
         return None
 
-    def heuristic_cost_estimate(item):
-        text = normalize_text(" ".join([
-            item.get("name", ""),
-            item.get("custom_description", ""),
-            item.get("trade", "")
-        ]))
+    def infer_heuristic_band(item):
+        text = get_item_text(item)
+        for phrases, band_name in keyword_to_band:
+            if any(phrase in text for phrase in phrases):
+                return heuristic_bands.get(band_name)
         trade = normalize_text(item.get("trade", ""))
+        if "plumb" in trade:
+            return heuristic_bands["minor_plumbing"]
+        if "roof" in trade or "exterior" in trade:
+            return heuristic_bands["minor_roof_exterior"]
+        if "drywall" in trade or "carpenter" in trade or "handyman" in trade:
+            return heuristic_bands["minor_drywall_trim"]
+        if "landsc" in trade:
+            return heuristic_bands["minor_landscape"]
+        return heuristic_bands["minor_service"]
 
-        low, high = 250, 900
-        note = "Typical localized repair"
-
-        if any(w in text for w in ["sealant", "caulk", "trim", "cover", "nail pops", "paint"]):
-            low, high = 150, 500
-            note = "Typical small repair or service call"
-        elif any(w in text for w in ["vegetation", "overgrowth", "branches", "shrubs", "debris"]):
-            low, high = 150, 600
-            note = "Typical yard service or exterior cleanup"
-        elif any(w in text for w in ["toilet", "faucet", "fixture", "drain", "leak"]):
-            low, high = 200, 700
-            note = "Typical plumbing repair"
-        elif any(w in text for w in ["vent", "penetration", "flashing", "boot", "roof"]):
-            low, high = 250, 900
-            note = "Typical localized roofing repair"
-        elif any(w in text for w in ["window", "door"]):
-            low, high = 200, 800
-            note = "Typical repair or component replacement"
-        elif any(w in text for w in ["deck", "handrail", "railing", "stairs", "landing"]):
-            low, high = 350, 1400
-            note = "Typical carpentry or deck repair"
-        elif any(w in text for w in ["driveway", "concrete", "slab", "undermining"]):
-            low, high = 400, 1600
-            note = "Typical concrete or leveling repair"
-        elif any(w in text for w in ["stucco", "siding", "woodpecker"]):
-            low, high = 300, 1400
-            note = "Typical exterior patch or localized replacement"
-        elif any(w in text for w in ["foundation", "moisture intrusion", "waterproofing"]):
-            low, high = 750, 3000
-            note = "Typical specialist repair; price depends on extent"
-        elif "electric" in trade:
-            low, high = 150, 600
-            note = "Typical electrician repair"
-        elif "plumb" in trade:
-            low, high = 200, 800
-            note = "Typical plumbing repair"
-        elif "hvac" in trade:
-            low, high = 150, 750
-            note = "Typical HVAC repair or service"
-        elif "roof" in trade:
-            low, high = 250, 1000
-            note = "Typical localized roof repair"
-        elif any(w in trade for w in ["carpenter", "general contractor", "handyman"]):
-            low, high = 200, 900
-            note = "Typical handyman or carpentry repair"
-
-        low, high = apply_scope_adjustment(item, low, high)
-        return {"low": low, "high": high, "note": note, "source": "heuristic_fallback"}
-
-    # ------------------------------------------------------------------
-    # STEP 2: Price each item -- exact lookup, inferred lookup, AI fallback for unknown
-    # ------------------------------------------------------------------
     unknown_items = []
 
     def price_item(item):
-        resolved_key = infer_category_key(item)
-        if resolved_key and resolved_key in COST_TABLE:
-            cost_data = get_cost(resolved_key, currency)
-            low, high = apply_scope_adjustment(item, cost_data["low"], cost_data["high"])
+        text = get_item_text(item)
+        key = item.get("category_key")
+
+        if key and key in COST_TABLE:
+            cost_data = get_cost(key, currency)
+            low, high = adjust_range_for_text(text, cost_data["low"], cost_data["high"])
             item["cost"] = format_cost_range(low, high, currency)
             item["cost_note"] = cost_data.get("note", "")
-            item["cost_source"] = "lookup_table" if item.get("category_key") == resolved_key else "lookup_inferred"
-            if item.get("category_key") != resolved_key:
-                item["mapped_category_key"] = resolved_key
-        else:
-            item["cost"] = None
-            item["cost_source"] = "pending"
-            unknown_items.append(item)
+            item["cost_source"] = "lookup_table"
+            return item
+
+        inferred_key = infer_lookup_key(item)
+        if inferred_key:
+            cost_data = get_cost(inferred_key, currency)
+            low, high = adjust_range_for_text(text, cost_data["low"], cost_data["high"])
+            item["cost"] = format_cost_range(low, high, currency)
+            item["cost_note"] = cost_data.get("note", "")
+            item["cost_source"] = "lookup_inferred"
+            item["category_key"] = inferred_key
+            return item
+
+        item["cost"] = None
+        item["cost_source"] = "pending_ai"
+        unknown_items.append(item)
         return item
 
     findings["urgent_items"] = [price_item(i) for i in findings.get("urgent_items", [])]
     findings["maintenance_items"] = [price_item(i) for i in findings.get("maintenance_items", [])]
     findings["category_items"] = [price_item(i) for i in findings.get("category_items", [])]
 
-    # ------------------------------------------------------------------
-    # STEP 2b: Batch AI pricing for unknown items only
-    # ------------------------------------------------------------------
     if unknown_items:
         numbered_items = []
-        for idx, i in enumerate(unknown_items):
-            desc = i.get('custom_description') or i.get('name')
+        for idx, item in enumerate(unknown_items):
+            desc = item.get("custom_description") or item.get("name")
             numbered_items.append(
                 f"""{idx}.
-NAME: {i.get('name')}
+NAME: {item.get('name')}
 DESCRIPTION: {desc}
-TRADE: {i.get('trade', '')}"""
+TRADE: {item.get('trade', '')}"""
             )
         unknown_text = "\n\n".join(numbered_items)
-
 
         step2_prompt = f"""You are a home repair cost estimator with deep knowledge of North American contractor pricing.
 Currency: {currency}
@@ -380,75 +392,61 @@ Return realistic, buyer-friendly ballpark repair ranges for common home inspecti
 These ranges should help buyers feel informed, not alarmed.
 
 Rules:
-- Prefer the most common localized repair scenario, not worst-case replacement.
-- Keep ranges reasonably tight.
-- Do NOT use a generic fallback range like $500-$2,500.
-- Use trade, material, access, and likely labor time.
-- Small service-call items are often well below $500.
-- Larger specialist items can be higher, but avoid extreme top ends unless the wording clearly demands it.
-- Return a short cost_note only when useful.
-- Never omit an item.
+- Prefer typical localized repair scenarios, not worst-case failures.
+- Prefer tighter ranges when possible.
+- Do not use a generic fallback range.
+- Use the issue name, description, and trade.
+- If a finding sounds like a minor repair, keep the range modest.
+- If a finding clearly suggests broader work, widen the range only as needed.
+- Return every item by index.
+- If truly uncertain, set cost to null.
 
-Examples:
-- Damaged vent cover = $100-$300
-- Vegetation contacting exterior = $150-$600
-- Loose toilet = $200-$600
-- Small stucco crack = $250-$900
-- Localized deck/railing repair = $350-$1,400
-- EIFS moisture intrusion = $2,000-$6,500 for a typical localized repair scenario
-
-Return ONLY valid JSON array:
+Return ONLY valid JSON array in this exact format:
 [
-  {{"index": 0, "low": 150, "high": 450, "cost_note": "short note"}},
-  {{"index": 1, "low": 350, "high": 1200, "cost_note": "short note"}}
+  {{
+    "index": 0,
+    "cost": "$X - $Y" or null,
+    "cost_note": "brief short explanation"
+  }}
 ]
 
 Items:
 {unknown_text}"""
 
-        raw2 = ""
         try:
             step2_msg = client.messages.create(
                 model="claude-sonnet-4-5-20250929",
-                max_tokens=1000,
+                max_tokens=1200,
                 temperature=0,
                 messages=[{"role": "user", "content": step2_prompt}]
             )
-
-            raw2 = step2_msg.content[0].text.replace("\x00", "").strip()
-            if raw2.startswith("```"):
-                raw2 = raw2.split("
-", 1)[1]
-            if raw2.endswith("```"):
-                raw2 = raw2.rsplit("```", 1)[0]
-            raw2 = raw2.strip()
-
-            ai_prices = json.loads(raw2)
+            raw2 = clean_raw(step2_msg.content[0].text)
+            ai_prices = attempt_parse(raw2)
             price_map = {p["index"]: p for p in ai_prices if isinstance(p, dict) and "index" in p}
 
             for idx, item in enumerate(unknown_items):
                 match = price_map.get(idx)
-                if match and match.get("low") and match.get("high"):
-                    low, high = apply_scope_adjustment(item, int(match["low"]), int(match["high"]))
-                    item["cost"] = format_cost_range(low, high, currency)
+                if match and match.get("cost"):
+                    item["cost"] = match["cost"]
                     item["cost_note"] = match.get("cost_note", "")
                     item["cost_source"] = "ai_estimate"
                 else:
-                    fallback = heuristic_cost_estimate(item)
-                    item["cost"] = format_cost_range(fallback["low"], fallback["high"], currency)
-                    item["cost_note"] = fallback["note"]
-                    item["cost_source"] = fallback["source"]
+                    band = infer_heuristic_band(item)
+                    low, high = band[currency]
+                    low, high = adjust_range_for_text(get_item_text(item), low, high)
+                    item["cost"] = format_cost_range(low, high, currency)
+                    item["cost_note"] = band.get("note", "")
+                    item["cost_source"] = "heuristic_fallback"
         except Exception as e:
-            print(f"Step 2b parse error: {e}. Raw: {raw2[:200]}")
+            print(f"Step 2b parse error: {e}")
             for item in unknown_items:
-                fallback = heuristic_cost_estimate(item)
-                item["cost"] = format_cost_range(fallback["low"], fallback["high"], currency)
-                item["cost_note"] = fallback["note"]
-                item["cost_source"] = fallback["source"]
+                band = infer_heuristic_band(item)
+                low, high = band[currency]
+                low, high = adjust_range_for_text(get_item_text(item), low, high)
+                item["cost"] = format_cost_range(low, high, currency)
+                item["cost_note"] = band.get("note", "")
+                item["cost_source"] = "heuristic_fallback"
 
-    # ------------------------------------------------------------------
-    # STEP 3: Calculate budget totals from priced items
-    # ------------------------------------------------------------------
     def parse_cost_low(cost_str):
         if not cost_str:
             return 0
@@ -480,7 +478,6 @@ Items:
     findings["budget_5yr"] = f"~{sym}{yr5_mid:,}" if yr5_mid else f"~{sym}1,500"
 
     return json.dumps(findings)
-
 
 def generate_punchlist(answer_text, issue_type, question):
     """Generate AI punchlist filtered by issue type for contractor - from Q&A answer"""
