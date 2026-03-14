@@ -371,7 +371,7 @@ Items:
 
         step2_msg = client.messages.create(
             model="claude-sonnet-4-5-20250929",
-            max_tokens=800,
+            max_tokens=8000,
             temperature=0,
             messages=[{"role": "user", "content": step2_prompt}]
         )
