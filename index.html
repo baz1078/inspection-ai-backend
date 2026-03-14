@@ -1704,8 +1704,10 @@
             for (const p of patterns) {
                 let m;
                 while ((m = p.exec(text)) !== null) {
-                    const issue = m[1] || m[0];
-                    if (issue && !issues.includes(issue)) issues.push(issue.trim());
+                    const raw = (m[1] || m[0]).trim();
+                    const clean = raw.replace(/\*\*/g, '').replace(/\*/g, '').trim();
+                    const isDupe = issues.some(i => i.toLowerCase() === clean.toLowerCase());
+                    if (clean && !isDupe) issues.push(clean);
                 }
             }
             return issues.slice(0, 3);
