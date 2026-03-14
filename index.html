@@ -1197,6 +1197,7 @@
         const urlParams = new URLSearchParams(window.location.search);
         const urlReportId = urlParams.get('report_id');
         if (urlParams.get('paid') === 'true') state.isPaid = true;
+        if (urlParams.get('paywall') === 'off') state.isPaid = true;
         if (urlReportId) {
             state.screen = 'dashboard';
             state.reportId = urlReportId;
@@ -1319,83 +1320,164 @@
                         </div>
 
                         <div class="legend-card">
-                            <div class="legend-row"><span class="issue-priority-dot priority-red"></span><span class="legend-text"><strong>Immediate</strong> — Requires prompt attention or repair</span></div>
-                            <div class="legend-row"><span class="issue-priority-dot priority-yellow"></span><span class="legend-text"><strong>Attention</strong> — Monitor or plan within 1–3 years</span></div>
+                            <div class="legend-row"><span style="display:inline-block;width:3px;height:14px;background:#ef4444;flex-shrink:0;margin-right:10px;"></span><span class="legend-text"><strong style="color:#ef4444;">Immediate</strong> — Requires prompt attention or repair</span></div>
+                            <div class="legend-row"><span style="display:inline-block;width:3px;height:14px;background:#f59e0b;flex-shrink:0;margin-right:10px;"></span><span class="legend-text"><strong style="color:#f59e0b;">Attention</strong> — Monitor or plan within 1–3 years</span></div>
                             <div class="legend-row"><span class="legend-notable-dash">- -</span><span class="legend-text"><strong>Notable</strong> — Item observed but not fully tested</span></div>
                         </div>
 
                         <div class="section-label section-label-immediate">Immediate</div>
-                        <div class="issues-grid">
-                            ${a && a.urgent_items.length > 0 ? a.urgent_items.map(item => `
-                                <div class="issue-card" onclick="askQuestionCard('Tell me more about the ${escapeHtml(item.name)} issue and what I should do')">
-                                    <div class="issue-title" style="margin-bottom:10px;">${escapeHtml(item.name)}</div>
-                                    <div class="issue-cost">${escapeHtml(item.cost)}</div>
-                                </div>
-                            `).join('') : `
-                                <div class="issue-card">
-                                    <div class="issue-icon">✅</div>
-                                    <div class="issue-title">No urgent issues</div>
-                                    <div class="issue-cost">-</div>
-                                    <div class="issue-timeline">Looking good</div>
-                                </div>
-                            `}
+
+                        <!-- TEASER: first 3 cards always visible -->
+                        <div class="issues-grid" style="margin-bottom:14px;">
+                            ${(() => {
+                                const urgentItems = a && a.urgent_items ? a.urgent_items : [];
+                                const teaser = urgentItems.slice(0, 3);
+                                if (teaser.length === 0) return `
+                                    <div class="issue-card">
+                                        <div class="issue-title">No urgent issues</div>
+                                        <div class="issue-cost">-</div>
+                                    </div>
+                                `;
+                                return teaser.map(item => `
+                                    <div class="issue-card" onclick="${state.isPaid ? `askQuestionCard('Tell me more about this issue and what I should do')` : 'startCheckout()'}">
+                                        <div class="issue-title" style="margin-bottom:10px;">${escapeHtml(item.name)}</div>
+                                        <div class="issue-cost">${escapeHtml(item.cost)}</div>
+                                    </div>
+                                `).join('');
+                            })()}
                         </div>
 
-                        ${a && a.maintenance_items && a.maintenance_items.length > 0 ? `
-                            <div class="section-label section-label-maintenance">Attention</div>
-                            <div class="maint-rows">
-                                ${a.maintenance_items.map(item => `
-                                    <div class="maint-row" onclick="askQuestionCard('Tell me about the ${escapeHtml(item.name)} and when I should address it')">
-                                        <div class="maint-row-left">
-                                            ${escapeHtml(item.name)}
+                        ${(() => {
+                            const urgentItems = a && a.urgent_items ? a.urgent_items : [];
+                            const urgentRest = urgentItems.slice(3);
+
+                            if (state.isPaid) {
+                                // PAID: show everything normally
+                                return `
+                                    ${urgentRest.length > 0 ? `
+                                        <div class="issues-grid">
+                                            ${urgentRest.map(item => `
+                                                <div class="issue-card" onclick="askQuestionCard('Tell me more about this issue and what I should do')">
+                                                    <div class="issue-title" style="margin-bottom:10px;">${escapeHtml(item.name)}</div>
+                                                    <div class="issue-cost">${escapeHtml(item.cost)}</div>
+                                                </div>
+                                            `).join('')}
                                         </div>
-                                        <div class="maint-row-right">
-                                            <span class="maint-row-cost">${escapeHtml(item.cost)}</span>
-                                            <span class="maint-row-timeline">${escapeHtml(item.timeline)}</span>
+                                    ` : ''}
+
+                                    ${a && a.maintenance_items && a.maintenance_items.length > 0 ? `
+                                        <div class="section-label section-label-maintenance">Attention</div>
+                                        <div class="maint-rows">
+                                            ${a.maintenance_items.map(item => `
+                                                <div class="maint-row" onclick="askQuestionCard('Tell me about this item and when I should address it')">
+                                                    <div class="maint-row-left">${escapeHtml(item.name)}</div>
+                                                    <div class="maint-row-right">
+                                                        <span class="maint-row-cost">${escapeHtml(item.cost)}</span>
+                                                        <span class="maint-row-timeline">${escapeHtml(item.timeline)}</span>
+                                                    </div>
+                                                </div>
+                                            `).join('')}
+                                        </div>
+                                    ` : ''}
+
+                                    ${renderCategoryAccordion(a)}
+
+                                    <div class="checklist-section">
+                                        ${a && a.checklist ? [...a.checklist].filter(item => item.passed || item.notable).sort((x, y) => {
+                                            if (x.notable && !y.notable) return 1;
+                                            if (!x.notable && y.notable) return -1;
+                                            return 0;
+                                        }).map(item => `
+                                            <div class="checklist-item">
+                                                ${item.notable
+                                                    ? '<div class="checklist-icon checklist-notable">- -</div>'
+                                                    : item.passed
+                                                        ? '<div class="checklist-icon">✓</div>'
+                                                        : '<div style="display:flex;align-items:center;min-width:20px;padding-top:2px;"><span class="issue-priority-dot priority-yellow" style="margin:0;"></span></div>'
+                                                }
+                                                <div>${escapeHtml(item.text)}</div>
+                                            </div>
+                                        `).join('') : '<div class="checklist-item"><div class="checklist-icon">...</div><div>Loading analysis...</div></div>'}
+                                    </div>
+
+                                    <div class="realtor-card">
+                                        <h4>📋 For Realtors</h4>
+                                        <p>Share this report with your buyer</p>
+                                        <div class="realtor-card-buttons">
+                                            <button class="btn-primary-report" onclick="generatePunchlist()"><i class="ph-bold ph-wrench"></i> Contractor Punchlist</button>
+                                            <button class="btn-secondary-report" onclick="generateOverview()"><i class="ph-bold ph-file-text"></i> Overview Report</button>
+                                        </div>
+                                        <div style="margin-top:8px;">
+                                            <button class="btn-secondary-report" style="width:100%;padding:8px;border-radius:8px;border:1px solid rgba(20,184,166,0.3);background:transparent;color:var(--accent-teal);font-size:11px;cursor:pointer;font-weight:600;" onclick="copyShareLink()"><i class="ph-bold ph-share-network"></i> Share Link</button>
                                         </div>
                                     </div>
-                                `).join('')}
-                            </div>
-                        ` : ''}
 
-                        ${renderCategoryAccordion(a)}
-
-                        <div class="checklist-section">
-                            ${a && a.checklist ? [...a.checklist].filter(item => item.passed || item.notable).sort((x, y) => {
-                                if (x.notable && !y.notable) return 1;
-                                if (!x.notable && y.notable) return -1;
-                                return 0;
-                            }).map(item => `
-                                <div class="checklist-item">
-                                    ${item.notable
-                                        ? `<div class="checklist-icon checklist-notable">- -</div>`
-                                        : item.passed
-                                            ? `<div class="checklist-icon">✓</div>`
-                                            : `<div style="display:flex;align-items:center;min-width:20px;padding-top:2px;"><span class="issue-priority-dot priority-yellow" style="margin:0;"></span></div>`
-                                    }
-                                    <div>${escapeHtml(item.text)}</div>
-                                </div>
-                            `).join('') : `
-                                <div class="checklist-item"><div class="checklist-icon">...</div><div>Loading analysis...</div></div>
-                            `}
-                        </div>
-
-                        <div class="realtor-card">
-                            <h4>📋 For Realtors</h4>
-                            <p>Share this report with your buyer</p>
-                            <div class="realtor-card-buttons">
-                                <button class="btn-primary-report" onclick="generatePunchlist()"><i class="ph-bold ph-wrench"></i> Contractor Punchlist</button>
-                                <button class="btn-secondary-report" onclick="generateOverview()"><i class="ph-bold ph-file-text"></i> Overview Report</button>
-                            </div>
-                            <div style="margin-top:8px;">
-                                <button class="btn-secondary-report" style="width:100%;padding:8px;border-radius:8px;border:1px solid rgba(20,184,166,0.3);background:transparent;color:var(--accent-teal);font-size:11px;cursor:pointer;font-weight:600;" onclick="copyShareLink()"><i class="ph-bold ph-share-network"></i> Share Link</button>
-                            </div>
-                        </div>
-
-                        <div class="action-buttons">
-                            <button class="btn btn-primary" onclick="toggleChat(true)">💬 Ask Question</button>
-                            <button class="btn btn-secondary" onclick="resetApp()">📤 New Report</button>
-                        </div>
+                                    <div class="action-buttons">
+                                        <button class="btn btn-primary" onclick="toggleChat(true)">💬 Ask Question</button>
+                                        <button class="btn btn-secondary" onclick="resetApp()">📤 New Report</button>
+                                    </div>
+                                `;
+                            } else {
+                                // NOT PAID: blur everything below the teaser, show paywall overlay
+                                const maintHtml = a && a.maintenance_items && a.maintenance_items.length > 0 ? `
+                                    <div class="section-label section-label-maintenance">Attention</div>
+                                    <div class="maint-rows">
+                                        ${a.maintenance_items.map(item => `
+                                            <div class="maint-row">
+                                                <div class="maint-row-left">${escapeHtml(item.name)}</div>
+                                                <div class="maint-row-right">
+                                                    <span class="maint-row-cost">${escapeHtml(item.cost)}</span>
+                                                    <span class="maint-row-timeline">${escapeHtml(item.timeline)}</span>
+                                                </div>
+                                            </div>
+                                        `).join('')}
+                                    </div>
+                                ` : '';
+                                return `
+                                    <div style="position:relative;margin-bottom:32px;">
+                                        <div style="filter:blur(5px);pointer-events:none;user-select:none;">
+                                            ${urgentRest.length > 0 ? `
+                                                <div class="issues-grid" style="margin-bottom:14px;">
+                                                    ${urgentRest.map(item => `
+                                                        <div class="issue-card">
+                                                            <div class="issue-title" style="margin-bottom:10px;">${escapeHtml(item.name)}</div>
+                                                            <div class="issue-cost">${escapeHtml(item.cost)}</div>
+                                                        </div>
+                                                    `).join('')}
+                                                </div>
+                                            ` : ''}
+                                            ${maintHtml}
+                                            ${renderCategoryAccordion(a)}
+                                            <div class="checklist-section">
+                                                <div class="checklist-item"><div class="checklist-icon">✓</div><div>Roof covering appeared serviceable at time of inspection</div></div>
+                                                <div class="checklist-item"><div class="checklist-icon">✓</div><div>Electrical panel properly labelled and accessible</div></div>
+                                                <div class="checklist-item"><div class="checklist-icon checklist-notable">- -</div><div>Water heater age unknown — verify documentation</div></div>
+                                            </div>
+                                            <div class="realtor-card">
+                                                <h4>📋 For Realtors</h4>
+                                                <p>Share this report with your buyer</p>
+                                            </div>
+                                        </div>
+                                        <div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;background:rgba(15,20,25,0.65);border-radius:12px;padding:32px;min-height:320px;">
+                                            <div style="width:48px;height:48px;border-radius:50%;background:var(--card-bg);border:1px solid var(--border-color);display:flex;align-items:center;justify-content:center;">
+                                                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                                            </div>
+                                            <div style="text-align:center;max-width:420px;">
+                                                <p style="font-size:16px;font-weight:700;margin:0 0 8px;color:var(--text-primary);">Your report is ready — unlock it now!</p>
+                                                <p style="font-size:13px;color:var(--text-secondary);margin:0 0 14px;line-height:1.6;">Chat directly with your inspection report. Ask anything, get instant answers!</p>
+                                                <div style="display:flex;flex-wrap:wrap;justify-content:center;gap:8px;">
+                                                    <span style="background:var(--card-bg);border:1px solid var(--border-color);border-radius:20px;padding:5px 12px;font-size:12px;color:var(--text-secondary);">✓ Full punchlist</span>
+                                                    <span style="background:var(--card-bg);border:1px solid var(--border-color);border-radius:20px;padding:5px 12px;font-size:12px;color:var(--text-secondary);">✓ All cost estimates</span>
+                                                    <span style="background:var(--card-bg);border:1px solid var(--border-color);border-radius:20px;padding:5px 12px;font-size:12px;color:var(--text-secondary);">✓ Contractor referrals</span>
+                                                    <span style="background:var(--card-bg);border:1px solid var(--border-color);border-radius:20px;padding:5px 12px;font-size:12px;color:var(--text-secondary);">✓ Unlimited AI chat</span>
+                                                </div>
+                                            </div>
+                                            <button id="paywallBtn" onclick="startCheckout()" style="background:var(--accent-teal);color:#0a0f1a;border:none;border-radius:8px;padding:12px 28px;font-size:14px;font-weight:700;cursor:pointer;margin-top:4px;">Unlock Full Report — $29!</button>
+                                        </div>
+                                    </div>
+                                `;
+                            }
+                        })()}
                     </div>
                 </div>
 
