@@ -795,11 +795,6 @@ def get_upload_status(report_id):
             return jsonify({'status': 'done', 'progress': 100})
         return jsonify({'status': 'unknown', 'progress': 0})
     return jsonify(job)
-        
-    except Exception as e:
-        db.session.rollback()
-        print(f"Error: {str(e)}")
-        return jsonify({'error': str(e)}), 500
 
 @app.route('/api/ask/<report_id>', methods=['POST'])
 def ask_question(report_id):
