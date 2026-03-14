@@ -370,7 +370,6 @@ TRADE: {i.get('trade', '')}"""
             )
         unknown_text = "\n\n".join(numbered_items)
 
-".join(numbered_items)
 
         step2_prompt = f"""You are a home repair cost estimator with deep knowledge of North American contractor pricing.
 Currency: {currency}
