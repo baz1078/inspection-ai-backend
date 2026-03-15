@@ -531,3 +531,103 @@ def format_cost_range(low, high, currency="USD"):
 def get_all_categories():
     """Return list of all category keys — used in AI prompt."""
     return list(COST_TABLE.keys())
+# =============================================================================
+# EXTENDED LOOKUP TABLE — added to fix ai_estimate fallthrough
+# All 59 keys referenced in alias map but missing from COST_TABLE
+# USD = Illinois/Chicagoland | CAD = Alberta/Calgary
+# =============================================================================
+
+_EXTENDED = {
+
+    # EXTERIOR
+    "EXT_VEGETATION": {"display": "Vegetation / overgrowth removal from structure","usd_low": 100,"usd_high": 400,"cad_low": 150,"cad_high": 500,"trade": "Landscaper / General Contractor","note": "Trimming and removal of shrubs or vines contacting structure"},
+    "EXT_VENT_COVERS": {"display": "Damaged vent cover replacement","usd_low": 75,"usd_high": 300,"cad_low": 100,"cad_high": 400,"trade": "Handyman / General Contractor","note": "Per vent cover; includes labour"},
+    "EXT_GRADE_DRAINAGE": {"display": "Grading / drainage correction","usd_low": 300,"usd_high": 2000,"cad_low": 400,"cad_high": 2500,"trade": "Landscaper / General Contractor","note": "Localized regrading; major drainage work higher"},
+    "EXT_FOUNDATION_PAINT": {"display": "Foundation staining / paint depletion repair","usd_low": 150,"usd_high": 600,"cad_low": 200,"cad_high": 750,"trade": "General Contractor / Painter","note": "Surface treatment; underlying water issue may add cost"},
+    "EXT_STUCCO_CRACK": {"display": "Stucco crack repair (localized)","usd_low": 250,"usd_high": 1200,"cad_low": 300,"cad_high": 1500,"trade": "Stucco / General Contractor","note": "Patch and finish; EIFS systems higher"},
+    "EXT_EIFS_MOISTURE": {"display": "EIFS stucco moisture intrusion repair","usd_low": 2000,"usd_high": 12000,"cad_low": 2500,"cad_high": 15000,"trade": "Building Envelope Specialist","note": "Highly variable; full envelope remediation at high end"},
+    "EXT_WOODPECKER": {"display": "Woodpecker damage repair (EIFS / siding)","usd_low": 500,"usd_high": 4000,"cad_low": 600,"cad_high": 5000,"trade": "Building Envelope Specialist / General Contractor","note": "Patch and seal; full envelope assessment recommended"},
+    "EXT_HANDRAIL": {"display": "Handrail / guardrail installation or repair","usd_low": 300,"usd_high": 1200,"cad_low": 400,"cad_high": 1500,"trade": "General Contractor / Carpenter","note": "Per run of stairs or landing"},
+    "EXT_DRIVEWAY_LEVEL": {"display": "Driveway slab leveling / foam jacking","usd_low": 400,"usd_high": 2500,"cad_low": 500,"cad_high": 3000,"trade": "Concrete Contractor","note": "Foam injection or mudjacking; full replacement higher"},
+    "EXT_RETAINING_WALL": {"display": "Retaining wall repair","usd_low": 500,"usd_high": 5000,"cad_low": 600,"cad_high": 6000,"trade": "General Contractor / Structural Engineer","note": "Localized repair; full rebuild significantly higher"},
+    "EXT_MORTAR_JOINTS": {"display": "Mortar joint / tuckpointing repair","usd_low": 400,"usd_high": 2500,"cad_low": 500,"cad_high": 3000,"trade": "Mason","note": "Per section; full repointing of facade higher"},
+
+    # ROOF
+    "ROOF_BOOTS_SEALANT": {"display": "Roof boots / sealants replacement","usd_low": 300,"usd_high": 1200,"cad_low": 400,"cad_high": 1800,"trade": "Roofer","note": "Per boot or localized sealant; full roof inspection recommended"},
+    "ROOF_GUTTER_CLEAN": {"display": "Gutter cleaning and debris removal","usd_low": 100,"usd_high": 350,"cad_low": 150,"cad_high": 450,"trade": "Handyman / Gutter Specialist","note": "Full gutter flush and downspout check"},
+    "ROOF_PENETRATION_FLAT": {"display": "Flat roof penetration sealing","usd_low": 200,"usd_high": 800,"cad_low": 250,"cad_high": 1000,"trade": "Roofer","note": "Per penetration; includes sealant and flashing"},
+
+    # DECK
+    "DECK_SEALANT": {"display": "Deck sealant / stain reapplication","usd_low": 400,"usd_high": 2000,"cad_low": 500,"cad_high": 2500,"trade": "Deck Contractor / Handyman","note": "Cleaning, prep and reseal; size dependent"},
+
+    # WINDOWS
+    "WIN_CRANK_HARDWARE": {"display": "Window crank / hardware repair","usd_low": 75,"usd_high": 300,"cad_low": 100,"cad_high": 400,"trade": "Window Technician / Handyman","note": "Per window; hardware replacement"},
+    "WIN_CRACKED_GLASS": {"display": "Cracked or broken window glass replacement","usd_low": 150,"usd_high": 500,"cad_low": 200,"cad_high": 650,"trade": "Window Contractor","note": "IGU replacement; frame damage additional"},
+
+    # FOUNDATION
+    "FOUND_CRACK_MINOR": {"display": "Foundation crack repair (minor / hairline)","usd_low": 300,"usd_high": 1500,"cad_low": 400,"cad_high": 2000,"trade": "Foundation Specialist","note": "Epoxy or polyurethane injection; structural cracks higher"},
+    "FOUND_CRACK_MAJOR": {"display": "Foundation crack repair (major / structural)","usd_low": 3000,"usd_high": 12000,"cad_low": 4000,"cad_high": 15000,"trade": "Structural Engineer / Foundation Specialist","note": "Requires engineering assessment; underpinning at high end"},
+    "FOUND_WATERPROOF_INT": {"display": "Basement waterproofing (interior)","usd_low": 3000,"usd_high": 10000,"cad_low": 4000,"cad_high": 12000,"trade": "Waterproofing Contractor","note": "Interior drain tile and sump system"},
+    "FOUND_WATERPROOF_EXT": {"display": "Basement waterproofing (exterior)","usd_low": 5000,"usd_high": 18000,"cad_low": 6000,"cad_high": 22000,"trade": "Waterproofing Contractor","note": "Excavation required; highly variable by foundation perimeter"},
+    "FOUND_WATER_INTRUSION": {"display": "Foundation water intrusion repair","usd_low": 1000,"usd_high": 8000,"cad_low": 1200,"cad_high": 10000,"trade": "Foundation / Waterproofing Specialist","note": "Scope varies widely; full assessment required"},
+
+    # STRUCTURAL
+    "STRUCT_ENGINEER_INSPECT": {"display": "Structural engineer inspection / assessment","usd_low": 400,"usd_high": 1200,"cad_low": 500,"cad_high": 1500,"trade": "Structural Engineer","note": "Inspection and written report; remediation costs additional"},
+
+    # ELECTRICAL (extended)
+    "ELEC_OUTLET_REPAIR": {"display": "Outlet repair or replacement","usd_low": 75,"usd_high": 200,"cad_low": 100,"cad_high": 250,"trade": "Electrician","note": "Per outlet; tamper-resistant or GFCI higher"},
+    "ELEC_REVERSE_POLARITY": {"display": "Reverse polarity outlet correction","usd_low": 75,"usd_high": 200,"cad_low": 100,"cad_high": 250,"trade": "Electrician","note": "Per outlet; simple wire swap"},
+    "ELEC_LIGHT_SWITCH": {"display": "Light switch repair or replacement","usd_low": 75,"usd_high": 150,"cad_low": 100,"cad_high": 200,"trade": "Electrician","note": "Per switch; dimmer or smart switch higher"},
+    "ELEC_LIGHT_FIXTURE": {"display": "Light fixture repair or replacement","usd_low": 100,"usd_high": 350,"cad_low": 125,"cad_high": 450,"trade": "Electrician","note": "Labour only; fixture cost additional"},
+    "ELEC_BREAKER_REPLACE": {"display": "Circuit breaker replacement","usd_low": 150,"usd_high": 400,"cad_low": 200,"cad_high": 500,"trade": "Electrician","note": "Per breaker; panel condition may affect cost"},
+    "ELEC_DEDICATED_CIRCUIT": {"display": "Dedicated circuit installation","usd_low": 300,"usd_high": 800,"cad_low": 400,"cad_high": 1000,"trade": "Electrician","note": "New circuit from panel; includes breaker"},
+
+    # PLUMBING (extended)
+    "PLUMB_SEWER_CAP": {"display": "Sewer line penetration capping","usd_low": 200,"usd_high": 600,"cad_low": 250,"cad_high": 750,"trade": "Plumber","note": "Sealing open penetration; scope inspection recommended"},
+    "PLUMB_WATER_HEATER_VENT": {"display": "Water heater vent correction","usd_low": 200,"usd_high": 700,"cad_low": 250,"cad_high": 900,"trade": "Plumber / HVAC Technician","note": "Vent pipe correction or extension"},
+    "PLUMB_SEDIMENT_TRAP": {"display": "Sediment trap installation","usd_low": 150,"usd_high": 400,"cad_low": 200,"cad_high": 500,"trade": "Plumber","note": "Gas line sediment trap; code requirement"},
+    "PLUMB_PIPE_LEAK_ACCESSIBLE": {"display": "Pipe leak repair (accessible)","usd_low": 150,"usd_high": 500,"cad_low": 200,"cad_high": 650,"trade": "Plumber","note": "Exposed pipe; fitting or section replacement"},
+    "PLUMB_PIPE_LEAK_WALL": {"display": "Pipe leak repair (in wall / concealed)","usd_low": 500,"usd_high": 2500,"cad_low": 650,"cad_high": 3000,"trade": "Plumber","note": "Includes wall opening, repair and patch"},
+    "PLUMB_DRAIN_REPAIR": {"display": "Drain pipe repair","usd_low": 200,"usd_high": 800,"cad_low": 250,"cad_high": 1000,"trade": "Plumber","note": "Localized drain repair or replacement"},
+    "PLUMB_GARBAGE_DISPOSAL": {"display": "Garbage disposal replacement","usd_low": 200,"usd_high": 500,"cad_low": 250,"cad_high": 650,"trade": "Plumber","note": "Standard unit; includes installation"},
+    "PLUMB_BATHTUB_REPAIR": {"display": "Bathtub resurfacing or chip repair","usd_low": 200,"usd_high": 600,"cad_low": 250,"cad_high": 750,"trade": "Plumber / Tile Specialist","note": "Reglazing or repair; full replacement higher"},
+
+    # HVAC (extended)
+    "HVAC_AC_LINE_INSULATION": {"display": "AC line set insulation replacement","usd_low": 100,"usd_high": 350,"cad_low": 150,"cad_high": 450,"trade": "HVAC Technician","note": "Insulate refrigerant lines; per linear section"},
+    "HVAC_ATTIC_PLATFORM": {"display": "Attic service platform installation","usd_low": 300,"usd_high": 900,"cad_low": 400,"cad_high": 1100,"trade": "General Contractor / HVAC Technician","note": "Catwalk or platform for equipment access"},
+
+    # APPLIANCES
+    "APPL_DRYER_VENT": {"display": "Dryer vent cleaning or rerouting","usd_low": 100,"usd_high": 400,"cad_low": 150,"cad_high": 500,"trade": "HVAC Technician / Handyman","note": "Cleaning at low end; rerouting to exterior higher"},
+    "APPL_RANGE_HOOD_VENT": {"display": "Range hood vent correction","usd_low": 150,"usd_high": 600,"cad_low": 200,"cad_high": 750,"trade": "General Contractor / HVAC Technician","note": "Proper exterior termination required"},
+
+    # INTERIOR
+    "INT_WALL_CRACK": {"display": "Drywall / wall crack repair","usd_low": 150,"usd_high": 800,"cad_low": 200,"cad_high": 1000,"trade": "Drywall Contractor / Handyman","note": "Patch, tape and finish; settlement cracks may recur"},
+    "INT_DRYWALL_PATCH": {"display": "Drywall patch (small area)","usd_low": 100,"usd_high": 400,"cad_low": 150,"cad_high": 500,"trade": "Drywall Contractor / Handyman","note": "Hole or damage repair up to 1 sq ft"},
+    "INT_DRYWALL_LARGE": {"display": "Drywall repair (large area)","usd_low": 400,"usd_high": 2000,"cad_low": 500,"cad_high": 2500,"trade": "Drywall Contractor","note": "Panel replacement and finishing"},
+    "INT_CLOSET_LIGHT": {"display": "Closet light / unprotected bulb correction","usd_low": 75,"usd_high": 200,"cad_low": 100,"cad_high": 250,"trade": "Electrician","note": "Globe or enclosed fixture installation"},
+
+    # BATHROOM
+    "BATH_SHOWER_CAULK": {"display": "Shower / tub sealant and caulking","usd_low": 100,"usd_high": 400,"cad_low": 150,"cad_high": 500,"trade": "Handyman / Tile Specialist","note": "Full recaulk of shower or tub surround"},
+    "BATH_SHOWER_CAULK_MOLD": {"display": "Shower caulk replacement with mold remediation","usd_low": 200,"usd_high": 700,"cad_low": 250,"cad_high": 900,"trade": "Handyman / Mold Remediation","note": "Remove, treat and reseal; extent of mold may increase cost"},
+    "BATH_TOILET_RESET": {"display": "Toilet reset / resecuring","usd_low": 150,"usd_high": 350,"cad_low": 200,"cad_high": 450,"trade": "Plumber","note": "Includes new wax ring and re-bolt to floor"},
+    "BATH_TOILET_WAX_RING": {"display": "Toilet wax ring replacement","usd_low": 150,"usd_high": 300,"cad_low": 200,"cad_high": 400,"trade": "Plumber","note": "Remove toilet, replace ring, reset and reseal"},
+    "BATH_SINK_STOPPER": {"display": "Sink stopper repair or replacement","usd_low": 75,"usd_high": 200,"cad_low": 100,"cad_high": 250,"trade": "Plumber / Handyman","note": "Drain assembly adjustment or part replacement"},
+    "BATH_FAUCET_LOOSE": {"display": "Loose faucet resecuring","usd_low": 75,"usd_high": 200,"cad_low": 100,"cad_high": 250,"trade": "Plumber / Handyman","note": "Tighten mounting nut or replace faucet hardware"},
+    "BATH_SHOWER_LEAK": {"display": "Active shower / tub leak repair","usd_low": 400,"usd_high": 1500,"cad_low": 500,"cad_high": 2000,"trade": "Plumber / Tile Specialist","note": "Diagnosis and repair; tile removal may be required"},
+    "BATH_SHOWER_HEAD_LEAK": {"display": "Shower head leak repair","usd_low": 75,"usd_high": 250,"cad_low": 100,"cad_high": 300,"trade": "Plumber / Handyman","note": "Washer, cartridge or head replacement"},
+    "BATH_BASEBOARD": {"display": "Bathroom baseboard reattachment / repair","usd_low": 75,"usd_high": 300,"cad_low": 100,"cad_high": 400,"trade": "Carpenter / Handyman","note": "Reattach, caulk and paint; moisture source should be addressed"},
+    "BATH_WINDOW_TRIM": {"display": "Bathroom window trim repair","usd_low": 100,"usd_high": 400,"cad_low": 150,"cad_high": 500,"trade": "Carpenter / Handyman","note": "Crack repair or trim replacement"},
+    "BATH_WALL_HEATER": {"display": "Bathroom wall heater repair or replacement","usd_low": 150,"usd_high": 600,"cad_low": 200,"cad_high": 750,"trade": "Electrician / HVAC Technician","note": "Electric unit replacement; gas units higher"},
+    "BATH_MOISTURE_DAMAGE": {"display": "Bathroom moisture damage repair","usd_low": 300,"usd_high": 2500,"cad_low": 400,"cad_high": 3000,"trade": "General Contractor / Water Damage Restoration","note": "Scope varies; includes drywall, subfloor, or tile repair"},
+
+    # LAUNDRY
+    "LAUNDRY_MOLD": {"display": "Laundry / washer mold cleaning","usd_low": 100,"usd_high": 400,"cad_low": 150,"cad_high": 500,"trade": "Handyman / Mold Remediation","note": "Machine cleaning; persistent mold may require remediation"},
+
+    # ASBESTOS
+    "ASBESTOS_TEST": {"display": "Asbestos testing","usd_low": 300,"usd_high": 900,"cad_low": 400,"cad_high": 1100,"trade": "Asbestos Testing Specialist","note": "Bulk sample collection and lab analysis"},
+    "ASBESTOS_INTERIOR": {"display": "Asbestos abatement (interior material)","usd_low": 1500,"usd_high": 10000,"cad_low": 2000,"cad_high": 12000,"trade": "Asbestos Abatement Contractor","note": "Costs vary greatly by material type, quantity and containment needs"},
+    "ASBESTOS_POPCORN": {"display": "Popcorn ceiling asbestos removal","usd_low": 1000,"usd_high": 6000,"cad_low": 1200,"cad_high": 7500,"trade": "Asbestos Abatement Contractor","note": "Per room or whole home; testing required before work"},
+}
+
+# Merge extended entries into main COST_TABLE
+COST_TABLE.update(_EXTENDED)

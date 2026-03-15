@@ -69,8 +69,7 @@ def generate_structured_analysis(extracted_text):
     from cost_lookup import COST_TABLE, get_cost, format_cost_range, get_all_categories
 
     client = create_ai_client()
-    categories_list = get_all_categories()
-    categories_json = json.dumps(categories_list)
+    categories_json = json.dumps({k: v["display"] for k, v in COST_TABLE.items()})
 
     # ------------------------------------------------------------------
     # STEP 1: AI reads the report and returns structured findings
@@ -79,7 +78,7 @@ def generate_structured_analysis(extracted_text):
     step1_prompt = f"""You are a home inspection analyst. Read this inspection report and return ONLY a valid JSON object.
 Do NOT include dollar amounts -- only identify and categorise findings.
 
-CATEGORY KEYS (use exact key strings from this list):
+CATEGORY KEYS — match each finding to the closest key below. Keys are shown as "KEY": "description". Return the key string only, not the description. Choose the closest semantic match even if wording differs — e.g. "plants growing on wall" → EXT_VEGETATION, "weeds overgrown" → EXT_VEGETATION, "loose toilet" → BATH_TOILET_RESET. Only return null if genuinely nothing is close:
 {categories_json}
 
 Return this exact structure:
