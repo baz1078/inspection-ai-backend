@@ -61,57 +61,118 @@ RULES:
 
 def generate_structured_analysis(extracted_text):
     """
-    Two-step analysis:
-    Step 1 - AI identifies findings and maps them to category keys (small prompt, low tokens).
-    Step 2 - Python prices known categories from lookup table.
-             AI prices only the unmatched items (minimises token cost).
+    Single-step intelligent analysis:
+    AI reads the entire report, understands the property in full context —
+    location, geography, inspector language, severity signals, construction type —
+    and returns classified findings with pricing in one pass.
+    Lookup table provides anchors for common items; AI prices everything else
+    from deep contextual understanding of the report.
     """
-    from cost_lookup import COST_TABLE, get_cost, format_cost_range, get_all_categories
+    from cost_lookup import COST_TABLE, get_cost, format_cost_range
 
     client = create_ai_client()
-    categories_json = json.dumps({k: v["display"] for k, v in COST_TABLE.items()})
 
-    # ------------------------------------------------------------------
-    # STEP 1: AI reads the report and returns structured findings
-    #         with category keys -- NO dollar amounts yet.
-    # ------------------------------------------------------------------
-    step1_prompt = f"""You are a home inspection analyst. Read this inspection report and return ONLY a valid JSON object.
-Do NOT include dollar amounts -- only identify and categorise findings.
+    # Build lookup anchor — common items with known regional ranges
+    # Passed to AI as reference, not as a constraint
+    lookup_anchor = json.dumps({
+        k: {
+            "display": v["display"],
+            "usd_low": v["usd_low"],
+            "usd_high": v["usd_high"],
+            "cad_low": v["cad_low"],
+            "cad_high": v["cad_high"],
+            "trade": v["trade"]
+        }
+        for k, v in COST_TABLE.items()
+    })
 
-CATEGORY KEYS — match each finding to the closest key below. Keys are shown as "KEY": "description". Return the key string only, not the description. Choose the closest semantic match even if wording differs — e.g. "plants growing on wall" → EXT_VEGETATION, "weeds overgrown" → EXT_VEGETATION, "loose toilet" → BATH_TOILET_RESET. Only return null if genuinely nothing is close:
-{categories_json}
+    step1_prompt = f"""You are a senior home inspection analyst and regional contractor cost estimator with deep knowledge of residential repair pricing across North America.
 
-Return this exact structure:
+You will read a full home inspection report and return a complete structured analysis — findings classified by severity, priced accurately, and contextualized for this specific property.
+
+REFERENCE PRICING TABLE (use as anchors for common items — adjust based on report context):
+{lookup_anchor}
+
+YOUR JOB:
+Read this inspection report completely. Before outputting anything, build a full understanding of:
+
+1. PROPERTY CONTEXT — Extract from the report itself only. Do not assume anything not documented:
+   - Location and geography (city, region, climate zone)
+   - Construction type (stucco, vinyl siding, brick, EIFS, wood frame etc.) — only what inspector documented
+   - Any renovation or condition notes the inspector made ("recently renovated", "original plumbing", "new roof installed 2022") — if not mentioned, do not assume
+   - Inspector's overall tone and severity signals throughout the report
+
+2. REGIONAL PRICING — Apply location intelligence:
+   - Alberta/Calgary: trades run 25-40% above US midwest. Labour minimums are higher. Apply CAD pricing.
+   - Phoenix/Southwest: HVAC costs are premium. Pest control scope differs (scorpions, snakes = pest control call, not structural).
+   - Rural markets: add mobilization. Urban markets: competitive but minimum service calls are higher.
+   - Use USD for US locations, CAD for Canadian locations.
+
+3. READING INSPECTOR LANGUAGE — Interpret severity correctly:
+   - "Monitor" / "for your information" = Attention, not Immediate
+   - "Recommend evaluation by structural engineer" / "safety concern" / "insurance may not cover" = Immediate
+   - "Deficient" / "not functioning" / "active leak" = Immediate
+   - "Recommended maintenance" / "plan and budget" = Attention
+   - Do NOT be anchored by the inspector's label — route based on what is physically described
+
+4. SCOPE PRECISION — Price what was actually documented, not the worst case:
+   - "Toilet unstable/very loose" = reset and resecure, not full replacement. Plumber minimum service call.
+   - "Vegetation contacting south elevation" = landscaper trim, not excavation.
+   - "Loose window crank" = hardware replacement, not window replacement.
+   - "Gutter debris" = cleaning service, not gutter replacement.
+   - Only escalate scope if inspector language explicitly indicates severity (e.g. "structural damage", "full replacement required").
+
+5. DIY ELIGIBILITY — Flag items a reasonably handy homeowner can address safely:
+   - Eligible: tightening loose hardware, replacing caulk/sealant, HVAC filter swap, basic trim reattachment, minor touch-up painting, installing outlet covers
+   - Not eligible: anything involving electrical panels, gas lines, structural elements, active water leaks, mold, or specialty trades
+   - When diy_eligible is true: write a single practical sentence in cost_note explaining how ("Use a wrench to tighten the supply line bolt under the toilet tank — 5 minute fix.")
+   - Always include professional cost even for DIY-eligible items.
+
+6. COST FORMATTING RULES:
+   - Round all costs to nearest $50
+   - Maximum range width: low x 4 (if low is $200, high cannot exceed $800)
+   - Tighter ranges are always better when scope is clear
+   - Never use a generic fallback range — every cost must be tied to the specific scope described
+   - Use the reference pricing table as anchors; adjust up or down based on location and what inspector actually documented about this property
+
+Return ONLY a valid JSON object in this exact structure. No markdown, no backticks:
+
 {{
-  "condition": "Satisfactory" or "Maintenance" or "Immediate",
+  "condition": "Satisfactory" or "Needs Attention" or "Immediate Action Required",
   "currency": "USD" or "CAD",
-  "location": "City, Province/State detected from report",
-  "address": "Full street address detected from report, e.g. 687 Cranston Avenue SE, Calgary, Alberta or null if not found",
+  "location": "City, Province/State",
+  "address": "Full street address or null",
   "urgent_items": [
     {{
       "name": "Short display name",
-      "category_key": "EXACT_KEY_FROM_LIST or null if not in list",
-      "custom_description": "Full description only if category_key is null",
+      "cost": "$X - $Y",
+      "cost_note": "One sentence explaining scope and why this cost",
+      "trade": "Trade type",
       "timeline": "Immediate",
-      "trade": "Trade type"
+      "diy_eligible": false,
+      "category_key": "MATCHING_KEY_FROM_REFERENCE_TABLE or null"
     }}
   ],
   "maintenance_items": [
     {{
       "name": "Short display name",
-      "category_key": "EXACT_KEY_FROM_LIST or null if not in list",
-      "custom_description": "Full description only if category_key is null",
+      "cost": "$X - $Y",
+      "cost_note": "One sentence explaining scope",
+      "trade": "Trade type",
       "timeline": "1-3 years or 3-5 years",
-      "trade": "Trade type"
+      "diy_eligible": false,
+      "category_key": "MATCHING_KEY_FROM_REFERENCE_TABLE or null"
     }}
   ],
   "category_items": [
     {{
       "name": "Short display name",
       "category": "Roof or Exterior or Garage or Attic or Interior or Kitchen or Laundry or Bathroom or Mechanical or Structure",
-      "category_key": "EXACT_KEY_FROM_LIST or null if not in list",
-      "custom_description": "Full description only if category_key is null",
-      "trade": "Trade type"
+      "cost": "$X - $Y",
+      "cost_note": "One sentence explaining scope",
+      "trade": "Trade type",
+      "diy_eligible": false,
+      "category_key": "MATCHING_KEY_FROM_REFERENCE_TABLE or null"
     }}
   ],
   "checklist": [
@@ -120,15 +181,14 @@ Return this exact structure:
   ]
 }}
 
-RULES:
-- urgent_items: Items that are deficient, defective, or meet any of these conditions regardless of how the inspector framed them: (1) a system cannot perform its core function right now, (2) involves mold, suspected asbestos, absent CO/smoke detectors, or standing water, (3) is a fire or life safety code issue, (4) involves electrical hazards near water, reversed polarity, fuse panel, or ungrounded outlets, (5) inspector states insurance companies may not cover it. Do not be anchored by words like "recommendation," "maintenance issue," or "for your information" — route based on the physical condition described, not the inspector's disclaimer language
-- maintenance_items: Only items the inspector flagged for future attention or planned replacement
-- category_items: ALL other deficiencies and observations documented in the report that are NOT already in urgent_items or maintenance_items. Assign each to the closest category: Roof, Exterior, Garage, Attic, Interior, Kitchen, Laundry, Bathroom, Mechanical (covers HVAC/furnace/water heater/electrical panel), or Structure (covers foundation/basement/framing). Do not leave findings out — if it was documented, it belongs here.
-- Do NOT duplicate items across urgent_items, maintenance_items, and category_items
-- Do NOT add speculative items not documented in the report
-- For category_key: choose the CLOSEST matching key from the list even if not exact — only set null if genuinely nothing is close. Examples: 'baseboard detaching' → BATH_BASEBOARD, 'vegetation overgrowth' → EXT_VEGETATION, 'dryer vent lint' → APPL_DRYER_VENT, 'drywall cracks' → INT_WALL_CRACK, 'handrail missing' → EXT_HANDRAIL, 'foundation paint' → EXT_FOUNDATION_PAINT, 'wall heater' → BATH_WALL_HEATER, 'bathtub sealant' → BATH_SHOWER_CAULK, 'window condensation' → WIN_SEAL_REPAIR, 'floor uneven' → STRUCT_CRAWLSPACE. Use your judgment — a reasonable match is always better than null
-- checklist: 6-10 items summarizing major system status. passed:true for systems in good condition, notable:true for items not inspected or with limited scope. Do NOT repeat items already in urgent_items, maintenance_items, or category_items
-- Return ONLY the JSON object, no markdown, no backticks"""
+CLASSIFICATION RULES:
+- urgent_items: Safety hazards, systems not functioning, active leaks, structural concerns, insurance-affecting conditions, fire/life safety issues. Do not be anchored by inspector's disclaimer language — route on physical condition described.
+- maintenance_items: Items inspector flagged for future planning, routine maintenance, end-of-life monitoring.
+- category_items: All other documented findings and observations not already in urgent or maintenance. Every documented finding must appear somewhere — do not omit.
+- checklist: 6-10 items summarizing major system status. passed:true = good condition. notable:true = limited scope or not tested. Do not repeat items already classified above.
+- Do NOT duplicate items across sections.
+- Do NOT add speculative items not documented in the report.
+- Return ONLY the JSON object."""
 
     import re
 
@@ -144,7 +204,6 @@ RULES:
         cleaned = re.sub(r',\s*([}\]])', r'\1', raw)
         return json.loads(cleaned)
 
-    # Escalating retry: 8k -> 16k -> fallback
     findings = None
     last_err = None
     for max_tok in [8000, 16000]:
@@ -182,313 +241,25 @@ RULES:
 
     currency = findings.get("currency", "USD")
 
-    # ------------------------------------------------------------------
-    # STEP 2: Price each item -- lookup table first, alias map, heuristic fallback
-    # ------------------------------------------------------------------
-
-    def normalize_text(value):
-        value = (value or "").lower().strip()
-        value = re.sub(r"[^a-z0-9\s/&-]", " ", value)
-        value = re.sub(r"\s+", " ", value)
-        return value
-
-    def get_item_text(item):
-        return normalize_text(" ".join([
-            item.get("name", ""),
-            item.get("custom_description", ""),
-            item.get("trade", "")
-        ]))
-
-    # Alias map: catches items that should hit lookup table but got null category_key
-    alias_key_map = [
-        (["gfci", "ungrounded outlet", "reverse polarity", "outlet", "switch"], "ELEC_OUTLETS_MINOR"),
-        (["smoke detector", "co detector", "carbon monoxide detector"], "ELEC_SMOKE_DETECTORS"),
-        (["toilet"], "PLUMB_TOILET_REPAIR"),
-        (["faucet"], "PLUMB_FAUCET_REPAIR"),
-        (["leak", "drip"], "PLUMB_LEAK_MINOR"),
-        (["water heater"], "PLUMB_WATER_HEATER"),
-        (["sump pump"], "PLUMB_SUMP_PUMP"),
-        (["furnace", "boiler"], "HVAC_FURNACE_REPLACE"),
-        (["ac unit", "air conditioner", "condenser"], "HVAC_AC_REPLACE"),
-        (["duct"], "HVAC_DUCT_REPAIR"),
-        (["flashing", "roof boot", "shingle", "roof penetration"], "ROOF_MINOR_REPAIR"),
-        (["gutter"], "ROOF_MINOR_REPAIR"),
-        (["garage door"], "GARAGE_DOOR"),
-        (["window"], "WIN_SEAL_REPAIR"),
-        (["door"], "DOOR_REPAIR"),
-        (["deck"], "DECK_REPAIR"),
-        (["siding"], "SIDING_REPAIR"),
-        (["driveway"], "DRIVEWAY_REPAIR"),
-        (["chimney"], "CHIMNEY_REPAIR"),
-        (["mold", "microbial"], "MOLD_MINOR"),
-        (["asbestos"], "MOLD_MINOR"),
-        (["sewer"], "PLUMB_SEWER_REPAIR"),
-        # New entries matching expanded lookup table
-        (["vegetation", "overgrowth", "shrub contacting", "plant contacting"], "EXT_VEGETATION"),
-        (["vent cover", "vent hood", "damaged vent"], "EXT_VENT_COVERS"),
-        (["grade", "drainage", "grading"], "EXT_GRADE_DRAINAGE"),
-        (["foundation paint", "foundation stain", "water staining"], "EXT_FOUNDATION_PAINT"),
-        (["stucco crack", "stucco patch"], "EXT_STUCCO_CRACK"),
-        (["eifs", "eifs stucco"], "EXT_EIFS_MOISTURE"),
-        (["woodpecker"], "EXT_WOODPECKER"),
-        (["handrail", "railing missing", "guardrail", "handrails", "lack handrail"], "EXT_HANDRAIL"),
-        (["driveway slab", "slab undermining", "driveway level", "mudjack"], "EXT_DRIVEWAY_LEVEL"),
-        (["retaining wall"], "EXT_RETAINING_WALL"),
-        (["mortar joint", "tuckpoint"], "EXT_MORTAR_JOINTS"),
-        (["roof sealant", "roof boot", "boot deteriorat"], "ROOF_BOOTS_SEALANT"),
-        (["gutter debris", "gutter clean", "gutter accumul"], "ROOF_GUTTER_CLEAN"),
-        (["flat roof penetration", "open penetration"], "ROOF_PENETRATION_FLAT"),
-        (["deck sealant", "deck trim", "deck seal"], "DECK_SEALANT"),
-        (["window crank", "crank hardware"], "WIN_CRANK_HARDWARE"),
-        (["cracked glass", "broken glass", "cracked window glass"], "WIN_CRACKED_GLASS"),
-        (["sewer cap", "sewer capping", "pipe capping"], "PLUMB_SEWER_CAP"),
-        (["sediment trap"], "PLUMB_SEDIMENT_TRAP"),
-        (["water heater vent", "heater vent not compliant"], "PLUMB_WATER_HEATER_VENT"),
-        (["ac line insul", "condensation drain line", "drain line not insul"], "HVAC_AC_LINE_INSULATION"),
-        (["attic platform", "service platform"], "HVAC_ATTIC_PLATFORM"),
-        (["range hood", "exhaust terminat", "vent to attic"], "APPL_RANGE_HOOD_VENT"),
-        (["dryer vent", "dryer lint", "dryer exhaust"], "APPL_DRYER_VENT"),
-        (["washer mold", "washer microbial", "washer blacken"], "LAUNDRY_MOLD"),
-        (["wall crack", "drywall crack", "drywall settlement", "settlement crack"], "INT_WALL_CRACK"),
-        (["closet light", "light globe", "unprotected bulb"], "INT_CLOSET_LIGHT"),
-        (["sink stopper", "stopper not operating"], "BATH_SINK_STOPPER"),
-        (["shower caulk", "tub caulk", "shower sealant", "bathtub sealant", "bath sealant"], "BATH_SHOWER_CAULK"),
-        (["shower sealant mold", "sealant microbial"], "BATH_SHOWER_CAULK_MOLD"),
-        (["wax ring", "toilet sealant"], "BATH_TOILET_WAX_RING"),
-        (["toilet unstable", "toilet loose", "toilet reset"], "BATH_TOILET_RESET"),
-        (["baseboard detach", "baseboard loose"], "BATH_BASEBOARD"),
-        (["window trim crack", "trim cracking"], "BATH_WINDOW_TRIM"),
-        (["wall heater", "bathroom heater"], "BATH_WALL_HEATER"),
-        (["bathroom moisture", "bathroom water damage"], "BATH_MOISTURE_DAMAGE"),
-        (["shower fixture leak", "shower leak", "active leak"], "BATH_SHOWER_LEAK"),
-        (["faucet loose", "faucet assembly"], "BATH_FAUCET_LOOSE"),
-        (["shower head leak"], "BATH_SHOWER_HEAD_LEAK"),
-        (["asbestos test", "asbestos inspect"], "ASBESTOS_TEST"),
-        (["asbestos ceiling", "asbestos tile", "asbestos insul", "suspected asbestos"], "ASBESTOS_INTERIOR"),
-        (["popcorn ceiling asbestos", "asbestos popcorn"], "ASBESTOS_POPCORN"),
-        (["foundation crack minor", "hairline crack", "vertical crack foundation"], "FOUND_CRACK_MINOR"),
-        (["foundation crack major", "horizontal crack", "bowing wall"], "FOUND_CRACK_MAJOR"),
-        (["basement waterproof interior"], "FOUND_WATERPROOF_INT"),
-        (["basement waterproof exterior"], "FOUND_WATERPROOF_EXT"),
-        (["basement water", "foundation leak", "water intrusion"], "FOUND_WATER_INTRUSION"),
-        (["structural engineer"], "STRUCT_ENGINEER_INSPECT"),
-        (["drywall patch", "drywall hole", "drywall repair small"], "INT_DRYWALL_PATCH"),
-        (["drywall large", "drywall repair large"], "INT_DRYWALL_LARGE"),
-        (["outlet repair", "outlet replace"], "ELEC_OUTLET_REPAIR"),
-        (["reverse polarity"], "ELEC_REVERSE_POLARITY"),
-        (["light switch"], "ELEC_LIGHT_SWITCH"),
-        (["light fixture", "light cover missing", "fixture missing"], "ELEC_LIGHT_FIXTURE"),
-        (["breaker replace", "circuit breaker"], "ELEC_BREAKER_REPLACE"),
-        (["dedicated circuit"], "ELEC_DEDICATED_CIRCUIT"),
-        (["pipe leak accessible", "exposed pipe leak"], "PLUMB_PIPE_LEAK_ACCESSIBLE"),
-        (["pipe leak wall", "leak in wall"], "PLUMB_PIPE_LEAK_WALL"),
-        (["drain repair", "drain pipe"], "PLUMB_DRAIN_REPAIR"),
-        (["garbage disposal"], "PLUMB_GARBAGE_DISPOSAL"),
-        (["bathtub crack", "tub chip", "tub crack"], "PLUMB_BATHTUB_REPAIR"),
-    ]
-
-    # Heuristic bands: last resort if AI returns null and no alias matches
-    heuristic_bands = {
-        "minor_service":      {"USD": (100, 400),  "CAD": (150, 500),  "note": "Typical small repair or service visit"},
-        "minor_plumbing":     {"USD": (150, 500),  "CAD": (200, 650),  "note": "Typical localized plumbing repair"},
-        "minor_roof_exterior":{"USD": (200, 800),  "CAD": (250, 1000), "note": "Typical localized exterior or roof repair"},
-        "minor_landscape":    {"USD": (100, 350),  "CAD": (150, 450),  "note": "Typical trimming or landscaping service"},
-        "minor_drywall_trim": {"USD": (100, 500),  "CAD": (150, 650),  "note": "Typical patching or finish repair"},
-        "concrete_moderate":  {"USD": (400, 1800), "CAD": (500, 2200), "note": "Typical localized concrete or leveling repair"},
-        "handrail_install":   {"USD": (300, 900),  "CAD": (400, 1200), "note": "Typical residential handrail installation"},
-        "deck_moderate":      {"USD": (400, 1800), "CAD": (500, 2200), "note": "Typical localized deck repair"},
-        "stucco_patch":       {"USD": (250, 900),  "CAD": (300, 1100), "note": "Typical localized stucco patch or crack repair"},
-        "siding_patch":       {"USD": (300, 1200), "CAD": (400, 1500), "note": "Typical localized siding or trim repair"},
-        "sealant_repair":     {"USD": (100, 400),  "CAD": (150, 500),  "note": "Typical sealant or caulk replacement"},
-    }
-
-    keyword_to_band = [
-        (["shower sealant", "caulk", "sealant", "tub caulk"], "sealant_repair"),
-        (["toilet", "faucet", "leak", "plumbing", "shower fixture", "sewer penetration", "capping"], "minor_plumbing"),
-        (["vent cover", "roof boot", "flashing", "penetration", "roof", "gutter", "downspout"], "minor_roof_exterior"),
-        (["vegetation", "shrub", "tree", "overgrowth", "landscap"], "minor_landscape"),
-        (["drywall", "nail pop", "trim", "baseboard", "casing", "window trim"], "minor_drywall_trim"),
-        (["driveway", "slab", "concrete", "undermining", "walkway"], "concrete_moderate"),
-        (["handrail", "railing", "guardrail"], "handrail_install"),
-        (["deck", "landing", "stairs", "step"], "deck_moderate"),
-        (["stucco"], "stucco_patch"),
-        (["woodpecker", "siding", "cladding", "trim board"], "siding_patch"),
-    ]
-
-    def infer_lookup_key(item):
-        text = get_item_text(item)
-        for phrases, key in alias_key_map:
-            if key in COST_TABLE and any(phrase in text for phrase in phrases):
-                return key
-        return None
-
-    def infer_heuristic_band(item):
-        text = get_item_text(item)
-        for phrases, band_name in keyword_to_band:
-            if any(phrase in text for phrase in phrases):
-                return heuristic_bands.get(band_name)
-        trade = normalize_text(item.get("trade", ""))
-        if "plumb" in trade:
-            return heuristic_bands["minor_plumbing"]
-        if "roof" in trade or "exterior" in trade:
-            return heuristic_bands["minor_roof_exterior"]
-        if "drywall" in trade or "carpenter" in trade or "handyman" in trade:
-            return heuristic_bands["minor_drywall_trim"]
-        if "landsc" in trade:
-            return heuristic_bands["minor_landscape"]
-        return heuristic_bands["minor_service"]
-
-    unknown_items = []
-
-    def price_item(item):
-        key = item.get("category_key")
-        # 1. Direct lookup table hit
-        if key and key in COST_TABLE:
-            cost_data = get_cost(key, currency)
-            item["cost"] = format_cost_range(cost_data["low"], cost_data["high"], currency)
-            item["cost_note"] = cost_data["note"]
-            item["cost_source"] = "lookup_table"
-            return item
-        # 2. Alias map — catches items that should hit lookup but got null key
-        inferred_key = infer_lookup_key(item)
-        if inferred_key:
-            cost_data = get_cost(inferred_key, currency)
-            item["cost"] = format_cost_range(cost_data["low"], cost_data["high"], currency)
-            item["cost_note"] = cost_data["note"]
-            item["cost_source"] = "lookup_inferred"
-            item["category_key"] = inferred_key
-            return item
-        # 3. Send to AI
-        item["cost"] = None
-        item["cost_source"] = "pending"
-        unknown_items.append(item)
-        return item
-
-    findings["urgent_items"] = [price_item(i) for i in findings.get("urgent_items", [])]
-    findings["maintenance_items"] = [price_item(i) for i in findings.get("maintenance_items", [])]
-    findings["category_items"] = [price_item(i) for i in findings.get("category_items", [])]
-
-    # ------------------------------------------------------------------
-    # STEP 2b: Batch AI pricing for items not matched by lookup or alias
-    # ------------------------------------------------------------------
-    if unknown_items:
-        numbered_items = []
-        for idx, i in enumerate(unknown_items):
-            desc = i.get("custom_description") or i.get("name")
-            numbered_items.append(f"{idx}.\nNAME: {i.get('name')}\nDESCRIPTION: {desc}\nTRADE: {i.get('trade', '')}")
-        unknown_text = "\n\n".join(numbered_items)
-
-        step2_prompt = f"""You are a home repair cost researcher and estimator.
-Currency: {currency}
-Location: {findings.get('location', 'Unknown')}
-
-Your job:
-For each item below, determine a realistic repair cost range based on real-world contractor pricing patterns, typical labor time, common material costs, and the likely trade required in the stated location.
-
-Rules:
-- Use the item name, description, trade, and likely scope of work.
-- Price the actual repair described, not a full remodel or unrelated larger project.
-- Use a reasonable real-world market range for the stated location.
-- Do NOT use a generic fallback range like $500-$2,500.
-- Do NOT guess wildly.
-- If the item is small/minor, the estimate should often be well below $500.
-- If the item is major/specialty work, the estimate may be much higher.
-- Prefer narrower ranges when scope is clear.
-- Include labor + typical materials.
-- If the item cannot be priced with reasonable confidence, return null for cost.
-- Never invent certainty where scope is unclear.
-- For mold-related items: always include in cost_note that costs vary greatly depending on extent, material type, containment needs, and testing.
-- For asbestos-related items: always include in cost_note that costs vary greatly depending on material type, location, quantity, and whether abatement or encapsulation is used. Testing alone is $300-$900.
-
-Think through:
-- trade required
-- likely time on site
-- material/component replacement cost
-- access difficulty
-- whether pricing is per item, per opening, per section, or project-wide
-
-Examples:
-- "Damaged vent cover" = minor exterior repair, often handyman/roofer, low material cost
-- "Vegetation overgrowth contacting exterior" = landscaper/labor crew, small service call
-- "Stucco crack at basement door" = patch/repair scope, not full stucco replacement
-- "Garage wall nail pops" = drywall patch/finish, minor repair
-- "Floor high/low spots" = localized correction or contractor evaluation depending on severity
-- "Open penetration at flat roof" = roofing seal/patch, not full roof replacement
-
-Return ONLY valid JSON array in this exact format:
-[
-  {{"index": 0, "cost": "$X - $Y", "cost_note": "brief reason tied to scope"}},
-  {{"index": 1, "cost": null, "cost_note": "No reliable estimate found; contractor quote recommended"}}
-]
-
-Requirements:
-- Every index must be present
-- Keep the same index numbers
-- No markdown, no backticks, no extra commentary
-- If uncertain, return null instead of a fake generic range
-
-Items:
-{unknown_text}"""
-
-        step2_msg = client.messages.create(
-            model="claude-sonnet-4-5-20250929",
-            max_tokens=3000,
-            temperature=0,
-            messages=[{"role": "user", "content": step2_prompt}]
-        )
-
-        raw2 = step2_msg.content[0].text.replace("\x00", "").strip()
-        if raw2.startswith("```"):
-            raw2 = raw2.split("\n", 1)[1]
-        if raw2.endswith("```"):
-            raw2 = raw2.rsplit("```", 1)[0]
-        raw2 = raw2.strip()
-
-        try:
-            ai_prices = json.loads(raw2)
-            # Map by index — guaranteed to match regardless of name
-            price_map = {p["index"]: p for p in ai_prices}
-            for idx, item in enumerate(unknown_items):
-                match = price_map.get(idx)
-                if match and match.get("cost"):
-                    item["cost"] = match["cost"]
-                    item["cost_note"] = match.get("cost_note", "")
-                    item["cost_source"] = "ai_estimate"
-                else:
-                    print(f"WARNING: AI did not return cost for index {idx}: {item.get('name')} — using heuristic")
-                    band = infer_heuristic_band(item)
-                    low, high = band[currency]
-                    item["cost"] = format_cost_range(low, high, currency)
-                    item["cost_note"] = band.get("note", "")
-                    item["cost_source"] = "heuristic_fallback"
-        except Exception as e:
-            print(f"Step 2b parse error: {e}. Raw: {raw2[:200]}")
-            for item in unknown_items:
-                band = infer_heuristic_band(item)
-                low, high = band[currency]
-                item["cost"] = format_cost_range(low, high, currency)
-                item["cost_note"] = band.get("note", "")
-                item["cost_source"] = "heuristic_fallback"
-
-    # Log pricing source breakdown for diagnostics
+    # Log pricing source breakdown
     all_items = (
         findings.get("urgent_items", []) +
         findings.get("maintenance_items", []) +
         findings.get("category_items", [])
     )
-    source_counts = {}
-    for item in all_items:
-        src = item.get("cost_source", "unknown")
-        source_counts[src] = source_counts.get(src, 0) + 1
-    print(f"Pricing sources: {source_counts}")
-    for item in all_items:
-        src = item.get("cost_source", "unknown")
-        if src not in ("lookup_table",):
-            print(f"  [{src}] {item.get('name')} (key={item.get('category_key')})")
+    print(f"Total items classified: {len(all_items)}")
+    print(f"  Urgent: {len(findings.get('urgent_items', []))}")
+    print(f"  Maintenance: {len(findings.get('maintenance_items', []))}")
+    print(f"  Category: {len(findings.get('category_items', []))}")
+    diy_count = sum(1 for i in all_items if i.get("diy_eligible"))
+    print(f"  DIY eligible: {diy_count}")
 
-    # ------------------------------------------------------------------
-    # STEP 3: Calculate budget totals from priced items
-    # ------------------------------------------------------------------
+    # Ensure cost_source field exists for compatibility
+    for item in all_items:
+        if not item.get("cost_source"):
+            item["cost_source"] = "ai_contextual"
+
+    # Calculate budget totals
     def parse_cost_low(cost_str):
         if not cost_str:
             return 0
