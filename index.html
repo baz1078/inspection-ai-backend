@@ -1630,6 +1630,7 @@
         }
 
         function askQuestion() {
+            if (!state.isPaid) { state.showPaywall = true; render(); return; }
             const input = document.getElementById('question');
             if (!input) return;
             const q = input.value.trim();
