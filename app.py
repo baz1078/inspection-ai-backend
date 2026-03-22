@@ -955,6 +955,38 @@ def create_contractor():
         db.session.rollback()
         return jsonify({'error': str(e)}), 500
 
+@app.route('/api/admin/contractors/<contractor_id>', methods=['PUT', 'DELETE'])
+def manage_contractor(contractor_id):
+    contractor = Contractor.query.get(contractor_id)
+    if not contractor:
+        return jsonify({'error': 'Contractor not found'}), 404
+
+    if request.method == 'DELETE':
+        try:
+            contractor.isActive = False  # soft delete
+            db.session.commit()
+            return jsonify({'success': True, 'message': 'Contractor deleted'}), 200
+        except Exception as e:
+            db.session.rollback()
+            return jsonify({'error': str(e)}), 500
+
+    if request.method == 'PUT':
+        try:
+            data = request.get_json()
+            if 'name' in data: contractor.name = data['name']
+            if 'specialty' in data: contractor.specialty = data['specialty']
+            if 'phone' in data: contractor.phone = data['phone']
+            if 'email' in data: contractor.email = data['email']
+            if 'city' in data: contractor.city = data['city']
+            if 'state' in data: contractor.state = data['state']
+            if 'zip_codes' in data: contractor.zipCodes = data['zip_codes']
+            if 'rating' in data: contractor.rating = float(data['rating'])
+            db.session.commit()
+            return jsonify({'success': True, 'message': 'Contractor updated'}), 200
+        except Exception as e:
+            db.session.rollback()
+            return jsonify({'error': str(e)}), 500
+
 @app.route('/api/admin/leads', methods=['GET'])
 def get_leads():
     try:
