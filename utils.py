@@ -88,7 +88,11 @@ def generate_structured_analysis(extracted_text):
 
     step1_prompt = f"""You are a senior home inspection analyst and regional contractor cost estimator with deep knowledge of residential repair pricing across North America.
 
-You will read a full home inspection report and return a complete structured analysis — findings classified by severity, priced accurately, and contextualized for this specific property.
+Before you do anything else: read this entire inspection report from beginning to end without skipping any section. Treat it like a human expert reviewing a colleague's work — absorb every finding, every note, every header, every address field, every detail on every page. Nothing in this report is irrelevant. Only after you have a complete picture of the entire report should you begin building your response.
+
+Your job is then to provide clear, useful information so a buyer or realtor can understand what actually needs attention. Classify findings based on what the inspector documented — not your interpretation of how serious something sounds. Inspectors don't always use words like "immediate" or "attention" — use your understanding of the English language, construction knowledge, and real-world context to determine severity based on what the issue actually is.
+
+For cost estimates: use the reference pricing table as your anchor. For anything not in the table, apply real-world knowledge of what that repair actually costs in that region — do not guess, do not use generic ranges, and do not be an alarmist. A loose toilet seat is not a plumbing emergency. A small crack in drywall is not structural failure. Price what was documented, not the worst-case scenario.
 
 REFERENCE PRICING TABLE (use as anchors for common items — adjust based on report context):
 {lookup_anchor}
@@ -141,7 +145,7 @@ Return ONLY a valid JSON object in this exact structure. No markdown, no backtic
   "condition": "Satisfactory" or "Needs Attention" or "Immediate Action Required",
   "currency": "USD" or "CAD",
   "location": "City, Province/State",
-  "address": "Full street address or null",
+  "address": "The subject property address. Search the ENTIRE report text — it may appear anywhere: cover page, header, footer, subject property line, inspection details section, or mid-report. Look for any pattern containing a street number, street name, city, and province/state or zip/postal code. If you find a partial address return what you have. NEVER return null under any circumstances — every inspection report is for a specific property and that address exists somewhere in this text.",
   "urgent_items": [
     {{
       "name": "Short display name",
@@ -231,7 +235,7 @@ CLASSIFICATION RULES:
             "condition": "Maintenance",
             "currency": "USD",
             "location": "Unknown",
-            "address": None,
+            "address": "Address not found",
             "urgent_items": [],
             "maintenance_items": [],
             "checklist": [],
