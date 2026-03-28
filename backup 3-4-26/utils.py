@@ -33,26 +33,98 @@ def create_ai_client():
 
 
 def generate_summary_from_report(report_text):
-    """Generate AI summary"""
+    """Generate a human-readable AI summary from inspection report text"""
     client = create_ai_client()
-    
-    system_prompt = """You are an expert at summarizing home inspection reports in a professional, balanced way.
-Your job is to create a brief summary (2-3 paragraphs) that:
-1. Clearly explains what was inspected
-2. Highlights findings in order of priority
-3. Uses calm, professional language - not alarmist
-4. Presents issues factually without exaggeration
 
-Do NOT make up information. Only summarize what's in the report."""
-    
+    system_prompt = """You are an expert home inspection analyst. Read the inspection report and produce a clear, 
+professional narrative summary for a home buyer.
+
+RULES:
+- Write in plain English, no jargon
+- Highlight the most important findings first (safety issues, urgent repairs)
+- Group findings logically (structural, electrical, plumbing, HVAC, etc.)
+- Be factual and neutral - do not alarm or downplay
+- Do NOT include cost estimates (those come from structured analysis)
+- Do NOT use markdown headers or bullet points - write in paragraphs
+- Keep it under 600 words
+- Start with a one-sentence overview of the property and inspection date"""
+
     message = client.messages.create(
         model="claude-sonnet-4-5-20250929",
-        max_tokens=500,
+        max_tokens=1000,
         system=system_prompt,
-        messages=[{"role": "user", "content": f"Please summarize this inspection report:\n\n{report_text}"}]
+        messages=[{"role": "user", "content": report_text}]
+    )
+
+    return message.content[0].text
+
+
+def generate_structured_analysis(extracted_text):
+    """Returns structured JSON analysis - separate from summary to protect existing flow"""
+    client = create_ai_client()
+    
+    system_prompt = """You are an expert home inspection analyst. Analyze this inspection report 
+and return ONLY a valid JSON object, no markdown, no backticks, no explanation:
+{
+  "condition": "Well Maintained" or "Needs TLC" or "Needs Work",
+  "budget_now": "$X,XXX - $X,XXX",
+  "budget_5yr": "$XX,XXX - $XX,XXX",
+  "currency": "USD" or "CAD",
+  "location": "City, State/Province detected from report",
+  "urgent_items": [
+    {"name": "Issue", "cost": "$X,XXX", "timeline": "Immediate", "trade": "Electrician"}
+  ],
+  "maintenance_items": [
+    {"name": "Issue", "cost": "$X,XXX", "timeline": "1-3 years", "trade": "Roofer"}
+  ],
+  "checklist": [
+    {"passed": true, "text": "Roof in acceptable condition"},
+    {"passed": false, "text": "GFCI outlets missing in kitchen and bathroom"}
+  ]
+}
+
+PRICING RULES:
+- Detect the property address from the report
+- If US property: use USD and local metro contractor rates
+- If Canadian property: use CAD and local provincial contractor rates
+- Be specific to the metro area (Chicagoland vs rural IL, Edmonton vs Calgary, etc.)
+
+BUDGET NOW (0-12 months):
+- ONLY include items the inspector explicitly flagged as deficient, defective, or requiring repair
+- Do NOT include items described only as "aging," "older," "monitor," or "near end of life" — those belong in maintenance_items only if inspector recommended action
+- Give realistic mid-range estimates, not worst-case replacement costs
+
+BUDGET 5-YEAR (budget_5yr field):
+- ONLY include items where the inspector explicitly noted replacement is needed or likely within 5 years
+- Do NOT automatically add aging-but-functional systems (roof, HVAC, water heater) unless the inspector specifically flagged them for replacement
+- This field should reflect the SUM of maintenance_items costs only — do not add speculative replacements
+- If no 5-year items were explicitly flagged by the inspector, return a range of "$500 - $2,000" for routine upkeep
+- If your estimate would exceed $15,000, stop and re-evaluate — you are likely including items NOT documented in the report
+- NEVER exceed $25,000 unless the inspector explicitly documented multiple major system failures
+
+GENERAL:
+- Be conservative — give ranges, not single numbers
+- When uncertain, go lower and note that contractor quotes are recommended
+- Only include what is documented in the report, not what "could" happen"""
+
+    message = client.messages.create(
+        model="claude-sonnet-4-5-20250929",
+        max_tokens=2000,
+        system=system_prompt,
+        messages=[{"role": "user", "content": extracted_text}]
     )
     
-    return message.content[0].text
+    raw = message.content[0].text.replace('\x00', '')
+    
+    raw = raw.strip()
+    if raw.startswith('```'):
+        raw = raw.split('\n', 1)[1]
+    if raw.endswith('```'):
+        raw = raw.rsplit('```', 1)[0]
+    raw = raw.strip()
+    
+    return raw
+
 
 
 def generate_punchlist(answer_text, issue_type, question):

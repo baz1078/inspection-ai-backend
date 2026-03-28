@@ -1275,7 +1275,7 @@
                 <div class="dashboard-screen">
                     <div class="dashboard-header">
                         <div>
-                            <div class="dashboard-header-title">LOT7</div>
+                            <div class="dashboard-header-title">SPEQTR</div>
                         </div>
                         <button onclick="resetApp()">↻ New Report</button>
                     </div>
@@ -1286,14 +1286,10 @@
                         <div class="hero-card">
                             <div class="condition-label">Home Condition</div>
                             <div class="condition-status" style="color:#14b8a6">Needs Attention</div>
-                            <div class="condition-note" style="max-width:520px;margin:0 auto 12px;">${(() => {
-                                const c = a ? a.condition : '';
-                                if (c === 'Satisfactory') return "This home is in solid shape. The findings noted are routine maintenance items — exactly what a thorough inspection surfaces. You're buying with clear eyes and a strong foundation to work from.";
-                                if (c === 'Immediate Action Required') return "This report surfaces some items that need near-term attention — but knowing this upfront is exactly the point of an inspection. You're now in control of the conversation and the costs.";
-                                return "Findings across multiple systems are completely normal for a home of this age and price range. Most buyers use this report to negotiate, budget, and plan — not as a reason to walk away. Here's your full picture.";
-                            })()}</div>
-                            ${a && a.address ? `<div style="font-size:13px;color:var(--text-secondary);margin-bottom:20px;">${escapeHtml(a.address)}</div>` : state.address ? `<div style="font-size:13px;color:var(--text-secondary);margin-bottom:20px;">${escapeHtml(state.address)}</div>` : ''}
-                            <div class="condition-summary" style="justify-content:center;gap:60px;">
+                            <div class="condition-note" style="max-width:520px;margin:0 auto 8px;">This report identified findings across multiple systems — common in homes of this age. Here's what to know about your home.</div>
+                            ${a && a.inspector_name ? `<div style="font-size:13px;color:var(--text-secondary);margin-bottom:4px;">Inspected by <strong style="color:var(--text-primary);">${escapeHtml(a.inspector_name)}</strong></div>` : ''}
+                            ${a && a.address ? `<div class="condition-note" style="margin-bottom:0;">${escapeHtml(a.address)}</div>` : ''}
+                            <div class="condition-summary">
                                 <div class="condition-summary-item">
                                     <div class="condition-summary-number" style="color:#ef4444">${a ? a.urgent_items.length : '-'}</div>
                                     <div class="condition-summary-label">Immediate</div>
@@ -1301,6 +1297,10 @@
                                 <div class="condition-summary-item">
                                     <div class="condition-summary-number" style="color:#f59e0b">${a ? (a.maintenance_items ? a.maintenance_items.length : 0) : '-'}</div>
                                     <div class="condition-summary-label">Attention</div>
+                                </div>
+                                <div class="condition-summary-item">
+                                    <div class="condition-summary-number" style="color:#22c55e">${a && a.checklist ? a.checklist.filter(i => i.passed && !i.notable).length : '-'}</div>
+                                    <div class="condition-summary-label">Satisfactory</div>
                                 </div>
                             </div>
                         </div>

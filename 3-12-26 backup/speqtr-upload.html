@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Speqtr</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;1,9..40,300&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --dark-bg: #0b0f18; --card-bg: #141928; --surface: #1c2338;
+      --teal: #14b8a6; --teal-dim: rgba(20,184,166,0.12); --teal-glow: rgba(20,184,166,0.25);
+      --pink: #d946a6; --text: #f0f4ff; --text-muted: #6b7a99; --text-sub: #9aa3b8;
+      --border: rgba(255,255,255,0.07); --border-focus: rgba(20,184,166,0.5);
+    }
+    body { font-family:'DM Sans',sans-serif; background:var(--dark-bg); color:var(--text); min-height:100vh; display:flex; flex-direction:column; align-items:center; justify-content:center; overflow:hidden; position:relative; }
+    .bg-mesh { position:fixed; inset:0; pointer-events:none; z-index:0; overflow:hidden; }
+    .bg-mesh::before { content:''; position:absolute; width:700px; height:700px; top:-200px; left:-200px; background:radial-gradient(circle,rgba(20,184,166,0.08) 0%,transparent 65%); animation:drift1 18s ease-in-out infinite alternate; }
+    .bg-mesh::after { content:''; position:absolute; width:600px; height:600px; bottom:-150px; right:-100px; background:radial-gradient(circle,rgba(217,70,166,0.07) 0%,transparent 65%); animation:drift2 22s ease-in-out infinite alternate; }
+    @keyframes drift1 { from{transform:translate(0,0)} to{transform:translate(60px,40px)} }
+    @keyframes drift2 { from{transform:translate(0,0)} to{transform:translate(-50px,-30px)} }
+    .bg-grid { position:fixed; inset:0; z-index:0; background-image:linear-gradient(rgba(255,255,255,0.015) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,0.015) 1px,transparent 1px); background-size:48px 48px; }
+    .page { position:relative; z-index:1; width:100%; max-width:520px; padding:24px 20px; }
+    .card { background:var(--card-bg); border:1px solid var(--border); border-radius:20px; padding:36px 32px 32px; position:relative; overflow:hidden; }
+    .card::before { content:''; position:absolute; top:0; left:0; right:0; height:1px; background:linear-gradient(90deg,transparent,var(--teal-glow),transparent); }
+    .card-eyebrow { font-family:'Syne',sans-serif; font-size:11px; font-weight:600; letter-spacing:2px; text-transform:uppercase; color:var(--teal); margin-bottom:10px; }
+    .card-title { font-family:'Syne',sans-serif; font-size:22px; font-weight:700; color:var(--text); margin-bottom:6px; line-height:1.25; }
+    .card-subtitle { font-size:13.5px; color:var(--text-muted); margin-bottom:28px; font-weight:300; }
+    .divider { height:1px; background:var(--border); margin:24px 0; }
+    .field-row { display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-bottom:14px; }
+    .field { margin-bottom:14px; }
+    label { display:block; font-size:11.5px; font-weight:500; letter-spacing:0.5px; color:var(--text-sub); margin-bottom:6px; text-transform:uppercase; }
+    input[type="text"],input[type="email"],input[type="tel"] { width:100%; padding:10px 14px; background:var(--surface); border:1px solid var(--border); border-radius:10px; color:var(--text); font-family:'DM Sans',sans-serif; font-size:14px; transition:border-color .2s,box-shadow .2s; outline:none; }
+    input::placeholder { color:var(--text-muted); font-size:13px; }
+    input:focus { border-color:var(--border-focus); box-shadow:0 0 0 3px var(--teal-dim); }
+    .drop-zone { position:relative; border:1.5px dashed rgba(20,184,166,0.3); border-radius:14px; padding:32px 20px; text-align:center; cursor:pointer; transition:all .25s; background:var(--teal-dim); overflow:hidden; margin-bottom:20px; }
+    .drop-zone:hover,.drop-zone.drag-over { border-color:var(--teal); background:rgba(20,184,166,0.09); box-shadow:0 0 24px var(--teal-dim); }
+    .drop-zone::after { content:''; position:absolute; left:0; right:0; height:1px; background:linear-gradient(90deg,transparent,var(--teal),transparent); top:-100%; animation:scan 3s ease-in-out infinite; opacity:.5; }
+    @keyframes scan { 0%{top:-5%;opacity:0} 10%{opacity:.6} 90%{opacity:.6} 100%{top:105%;opacity:0} }
+    .drop-icon { width:44px; height:44px; margin:0 auto 14px; background:rgba(20,184,166,0.15); border-radius:12px; display:flex; align-items:center; justify-content:center; }
+    .drop-icon svg { width:22px; height:22px; }
+    .drop-title { font-family:'Syne',sans-serif; font-size:14px; font-weight:600; margin-bottom:4px; }
+    .drop-sub { font-size:12px; color:var(--text-muted); }
+    .drop-link { color:var(--teal); font-weight:500; text-decoration:underline; text-underline-offset:2px; }
+    .file-selected { display:none; align-items:center; gap:10px; padding:12px 14px; background:var(--teal-dim); border:1px solid var(--border-focus); border-radius:10px; margin-bottom:20px; }
+    .file-selected.visible { display:flex; }
+    .file-selected-icon { width:32px; height:32px; background:var(--teal); border-radius:8px; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+    .file-selected-icon svg { width:16px; height:16px; }
+    .file-selected-name { font-size:13px; font-weight:500; color:var(--text); flex:1; min-width:0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .file-remove { color:var(--text-muted); cursor:pointer; font-size:16px; line-height:1; transition:color .2s; }
+    .file-remove:hover { color:var(--pink); }
+    input[type="file"] { display:none; }
+    .btn-submit { width:100%; padding:13px; background:linear-gradient(135deg,var(--teal) 0%,#0d9488 100%); border:none; border-radius:12px; color:#fff; font-family:'Syne',sans-serif; font-size:15px; font-weight:700; letter-spacing:.3px; cursor:pointer; transition:all .2s; }
+    .btn-submit:hover { transform:translateY(-1px); box-shadow:0 8px 24px rgba(20,184,166,0.35); }
+    .btn-submit:active { transform:translateY(0); }
+    .btn-submit:disabled { opacity:.5; cursor:not-allowed; transform:none; box-shadow:none; }
+    .btn-submit .btn-arrow { display:inline-block; margin-left:6px; transition:transform .2s; }
+    .btn-submit:hover .btn-arrow { transform:translateX(4px); }
+    .processing { display:none; flex-direction:column; align-items:center; padding:20px 0 8px; gap:14px; }
+    .processing.visible { display:flex; }
+    .processing-ring { width:40px; height:40px; border:2px solid var(--teal-dim); border-top-color:var(--teal); border-radius:50%; animation:spin .8s linear infinite; }
+    @keyframes spin { to{transform:rotate(360deg)} }
+    .processing-text { font-size:13px; color:var(--text-muted); }
+    .processing-timing { font-size:12px; color:var(--text-sub); margin-top:-6px; }
+    .processing-step { font-size:12px; color:var(--teal); font-weight:500; height:16px; }
+    .processing-fact { font-size:12px; color:var(--text-sub); max-width:320px; text-align:center; font-style:italic; margin-top:2px; min-height:36px; transition:opacity .4s; }
+    .card-footer { margin-top:20px; display:flex; align-items:center; justify-content:center; gap:8px; }
+    .shield-badge { display:flex; align-items:center; gap:5px; font-size:11.5px; color:var(--text-muted); }
+    .shield-badge svg { width:13px; height:13px; color:var(--teal); }
+    .dot-sep { color:var(--border); font-size:14px; }
+    .tagline { text-align:center; margin-top:20px; font-size:12px; color:var(--text-muted); }
+    .tagline span { color:var(--text-sub); font-weight:500; }
+    @media(max-width:480px) { .card{padding:28px 20px} .field-row{grid-template-columns:1fr;gap:0} .page{padding:16px} }
+  </style>
+</head>
+<body>
+  <div class="bg-mesh"></div>
+  <div class="bg-grid"></div>
+  <main class="page">
+    <div class="card">
+      <div class="card-eyebrow">Inspection Analysis</div>
+      <div class="card-title">Understand your home.</div>
+      <div class="card-subtitle">Upload your PDF inspection report and get an instant AI-powered breakdown in plain English.</div>
+      <div class="divider"></div>
+      <form id="uploadForm">
+        <div class="field">
+          <label>Your Name</label>
+          <input type="text" id="customerName" placeholder="Jane Smith" autocomplete="name">
+        </div>
+        <div class="field-row">
+          <div>
+            <label>Email</label>
+            <input type="email" id="customerEmail" placeholder="jane@email.com">
+          </div>
+          <div>
+            <label>Phone <span style="opacity:0.5;font-weight:300">(opt.)</span></label>
+            <input type="tel" id="customerPhone" placeholder="(555) 000-0000">
+          </div>
+        </div>
+        <div class="drop-zone" id="dropZone" role="button" tabindex="0">
+          <div class="drop-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="#14b8a6" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+              <polyline points="14 2 14 8 20 8"/>
+              <line x1="12" y1="18" x2="12" y2="12"/>
+              <polyline points="9 15 12 12 15 15"/>
+            </svg>
+          </div>
+          <div class="drop-title">Drop your PDF here</div>
+          <div class="drop-sub">or <span class="drop-link">browse files</span> &nbsp;&middot;&nbsp; PDF inspection reports only</div>
+        </div>
+        <div class="file-selected" id="fileSelected">
+          <div class="file-selected-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="20 6 9 17 4 12"/>
+            </svg>
+          </div>
+          <span class="file-selected-name" id="fileName"></span>
+          <span class="file-remove" id="fileRemove">&#x2715;</span>
+        </div>
+        <input type="file" id="fileInput" accept=".pdf">
+        <div class="processing" id="processingState">
+          <div class="processing-ring"></div>
+          <div class="processing-text">Analysing your report with AI&hellip;</div>
+          <div class="processing-timing">This takes 60&ndash;90 seconds</div>
+          <div class="processing-step" id="processingStep">Reading inspection data</div>
+          <div class="processing-fact" id="processingFact"></div>
+        </div>
+        <button type="submit" class="btn-submit" id="submitBtn" disabled>
+          Analyse My Report <span class="btn-arrow">&#8594;</span>
+        </button>
+      </form>
+      <div class="card-footer">
+        <div class="shield-badge">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+          </svg>
+          Private &amp; secure
+        </div>
+        <span class="dot-sep">&middot;</span>
+        <div class="shield-badge">Your data is never sold</div>
+      </div>
+    </div>
+    <div class="tagline">Trusted by buyers across <span>Chicagoland</span> &amp; <span>Alberta</span></div>
+  </main>
+  <script>
+    const dropZone=document.getElementById('dropZone'),fileInput=document.getElementById('fileInput'),
+          fileSelected=document.getElementById('fileSelected'),fileName=document.getElementById('fileName'),
+          fileRemove=document.getElementById('fileRemove'),submitBtn=document.getElementById('submitBtn'),
+          uploadForm=document.getElementById('uploadForm'),processingState=document.getElementById('processingState'),
+          processingStep=document.getElementById('processingStep');
+    let selectedFile=null;
+    dropZone.addEventListener('click',()=>fileInput.click());
+    dropZone.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' ')fileInput.click()});
+    dropZone.addEventListener('dragover',e=>{e.preventDefault();dropZone.classList.add('drag-over')});
+    dropZone.addEventListener('dragleave',()=>dropZone.classList.remove('drag-over'));
+    dropZone.addEventListener('drop',e=>{e.preventDefault();dropZone.classList.remove('drag-over');const f=e.dataTransfer.files[0];if(f&&f.type==='application/pdf')selectFile(f)});
+    fileInput.addEventListener('change',()=>{if(fileInput.files[0])selectFile(fileInput.files[0])});
+    fileRemove.addEventListener('click',clearFile);
+    function selectFile(file){selectedFile=file;fileName.textContent=file.name;dropZone.style.display='none';fileSelected.classList.add('visible');updateSubmitState()}
+    function clearFile(){selectedFile=null;fileInput.value='';dropZone.style.display='';fileSelected.classList.remove('visible');updateSubmitState()}
+    function updateSubmitState(){const hasName=document.getElementById('customerName').value.trim().length>0;submitBtn.disabled=!(selectedFile&&hasName)}
+    document.getElementById('customerName').addEventListener('input',updateSubmitState);
+    const steps=['Reading inspection data\u2026','Identifying flagged issues\u2026','Calculating cost estimates\u2026','Building your dashboard\u2026'];
+    const facts=[
+      'Did you know? The average home inspection takes 2\u20134 hours and covers over 1,600 components.',
+      'Roof issues are the #1 finding in home inspections\u2009\u2014\u2009present in over 39% of reports.',
+      'A properly functioning sump pump can reduce basement water damage risk by up to 93%.',
+      'GFCI outlets near water are required by code and can prevent serious electrical shock.',
+      'HVAC systems over 15 years old are considered end-of-life by most inspectors.',
+      'Foundation cracks wider than 1/4 inch typically warrant further evaluation by a structural engineer.',
+      'Inspectors are required to operate every accessible window, door, and electrical outlet.',
+      'Attic insulation issues can account for up to 25% of a home\u2019s heat loss in winter.',
+    ];
+    function animateSteps(){
+      let i=0, f=0;
+      const factEl=document.getElementById('processingFact');
+      if(factEl){factEl.textContent=facts[0];}
+      return setInterval(()=>{
+        processingStep.style.opacity=0;
+        if(factEl) factEl.style.opacity=0;
+        setTimeout(()=>{
+          processingStep.textContent=steps[i%steps.length];
+          processingStep.style.opacity=1;
+          if(factEl){factEl.textContent=facts[f%facts.length];factEl.style.opacity=1;f++;}
+          i++;
+        },300);
+      },3500);
+    }
+    uploadForm.addEventListener('submit',async(e)=>{
+      e.preventDefault();
+      if(!selectedFile)return;
+      submitBtn.style.display='none';
+      processingState.classList.add('visible');
+      const stepInterval=animateSteps();
+      const formData=new FormData();
+      formData.append('file',selectedFile);
+      formData.append('customer_name',document.getElementById('customerName').value);
+      formData.append('customer_email',document.getElementById('customerEmail').value);
+      formData.append('customer_phone',document.getElementById('customerPhone').value);
+      formData.append('address', selectedFile.name);
+      try {
+        const res=await fetch('/api/upload',{method:'POST',body:formData});
+        const data=await res.json();
+        clearInterval(stepInterval);
+        if(data.report_id){window.location.href='/dashboard?report_id='+data.report_id}
+      } catch(err){
+        clearInterval(stepInterval);
+        processingState.classList.remove('visible');
+        submitBtn.style.display='';
+        submitBtn.disabled=false;
+        alert('Upload failed. Please try again.');
+      }
+    });
+  </script>
+</body>
+</html>

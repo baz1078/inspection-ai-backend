@@ -155,14 +155,14 @@
         }
 
         .dashboard-header-title {
-            font-size: 20px;
-            font-weight: 700;
-            color: var(--accent-teal);
-            letter-spacing: 0.05em;
+            font-size: 13px;
+            color: var(--text-secondary);
+            margin-bottom: 4px;
         }
 
         .dashboard-header-address {
-            display: none;
+            font-size: 16px;
+            font-weight: 600;
         }
 
         .dashboard-header button {
@@ -214,23 +214,19 @@
         }
 
         .condition-label {
-            font-size: 18px;
+            font-size: 12px;
             color: var(--text-secondary);
             text-transform: uppercase;
-            letter-spacing: 2px;
+            letter-spacing: 1px;
             margin-bottom: 12px;
             font-weight: 600;
         }
 
         .condition-status {
-            font-size: 56px;
+            font-size: 48px;
             font-weight: 700;
             color: var(--accent-teal);
-            margin-bottom: 24px;
-        }
-
-        @media (max-width: 480px) {
-            .condition-status { font-size: 36px; }
+            margin-bottom: 8px;
         }
 
         .condition-note {
@@ -315,7 +311,6 @@
         .issue-card {
             background: var(--card-bg);
             border: 1px solid var(--border-color);
-            border-left: 3px solid #ef4444;
             border-radius: 12px;
             padding: 22px;
             text-align: left;
@@ -334,7 +329,6 @@
         .issue-card:hover {
             transform: translateY(-3px);
             border-color: var(--accent-teal);
-            border-left-color: #ef4444;
             box-shadow: 0 12px 40px rgba(0,0,0,0.3);
         }
 
@@ -390,7 +384,6 @@
         .maint-row {
             background: var(--card-bg);
             border: 1px solid var(--border-color);
-            border-left: 3px solid #f59e0b;
             border-radius: 8px;
             padding: 13px 18px;
             display: flex;
@@ -400,7 +393,7 @@
             transition: all 0.2s;
         }
 
-        .maint-row:hover { border-color: var(--accent-teal); border-left-color: #f59e0b; }
+        .maint-row:hover { border-color: var(--accent-teal); }
 
         .maint-row-left {
             display: flex;
@@ -547,23 +540,6 @@
             font-size: 18px;
             min-width: 20px;
         }
-
-        .checklist-notable { color: var(--text-secondary); font-weight: 700; font-size: 18px; white-space: nowrap; }
-
-        .legend-card {
-            background: var(--card-bg);
-            border: 1px solid var(--border-color);
-            border-radius: 12px;
-            padding: 16px 20px;
-            margin-bottom: 32px;
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-        }
-        .legend-row { display: flex; align-items: center; gap: 10px; font-size: 13px; }
-        .legend-text { color: var(--text-secondary); }
-        .legend-text strong { color: var(--text-primary); }
-        .legend-notable-dash { font-size: 18px; font-weight: 700; color: var(--text-secondary); min-width: 12px; text-align: center; }
 
         /* WARRANTY */
         .warranty-badge {
@@ -1067,98 +1043,6 @@
             .chat-panel { width: calc(100vw - 24px); right: 12px; bottom: 12px; height: 350px; }
         }
 
-        /* SECTION LABELS - colored left border */
-        .section-label {
-            display: flex;
-            align-items: center;
-            font-size: 12px;
-            font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            margin: 32px 0 16px 0;
-            padding-left: 12px;
-            position: relative;
-        }
-        .section-label::before {
-            content: '';
-            position: absolute;
-            left: 0;
-            top: 50%;
-            transform: translateY(-50%);
-            width: 3px;
-            height: 16px;
-            border-radius: 2px;
-        }
-        .section-label-immediate { color: #ef4444; }
-        .section-label-immediate::before { background: #ef4444; }
-        .section-label-maintenance { color: #f59e0b; }
-        .section-label-maintenance::before { background: #f59e0b; }
-        .section-label-findings { color: var(--text-secondary); }
-        .section-label-findings::before { background: var(--text-secondary); }
-
-        /* CATEGORY ACCORDION */
-        .cat-accordion {
-            display: flex;
-            flex-direction: column;
-            gap: 4px;
-            margin-bottom: 32px;
-        }
-        .cat-row {
-            background: var(--card-bg);
-            border: 1px solid var(--border-color);
-            border-left: 3px solid #64748b;
-            border-radius: 8px;
-            overflow: hidden;
-        }
-        .cat-row.cat-row-findings { border-left-color: #f59e0b; }
-        .cat-header {
-            padding: 12px 16px;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            cursor: pointer;
-            transition: background 0.2s;
-            user-select: none;
-        }
-        .cat-header:hover { background: rgba(255,255,255,0.03); }
-        .cat-header-left { display: flex; align-items: center; gap: 10px; }
-        .cat-indicator {
-            width: 8px;
-            height: 8px;
-            border-radius: 50%;
-            flex-shrink: 0;
-        }
-        .cat-indicator-green { background: #22c55e; box-shadow: 0 0 6px #22c55e; }
-        .cat-indicator-gray { background: #64748b; }
-        .cat-indicator-yellow { background: #f59e0b; box-shadow: 0 0 6px rgba(245,158,11,0.5); }
-        .cat-name { font-size: 13px; font-weight: 600; color: var(--text-primary); }
-        .cat-count-badge {
-            background: rgba(255,255,255,0.08);
-            color: var(--text-secondary);
-            font-size: 11px;
-            padding: 1px 7px;
-            border-radius: 10px;
-        }
-        .cat-chevron {
-            color: var(--text-secondary);
-            font-size: 18px;
-            transition: transform 0.2s;
-            line-height: 1;
-        }
-        .cat-body { border-top: 1px solid var(--border-color); display: none; }
-        .cat-body.open { display: block; }
-        .cat-empty { padding: 12px 16px; font-size: 12px; color: var(--text-secondary); font-style: italic; }
-        .cat-item {
-            padding: 10px 16px;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            border-bottom: 1px solid rgba(45,55,72,0.5);
-        }
-        .cat-item:last-child { border-bottom: none; }
-        .cat-item-name { color: var(--text-secondary); flex: 1; padding-right: 16px; font-size: 13px; }
-        .cat-item-cost { color: var(--accent-teal); font-weight: 600; flex-shrink: 0; font-size: 12px; }
-
         ::-webkit-scrollbar { width: 6px; }
         ::-webkit-scrollbar-track { background: var(--dark-bg); }
         ::-webkit-scrollbar-thumb { background: var(--border-color); border-radius: 3px; }
@@ -1189,15 +1073,12 @@
             warrantyType: null,
             warrantyLoaded: false,
             showConfirmModal: false,
-            chatVisible: true,
-            isPaid: false,
-            showPaywall: false
+            chatVisible: true
         };
         // Load report from URL on page load
         const urlParams = new URLSearchParams(window.location.search);
         const urlReportId = urlParams.get('report_id');
         if (urlParams.get('paid') === 'true') state.isPaid = true;
-        if (urlParams.get('paywall') === 'off') state.isPaid = true;
         if (urlReportId) {
             state.screen = 'dashboard';
             state.reportId = urlReportId;
@@ -1275,7 +1156,8 @@
                 <div class="dashboard-screen">
                     <div class="dashboard-header">
                         <div>
-                            <div class="dashboard-header-title">LOT7</div>
+                            <div class="dashboard-header-title">Report</div>
+                            <div class="dashboard-header-address">${state.address}</div>
                         </div>
                         <button onclick="resetApp()">↻ New Report</button>
                     </div>
@@ -1285,22 +1167,19 @@
 
                         <div class="hero-card">
                             <div class="condition-label">Home Condition</div>
-                            <div class="condition-status" style="color:#14b8a6">Needs Attention</div>
-                            <div class="condition-note" style="max-width:520px;margin:0 auto 12px;">${(() => {
-                                const c = a ? a.condition : '';
-                                if (c === 'Satisfactory') return "This home is in solid shape. The findings noted are routine maintenance items — exactly what a thorough inspection surfaces. You're buying with clear eyes and a strong foundation to work from.";
-                                if (c === 'Immediate Action Required') return "This report surfaces some items that need near-term attention — but knowing this upfront is exactly the point of an inspection. You're now in control of the conversation and the costs.";
-                                return "Findings across multiple systems are completely normal for a home of this age and price range. Most buyers use this report to negotiate, budget, and plan — not as a reason to walk away. Here's your full picture.";
-                            })()}</div>
-                            ${a && a.address ? `<div style="font-size:13px;color:var(--text-secondary);margin-bottom:20px;">${escapeHtml(a.address)}</div>` : state.address ? `<div style="font-size:13px;color:var(--text-secondary);margin-bottom:20px;">${escapeHtml(state.address)}</div>` : ''}
-                            <div class="condition-summary" style="justify-content:center;gap:60px;">
+                            <div class="condition-status">
+                                ${a ? `<span class="condition-circle ${a.condition === 'Well Maintained' ? 'circle-good' : a.condition === 'Needs TLC' ? 'circle-fair' : 'circle-poor'}"></span>` : ''}
+                                ${a ? a.condition : 'Analyzing...'}
+                            </div>
+                            <div class="condition-note">${a ? a.location : ''}</div>
+                            <div class="condition-summary">
                                 <div class="condition-summary-item">
-                                    <div class="condition-summary-number" style="color:#ef4444">${a ? a.urgent_items.length : '-'}</div>
-                                    <div class="condition-summary-label">Immediate</div>
+                                    <div class="condition-summary-number">${a ? a.urgent_items.length : '-'}</div>
+                                    <div class="condition-summary-label">Items Need Attention</div>
                                 </div>
                                 <div class="condition-summary-item">
-                                    <div class="condition-summary-number" style="color:#f59e0b">${a ? (a.maintenance_items ? a.maintenance_items.length : 0) : '-'}</div>
-                                    <div class="condition-summary-label">Attention</div>
+                                    <div class="condition-summary-number">${a ? a.checklist.filter(i => i.passed).length : '-'}</div>
+                                    <div class="condition-summary-label">Functioning Well ✅</div>
                                 </div>
                             </div>
                         </div>
@@ -1310,174 +1189,83 @@
                             <div class="budget-card">
                                 <div class="budget-card-label">Now - 12 Months</div>
                                 <div class="budget-card-amount">${a ? a.budget_now : '...'}</div>
-                                <div class="budget-card-description">Estimated cost · immediate repairs</div>
+                                <div class="budget-card-description">Immediate repairs & maintenance</div>
                             </div>
                             <div class="budget-card">
                                 <div class="budget-card-label">5 Year Outlook</div>
                                 <div class="budget-card-amount">${a ? a.budget_5yr : '...'}</div>
-                                <div class="budget-card-description">Estimated cost · long-term replacements</div>
+                                <div class="budget-card-description">Long-term replacements</div>
                             </div>
                         </div>
 
-                        <div class="legend-card">
-                            <div class="legend-row"><span style="display:inline-block;width:3px;height:14px;background:#ef4444;flex-shrink:0;margin-right:10px;"></span><span class="legend-text"><strong style="color:#ef4444;">Immediate</strong> — Requires prompt attention or repair</span></div>
-                            <div class="legend-row"><span style="display:inline-block;width:3px;height:14px;background:#f59e0b;flex-shrink:0;margin-right:10px;"></span><span class="legend-text"><strong style="color:#f59e0b;">Attention</strong> — Monitor or plan within 1–3 years</span></div>
-                            <div class="legend-row"><span class="legend-notable-dash">- -</span><span class="legend-text"><strong>Notable</strong> — Item observed but not fully tested</span></div>
+                        <div class="section-title">What Needs Attention</div>
+                        <div class="issues-grid">
+                            ${a && a.urgent_items.length > 0 ? a.urgent_items.map(item => `
+                                <div class="issue-card" onclick="askQuestionCard('Tell me more about the ${escapeHtml(item.name)} issue and what I should do')">
+                                    ${getTradeIcon(item.trade)}
+                                    <div class="issue-title">${escapeHtml(item.name)}</div>
+                                    <div class="issue-cost">${escapeHtml(item.cost)}</div>
+                                    <div class="issue-timeline-row">
+                                        <span class="issue-priority-dot ${getPriorityColor(item.timeline)}"></span>
+                                        ${escapeHtml(item.timeline)}
+                                    </div>
+                                </div>
+                            `).join('') : `
+                                <div class="issue-card">
+                                    <div class="issue-icon">✅</div>
+                                    <div class="issue-title">No urgent issues</div>
+                                    <div class="issue-cost">-</div>
+                                    <div class="issue-timeline">Looking good</div>
+                                </div>
+                            `}
                         </div>
 
-                        <div class="section-label section-label-immediate">Immediate</div>
+                        ${a && a.maintenance_items && a.maintenance_items.length > 0 ? `
+                            <div class="section-title">Maintenance & Future Planning</div>
+                            <div class="maint-rows">
+                                ${a.maintenance_items.map(item => `
+                                    <div class="maint-row" onclick="askQuestionCard('Tell me about the ${escapeHtml(item.name)} and when I should address it')">
+                                        <div class="maint-row-left">
+                                            ${getTradeIcon(item.trade, 'small')}
+                                            <span class="issue-priority-dot ${getPriorityColor(item.timeline)}"></span>
+                                            ${escapeHtml(item.name)}
+                                        </div>
+                                        <div class="maint-row-right">
+                                            <span class="maint-row-cost">${escapeHtml(item.cost)}</span>
+                                            <span class="maint-row-timeline">${escapeHtml(item.timeline)}</span>
+                                        </div>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        ` : ''}
 
-                        <!-- TEASER: first 3 cards always visible -->
-                        <div class="issues-grid" style="margin-bottom:14px;">
-                            ${(() => {
-                                const urgentItems = a && a.urgent_items ? a.urgent_items : [];
-                                const teaser = urgentItems.slice(0, 3);
-                                if (teaser.length === 0) return `
-                                    <div class="issue-card">
-                                        <div class="issue-title">No urgent issues</div>
-                                        <div class="issue-cost">-</div>
-                                    </div>
-                                `;
-                                return teaser.map(item => `
-                                    <div class="issue-card" onclick="${state.isPaid ? `askQuestionCard('Tell me more about this issue and what I should do')` : 'startCheckout()'}">
-                                        <div class="issue-title" style="margin-bottom:10px;">${escapeHtml(item.name)}</div>
-                                        <div class="issue-cost">${escapeHtml(item.cost)}</div>
-                                    </div>
-                                `).join('');
-                            })()}
+                        <div class="checklist-section">
+                            ${a && a.checklist ? a.checklist.map(item => `
+                                <div class="checklist-item">
+                                    <div class="checklist-icon">${item.passed ? '✓' : '⚠️'}</div>
+                                    <div>${escapeHtml(item.text)}</div>
+                                </div>
+                            `).join('') : `
+                                <div class="checklist-item"><div class="checklist-icon">...</div><div>Loading analysis...</div></div>
+                            `}
                         </div>
 
-                        ${(() => {
-                            const urgentItems = a && a.urgent_items ? a.urgent_items : [];
-                            const urgentRest = urgentItems.slice(3);
+                        <div class="realtor-card">
+                            <h4>📋 For Realtors</h4>
+                            <p>Share this report with your buyer</p>
+                            <div class="realtor-card-buttons">
+                                <button class="btn-primary-report" onclick="generatePunchlist()"><i class="ph-bold ph-wrench"></i> Contractor Punchlist</button>
+                                <button class="btn-secondary-report" onclick="generateOverview()"><i class="ph-bold ph-file-text"></i> Overview Report</button>
+                            </div>
+                            <div style="margin-top:8px;">
+                                <button class="btn-secondary-report" style="width:100%;padding:8px;border-radius:8px;border:1px solid rgba(20,184,166,0.3);background:transparent;color:var(--accent-teal);font-size:11px;cursor:pointer;font-weight:600;" onclick="copyShareLink()"><i class="ph-bold ph-share-network"></i> Share Link</button>
+                            </div>
+                        </div>
 
-                            if (state.isPaid) {
-                                // PAID: show everything normally
-                                return `
-                                    ${urgentRest.length > 0 ? `
-                                        <div class="issues-grid">
-                                            ${urgentRest.map(item => `
-                                                <div class="issue-card" onclick="askQuestionCard('Tell me more about this issue and what I should do')">
-                                                    <div class="issue-title" style="margin-bottom:10px;">${escapeHtml(item.name)}</div>
-                                                    <div class="issue-cost">${escapeHtml(item.cost)}</div>
-                                                </div>
-                                            `).join('')}
-                                        </div>
-                                    ` : ''}
-
-                                    ${a && a.maintenance_items && a.maintenance_items.length > 0 ? `
-                                        <div class="section-label section-label-maintenance">Attention</div>
-                                        <div class="maint-rows">
-                                            ${a.maintenance_items.map(item => `
-                                                <div class="maint-row" onclick="askQuestionCard('Tell me about this item and when I should address it')">
-                                                    <div class="maint-row-left">${escapeHtml(item.name)}</div>
-                                                    <div class="maint-row-right">
-                                                        <span class="maint-row-cost">${escapeHtml(item.cost)}</span>
-                                                        <span class="maint-row-timeline">${escapeHtml(item.timeline)}</span>
-                                                    </div>
-                                                </div>
-                                            `).join('')}
-                                        </div>
-                                    ` : ''}
-
-                                    ${renderCategoryAccordion(a)}
-
-                                    <div class="checklist-section">
-                                        ${a && a.checklist ? [...a.checklist].filter(item => item.passed || item.notable).sort((x, y) => {
-                                            if (x.notable && !y.notable) return 1;
-                                            if (!x.notable && y.notable) return -1;
-                                            return 0;
-                                        }).map(item => `
-                                            <div class="checklist-item">
-                                                ${item.notable
-                                                    ? '<div class="checklist-icon checklist-notable">- -</div>'
-                                                    : item.passed
-                                                        ? '<div class="checklist-icon">✓</div>'
-                                                        : '<div style="display:flex;align-items:center;min-width:20px;padding-top:2px;"><span class="issue-priority-dot priority-yellow" style="margin:0;"></span></div>'
-                                                }
-                                                <div>${escapeHtml(item.text)}</div>
-                                            </div>
-                                        `).join('') : '<div class="checklist-item"><div class="checklist-icon">...</div><div>Loading analysis...</div></div>'}
-                                    </div>
-
-                                    <div class="realtor-card">
-                                        <h4>📋 For Realtors</h4>
-                                        <p>Share this report with your buyer</p>
-                                        <div class="realtor-card-buttons">
-                                            <button class="btn-primary-report" onclick="generatePunchlist()"><i class="ph-bold ph-wrench"></i> Contractor Punchlist</button>
-                                            <button class="btn-secondary-report" onclick="generateOverview()"><i class="ph-bold ph-file-text"></i> Overview Report</button>
-                                        </div>
-                                        <div style="margin-top:8px;">
-                                            <button class="btn-secondary-report" style="width:100%;padding:8px;border-radius:8px;border:1px solid rgba(20,184,166,0.3);background:transparent;color:var(--accent-teal);font-size:11px;cursor:pointer;font-weight:600;" onclick="copyShareLink()"><i class="ph-bold ph-share-network"></i> Share Link</button>
-                                        </div>
-                                    </div>
-
-                                    <div class="action-buttons">
-                                        <button class="btn btn-primary" onclick="toggleChat(true)">💬 Ask Question</button>
-                                        <button class="btn btn-secondary" onclick="resetApp()">📤 New Report</button>
-                                    </div>
-                                `;
-                            } else {
-                                // NOT PAID: blur everything below the teaser, show paywall overlay
-                                const maintHtml = a && a.maintenance_items && a.maintenance_items.length > 0 ? `
-                                    <div class="section-label section-label-maintenance">Attention</div>
-                                    <div class="maint-rows">
-                                        ${a.maintenance_items.map(item => `
-                                            <div class="maint-row">
-                                                <div class="maint-row-left">${escapeHtml(item.name)}</div>
-                                                <div class="maint-row-right">
-                                                    <span class="maint-row-cost">${escapeHtml(item.cost)}</span>
-                                                    <span class="maint-row-timeline">${escapeHtml(item.timeline)}</span>
-                                                </div>
-                                            </div>
-                                        `).join('')}
-                                    </div>
-                                ` : '';
-                                return `
-                                    <div style="position:relative;margin-bottom:32px;">
-                                        <div style="filter:blur(5px);pointer-events:none;user-select:none;">
-                                            ${urgentRest.length > 0 ? `
-                                                <div class="issues-grid" style="margin-bottom:14px;">
-                                                    ${urgentRest.map(item => `
-                                                        <div class="issue-card">
-                                                            <div class="issue-title" style="margin-bottom:10px;">${escapeHtml(item.name)}</div>
-                                                            <div class="issue-cost">${escapeHtml(item.cost)}</div>
-                                                        </div>
-                                                    `).join('')}
-                                                </div>
-                                            ` : ''}
-                                            ${maintHtml}
-                                            ${renderCategoryAccordion(a)}
-                                            <div class="checklist-section">
-                                                <div class="checklist-item"><div class="checklist-icon">✓</div><div>Roof covering appeared serviceable at time of inspection</div></div>
-                                                <div class="checklist-item"><div class="checklist-icon">✓</div><div>Electrical panel properly labelled and accessible</div></div>
-                                                <div class="checklist-item"><div class="checklist-icon checklist-notable">- -</div><div>Water heater age unknown — verify documentation</div></div>
-                                            </div>
-                                            <div class="realtor-card">
-                                                <h4>📋 For Realtors</h4>
-                                                <p>Share this report with your buyer</p>
-                                            </div>
-                                        </div>
-                                        <div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;background:rgba(15,20,25,0.65);border-radius:12px;padding:32px;min-height:320px;">
-                                            <div style="width:48px;height:48px;border-radius:50%;background:var(--card-bg);border:1px solid var(--border-color);display:flex;align-items:center;justify-content:center;">
-                                                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-                                            </div>
-                                            <div style="text-align:center;max-width:420px;">
-                                                <p style="font-size:16px;font-weight:700;margin:0 0 8px;color:var(--text-primary);">Your report is ready — unlock it now!</p>
-                                                <p style="font-size:13px;color:var(--text-secondary);margin:0 0 14px;line-height:1.6;">Chat directly with your inspection report. Ask anything, get instant answers!</p>
-                                                <div style="display:flex;flex-wrap:wrap;justify-content:center;gap:8px;">
-                                                    <span style="background:var(--card-bg);border:1px solid var(--border-color);border-radius:20px;padding:5px 12px;font-size:12px;color:var(--text-secondary);">✓ Full punchlist</span>
-                                                    <span style="background:var(--card-bg);border:1px solid var(--border-color);border-radius:20px;padding:5px 12px;font-size:12px;color:var(--text-secondary);">✓ All cost estimates</span>
-                                                    <span style="background:var(--card-bg);border:1px solid var(--border-color);border-radius:20px;padding:5px 12px;font-size:12px;color:var(--text-secondary);">✓ Contractor referrals</span>
-                                                    <span style="background:var(--card-bg);border:1px solid var(--border-color);border-radius:20px;padding:5px 12px;font-size:12px;color:var(--text-secondary);">✓ Unlimited AI chat</span>
-                                                </div>
-                                            </div>
-                                            <button id="paywallBtn" onclick="startCheckout()" style="background:var(--accent-teal);color:#0a0f1a;border:none;border-radius:8px;padding:12px 28px;font-size:14px;font-weight:700;cursor:pointer;margin-top:4px;">Unlock Full Report — $29!</button>
-                                        </div>
-                                    </div>
-                                `;
-                            }
-                        })()}
+                        <div class="action-buttons">
+                            <button class="btn btn-primary" onclick="toggleChat(true)">💬 Ask Question</button>
+                            <button class="btn btn-secondary" onclick="resetApp()">📤 New Report</button>
+                        </div>
                     </div>
                 </div>
 
@@ -1495,26 +1283,6 @@
 
                 <button class="chat-fab ${state.chatVisible ? 'fab-hidden' : ''}" id="chatFab" onclick="toggleChat(true)">💬</button>
 
-                ${state.showPaywall ? `
-                    <div class="modal-overlay" onclick="if(event.target===this){state.showPaywall=false;render();}">
-                        <div class="modal-box" style="max-width:380px;text-align:center;">
-                            <div style="font-size:32px;margin-bottom:8px;">🔒</div>
-                            <h2 style="margin:0 0 6px;font-family:'Syne',sans-serif;font-size:20px;color:var(--text-primary);">Unlock Buyer Pro</h2>
-                            <p style="color:var(--text-secondary);font-size:14px;margin:0 0 20px;">One-time $29 payment for this report.</p>
-                            <ul style="text-align:left;color:var(--text-secondary);font-size:13px;margin:0 0 20px;padding-left:18px;line-height:1.8;">
-                                <li>📋 Contractor Punchlist PDF</li>
-                                <li>📄 Full Overview Report PDF</li>
-                                <li>🔗 Shareable report link</li>
-                                <li>💬 Unlimited AI chat questions</li>
-                            </ul>
-                            <button id="paywallBtn" onclick="startCheckout()"
-                               style="display:block;width:100%;background:var(--accent-teal);color:#fff;padding:12px;border-radius:8px;font-weight:700;font-size:15px;border:none;cursor:pointer;margin-bottom:10px;">
-                                Unlock for $29 →
-                            </button>
-                            <button onclick="state.showPaywall=false;render();" style="background:transparent;border:none;color:var(--text-secondary);font-size:13px;cursor:pointer;">Maybe later</button>
-                        </div>
-                    </div>
-                ` : ''}
                 ${state.showConfirmModal ? `
                     <div class="modal-overlay" onclick="if(event.target === this) { state.showConfirmModal = false; }">
                         <div class="modal" onclick="event.stopPropagation()">
@@ -1630,7 +1398,6 @@
         }
 
         function askQuestion() {
-            if (!state.isPaid) { state.showPaywall = true; render(); return; }
             const input = document.getElementById('question');
             if (!input) return;
             const q = input.value.trim();
@@ -1705,10 +1472,8 @@
             for (const p of patterns) {
                 let m;
                 while ((m = p.exec(text)) !== null) {
-                    const raw = (m[1] || m[0]).trim();
-                    const clean = raw.replace(/\*\*/g, '').replace(/\*/g, '').trim();
-                    const isDupe = issues.some(i => i.toLowerCase() === clean.toLowerCase());
-                    if (clean && !isDupe) issues.push(clean);
+                    const issue = m[1] || m[0];
+                    if (issue && !issues.includes(issue)) issues.push(issue.trim());
                 }
             }
             return issues.slice(0, 3);
@@ -1798,21 +1563,7 @@
             }
         }
 
-        async function startCheckout() {
-            const btn = document.getElementById('paywallBtn');
-            if (btn) { btn.textContent = 'Redirecting...'; btn.style.opacity = '0.7'; btn.style.pointerEvents = 'none'; }
-            try {
-                const res = await fetch(`${API_URL}/api/create-checkout/${state.reportId}`, { method: 'POST' });
-                const data = await res.json();
-                if (data.checkout_url) { window.location.href = data.checkout_url; }
-                else { alert('Could not start checkout. Please try again.'); }
-            } catch(e) {
-                alert('Error: ' + e.message);
-            }
-        }
-
         function copyShareLink() {
-            if (!state.isPaid) { state.showPaywall = true; render(); return; }
             const token = state.shareToken || state.reportId;
             const link = window.location.origin + '/report/' + token;
             navigator.clipboard.writeText(link).then(() => {
@@ -1823,7 +1574,7 @@
         }
 
         function resetApp() {
-            state = { screen: 'upload', customerName: '', customerEmail: '', customerPhone: '', uploading: false, reportId: null, summary: null, address: null, messages: [], loading: false, pendingQuote: null, warrantyId: null, warrantyBuilderName: null, warrantyType: null, warrantyLoaded: false, showConfirmModal: false, quoteSending: false, chatVisible: true, shareToken: null, isPaid: false, showPaywall: false };
+            state = { screen: 'upload', customerName: '', customerEmail: '', customerPhone: '', uploading: false, reportId: null, summary: null, address: null, messages: [], loading: false, pendingQuote: null, warrantyId: null, warrantyBuilderName: null, warrantyType: null, warrantyLoaded: false, showConfirmModal: false, quoteSending: false, chatVisible: true, shareToken: null };
             render();
         }
 
@@ -1837,7 +1588,8 @@
             if (!timeline) return 'priority-yellow';
             const t = timeline.toLowerCase();
             if (t.includes('immediate') || t.includes('now') || t.includes('urgent') || t.includes('safety')) return 'priority-red';
-            return 'priority-yellow';
+            if (t.includes('1-3') || t.includes('0-6') || t.includes('6 month') || t.includes('soon')) return 'priority-yellow';
+            return 'priority-green';
         }
 
         function getTradeIcon(trade, size='large') {
@@ -1890,58 +1642,15 @@
         }
 
         function generatePunchlist() {
-            if (!state.isPaid) { state.showPaywall = true; render(); return; }
             if (!state.reportId) return alert('No report loaded');
             window.open(API_URL + '/api/punchlist-pdf/' + state.reportId, '_blank');
         }
         function generateOverview() {
-            if (!state.isPaid) { state.showPaywall = true; render(); return; }
             if (!state.reportId) return alert('No report loaded');
             window.open(API_URL + '/api/generate-pdf/' + state.reportId, '_blank');
         }
         // legacy alias
         function generatePDF() { generatePunchlist(); }
-
-        function renderCategoryAccordion(a) {
-            if (!a || !a.category_items || a.category_items.length === 0) return '';
-            const CATS = ['Roof','Exterior','Garage','Attic','Interior','Kitchen','Laundry','Bathroom','Mechanical','Structure'];
-            const catMap = {};
-            CATS.forEach(c => catMap[c] = []);
-            a.category_items.forEach(item => {
-                const cat = item.category;
-                if (catMap.hasOwnProperty(cat)) catMap[cat].push(item);
-            });
-            const rows = CATS.map(cat => {
-                const items = catMap[cat];
-                const empty = items.length === 0;
-                const itemsHtml = empty
-                    ? `<div class="cat-empty">No findings noted at time of inspection</div>`
-                    : items.map(item => `
-                        <div class="cat-item">
-                            <span class="cat-item-name">${escapeHtml(item.name)}</span>
-                            <span class="cat-item-cost">${escapeHtml(item.cost || '')}</span>
-                        </div>`).join('');
-                return `<div class="cat-row ${empty ? '' : 'cat-row-findings'}">
-                    <div class="cat-header" onclick="toggleCat('${cat}')">
-                        <div class="cat-header-left">
-                            <span class="cat-name">${cat}</span>
-                            ${!empty ? `<span class="cat-count-badge">${items.length}</span>` : ''}
-                        </div>
-                        <span class="cat-chevron" id="chev-${cat}">›</span>
-                    </div>
-                    <div class="cat-body" id="catbody-${cat}">${itemsHtml}</div>
-                </div>`;
-            }).join('');
-            return `<div class="section-label section-label-findings">All Findings by Category</div><div class="cat-accordion">${rows}</div>`;
-        }
-
-        function toggleCat(cat) {
-            const body = document.getElementById('catbody-' + cat);
-            const chev = document.getElementById('chev-' + cat);
-            if (!body) return;
-            const open = body.classList.toggle('open');
-            if (chev) chev.style.transform = open ? 'rotate(90deg)' : '';
-        }
 
         render();
     </script>

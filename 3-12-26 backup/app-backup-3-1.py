@@ -18,9 +18,6 @@ from warranty_utils import (
 )
 import uuid
 import os
-import threading
-import stripe
-stripe.api_key = os.getenv('STRIPE_SECRET_KEY')
 from datetime import datetime
 import re
 import json
@@ -32,14 +29,8 @@ app = Flask(__name__, static_folder='.', static_url_path='')
 
 @app.route('/')
 def index():
-    with open('lot7-upload.html', 'r', encoding='utf-8') as f:
-        return f.read()
-
-@app.route('/dashboard')
-def dashboard():
     with open('index.html', 'r', encoding='utf-8') as f:
         return f.read()
-
 # Database config
 app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URL', 'sqlite:///inspection_reports.db')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
@@ -64,7 +55,7 @@ CORS(app, resources={r"/api/*": {"origins": "*"}})
 @app.after_request
 def set_headers(response):
     response.headers['Access-Control-Allow-Origin'] = '*'
-    response.headers['Access-Control-Allow-Methods'] = 'GET, POST, PUT, DELETE, OPTIONS'
+    response.headers['Access-Control-Allow-Methods'] = 'GET, POST, PUT, OPTIONS'
     response.headers['Access-Control-Allow-Headers'] = 'Content-Type'
     return response
 
@@ -74,48 +65,6 @@ os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 # In-memory cache for conversations (10 reports max)
 REPORT_CACHE = OrderedDict()
 MAX_CACHE_SIZE = 10
-
-# In-memory job status tracker for async analysis
-# Keys are report_id strings, values: {'status': 'processing'|'done'|'error', 'progress': 0-100}
-JOB_STATUS = {}
-
-def run_analysis_background(app_ctx, report_id, extracted_text):
-    """Run slow AI analysis in a background thread, update DB when done."""
-    with app_ctx:
-        try:
-            JOB_STATUS[report_id] = {'status': 'processing', 'progress': 15}
-
-            print(f"[BG {report_id}] Generating summary...")
-            summary = generate_summary_from_report(extracted_text).replace('\x00', '')
-            JOB_STATUS[report_id]['progress'] = 50
-
-            print(f"[BG {report_id}] Generating structured analysis...")
-            try:
-                analysis_raw = generate_structured_analysis(extracted_text)
-                json.loads(analysis_raw)  # validate JSON
-                analysis_json = analysis_raw
-            except Exception as e:
-                print(f"[BG {report_id}] Structured analysis failed: {e}")
-                analysis_json = None
-            JOB_STATUS[report_id]['progress'] = 88
-
-            report = InspectionReport.query.get(report_id)
-            if report:
-                report.summary = summary
-                report.analysis_json = analysis_json
-                db.session.commit()
-
-            qa_system = InspectionReportQA(extracted_text)
-            REPORT_CACHE[report_id] = qa_system
-            if len(REPORT_CACHE) > MAX_CACHE_SIZE:
-                REPORT_CACHE.popitem(last=False)
-
-            JOB_STATUS[report_id] = {'status': 'done', 'progress': 100}
-            print(f"[BG {report_id}] Analysis complete.")
-
-        except Exception as e:
-            print(f"[BG {report_id}] Background analysis error: {e}")
-            JOB_STATUS[report_id] = {'status': 'error', 'progress': 0}
 
 # ============================================================================
 # HELPER FUNCTIONS
@@ -187,15 +136,7 @@ def get_analysis(report_id):
     report = InspectionReport.query.get(report_id)
     if not report or not report.analysis_json:
         return jsonify({"error": "No analysis available"}), 404
-    analysis = json.loads(report.analysis_json)
-    analysis['_meta'] = {
-        'summary': report.summary,
-        'address': report.address,
-        'share_token': report.shareToken,
-        'customer_name': report.customerName,
-        'customer_email': report.customerEmail,
-    }
-    return jsonify(analysis)
+    return jsonify(json.loads(report.analysis_json))
 
 @app.route('/api/punchlist-pdf/<report_id>', methods=['GET'])
 def generate_punchlist_pdf(report_id):
@@ -252,58 +193,50 @@ def generate_punchlist_pdf(report_id):
         p.drawCentredString(w / 2, h - 60, datetime.utcnow().strftime("%B %d, %Y"))
         y = h - 90
 
-        # CONDITION BADGE (above property info)
-        condition = analysis.get("condition", "N/A")
-        cond_color = GREEN if condition == "Well Maintained" else (AMBER if condition == "Needs TLC" else PINK)
-        badge_width = 110
-        p.setFillColor(cond_color)
-        p.roundRect(60, y - 6, badge_width, 22, 6, fill=True, stroke=False)
-        p.setFillColor(WHITE)
-        p.setFont("Helvetica-Bold", 11)
-        p.drawCentredString(60 + badge_width / 2, y + 4, condition)
-        y -= 32
-
-        # PROPERTY INFO - aligned grid
-        label_x = 60
-        value_x = 130
+        # PROPERTY INFO
         p.setFillColor(DARK_TEXT)
         p.setFont("Helvetica", 9)
-        p.drawString(label_x, y, "Property:")
+        p.drawString(60, y, "Property:")
         p.setFont("Helvetica-Bold", 9)
-        p.drawString(value_x, y, report.address or "Unknown Address")
+        p.drawString(115, y, report.address or "Unknown Address")
         y -= 14
         p.setFont("Helvetica", 9)
-        p.drawString(label_x, y, "Prepared for:")
+        p.drawString(60, y, "Prepared for:")
         p.setFont("Helvetica-Bold", 9)
-        p.drawString(value_x, y, report.customerName or "N/A")
-        p.setFont("Helvetica", 9)
-        p.drawString(310, y, "Phone:")
-        p.setFont("Helvetica-Bold", 9)
-        p.drawString(340, y, report.customerPhone or "N/A")
-        p.setFont("Helvetica", 9)
-        p.drawString(430, y, "Email:")
-        p.setFont("Helvetica-Bold", 9)
-        p.drawString(458, y, report.customerEmail or "N/A")
-        y -= 18
+        p.drawString(115, y, report.customerName or "N/A")
+        if report.customerPhone:
+            p.setFont("Helvetica", 9)
+            p.drawString(300, y, "Phone: " + report.customerPhone)
+        if report.customerEmail:
+            p.setFont("Helvetica", 9)
+            p.drawString(430, y, "Email: " + report.customerEmail)
+        y -= 20
 
-        # BUDGETS
+        # CONDITION + BUDGETS
+        condition = analysis.get("condition", "N/A")
+        cond_color = GREEN if condition == "Good" else (AMBER if condition == "Fair" else PINK)
+        p.setFillColor(cond_color)
+        p.roundRect(60, y - 6, 80, 22, 6, fill=True, stroke=False)
+        p.setFillColor(WHITE)
+        p.setFont("Helvetica-Bold", 12)
+        p.drawCentredString(100, y + 4, condition)
+
         budget_now = analysis.get("budget_now", "N/A")
         budget_5yr = analysis.get("budget_5yr", "N/A")
         currency   = analysis.get("currency", "USD")
         p.setFillColor(DARK_TEXT)
         p.setFont("Helvetica", 9)
-        p.drawString(label_x, y, "Now - 12 months (" + currency + "):")
-        p.setFillColor(TEAL)
+        p.drawString(160, y + 10, "Now - 12 months (" + currency + "):")
+        p.setFillColor(PINK)
         p.setFont("Helvetica-Bold", 10)
-        p.drawString(value_x + 90, y, budget_now)
-        y -= 14
+        p.drawString(290, y + 10, budget_now)
         p.setFillColor(DARK_TEXT)
         p.setFont("Helvetica", 9)
-        p.drawString(label_x, y, "5-Year outlook (" + currency + "):")
+        p.drawString(160, y - 2, "5-Year outlook (" + currency + "):")
         p.setFillColor(TEAL)
         p.setFont("Helvetica-Bold", 10)
-        p.drawString(value_x + 90, y, budget_5yr)
-        y -= 20
+        p.drawString(290, y - 2, budget_5yr)
+        y -= 30
 
         # DIVIDER
         p.setStrokeColor(TEAL)
@@ -339,15 +272,15 @@ def generate_punchlist_pdf(report_id):
                 p.setFont("Helvetica", 8)
                 p.setFillColor(LIGHT_GRAY)
                 p.drawString(cols[1], y + 2, str(item.get("trade", ""))[:20])
-                p.setFillColor(TEAL)
+                p.setFillColor(PINK)
                 p.setFont("Helvetica-Bold", 8)
                 p.drawString(cols[2], y + 2, str(item.get("cost", "TBD")))
                 p.setFillColor(AMBER)
                 p.setFont("Helvetica", 8)
                 p.drawString(cols[3], y + 2, str(item.get("timeline", ""))[:18])
-                p.setFillColor(TEAL)
+                p.setFillColor(PINK)
                 p.setFont("Helvetica-Bold", 8)
-                p.drawString(cols[4], y + 2, "High Priority")
+                p.drawString(cols[4], y + 2, "URGENT")
                 y -= 16
             y -= 10
 
@@ -389,151 +322,49 @@ def generate_punchlist_pdf(report_id):
                 y -= 16
             y -= 10
 
-        # CHECKLIST - grouped: ATTN first, SATS second
+        # CHECKLIST
         checklist = analysis.get("checklist", [])
         if checklist:
             y = check_page(y, 60)
-
-            # Title + legend on same line
             p.setFillColor(DARK_TEXT)
             p.setFont("Helvetica-Bold", 13)
             p.drawString(60, y, "Inspection Checklist")
-            # Legend - right side
-            legend_x = w - 60
-            p.setFont("Helvetica", 7)
-            p.setFillColor(LIGHT_GRAY)
-            p.drawRightString(legend_x, y + 2, "SATS = Satisfactory condition     ATTN = Needs attention or follow-up")
-            y -= 20
-
-            attn_items = [i for i in checklist if not i.get("passed", True)]
-            sats_items = [i for i in checklist if i.get("passed", True)]
-
-            # ATTN GROUP
-            if attn_items:
-                p.setFillColor(LIGHT_GRAY)
-                p.setFont("Helvetica", 7)
-                p.drawString(60, y, "▸  ITEMS REQUIRING ATTENTION")
-                y -= 12
-                for item in attn_items:
-                    y = check_page(y, 16)
-                    text = item.get("text", "")
-                    # Row background
-                    p.setFillColor(HexColor('#fffbeb'))
-                    p.rect(55, y - 4, w - 110, 16, fill=True, stroke=False)
-                    # Badge
-                    p.setFillColor(AMBER)
-                    p.roundRect(60, y - 2, 34, 13, 4, fill=True, stroke=False)
-                    p.setFillColor(WHITE)
-                    p.setFont("Helvetica-Bold", 7)
-                    p.drawCentredString(77, y + 4, "ATTN")
-                    # Text
-                    p.setFillColor(DARK_TEXT)
-                    p.setFont("Helvetica", 8.5)
-                    lines = simpleSplit(text, "Helvetica", 8.5, w - 180)
-                    p.drawString(102, y + 3, lines[0] if lines else text)
-                    y -= 15
-                y -= 6
-
-            # SATS GROUP
-            if sats_items:
-                y = check_page(y, 20)
-                p.setFillColor(LIGHT_GRAY)
-                p.setFont("Helvetica", 7)
-                p.drawString(60, y, "▸  SATISFACTORY ITEMS")
-                y -= 12
-                for item in sats_items:
-                    y = check_page(y, 16)
-                    text = item.get("text", "")
-                    # Row background
-                    p.setFillColor(HexColor('#f0fdf4'))
-                    p.rect(55, y - 4, w - 110, 16, fill=True, stroke=False)
-                    # Badge
-                    p.setFillColor(GREEN)
-                    p.roundRect(60, y - 2, 34, 13, 4, fill=True, stroke=False)
-                    p.setFillColor(WHITE)
-                    p.setFont("Helvetica-Bold", 7)
-                    p.drawCentredString(77, y + 4, "SATS")
-                    # Text
-                    p.setFillColor(DARK_TEXT)
-                    p.setFont("Helvetica", 8.5)
-                    lines = simpleSplit(text, "Helvetica", 8.5, w - 180)
-                    p.drawString(102, y + 3, lines[0] if lines else text)
-                    y -= 15
-            y -= 14
-
-        # INSPECTOR NOTES - styled card
-        if report.summary:
-            y = check_page(y, 80)
-            # Dark header bar
-            p.setFillColor(DARK_BG)
-            p.rect(55, y - 4, w - 110, 22, fill=True, stroke=False)
-            p.setFillColor(TEAL)
-            p.setFont("Helvetica-Bold", 11)
-            p.drawString(68, y + 4, "Inspector Notes")
             y -= 18
-
-            # Paragraphs with left border
-            paragraphs = [p2.strip() for p2 in report.summary.split('\n') if p2.strip()]
-            if len(paragraphs) <= 1:
-                # If no newlines, split by sentence groups (~3 sentences each)
-                import re
-                sentences = re.split(r'(?<=[.!?])\s+', report.summary.strip())
-                paragraphs = []
-                chunk = []
-                for i, s in enumerate(sentences):
-                    chunk.append(s)
-                    if len(chunk) == 3 or i == len(sentences) - 1:
-                        paragraphs.append(' '.join(chunk))
-                        chunk = []
-
-            for para in paragraphs:
-                lines = simpleSplit(para, "Helvetica", 8, w - 145)
-                needed = len(lines) * 11 + 14
-                y = check_page(y, needed)
-                # Left border line
-                p.setStrokeColor(TEAL)
-                p.setLineWidth(1.5)
-                p.line(60, y + 2, 60, y - needed + 14)
-                p.setLineWidth(0.5)
-                # Para text
-                p.setFillColor(HexColor('#4b5563'))
-                p.setFont("Helvetica", 8)
-                for line in lines:
-                    p.drawString(72, y, line)
-                    y -= 11
-                y -= 8
-
-        # DISCLAIMER
-        y = check_page(y, 60)
-        y -= 10
-        disclaimer_text = (
-            "Important Notice — Cost Estimates Only: All figures in this report are approximations based on "
-            "regional contractor averages and are provided for budgeting guidance only. Actual costs will vary "
-            "based on contractor, scope of work, materials, and site conditions. This report does not constitute "
-            "a warranty, guarantee, or professional cost assessment. Obtain multiple licensed contractor quotes "
-            "before committing to any repair work. Assure Home Inspections and Lot7 are not liable for "
-            "discrepancies between estimated and actual repair costs."
-        )
-        disc_lines = simpleSplit(disclaimer_text, "Helvetica", 7.5, w - 140)
-        box_h = len(disc_lines) * 10 + 16
-        y = check_page(y, box_h + 10)
-        # Box background
-        p.setFillColor(HexColor('#f8fafc'))
-        p.rect(55, y - box_h + 8, w - 110, box_h, fill=True, stroke=False)
-        # Teal left accent
-        p.setFillColor(TEAL)
-        p.rect(55, y - box_h + 8, 3, box_h, fill=True, stroke=False)
-        # Label
-        p.setFillColor(DARK_TEXT)
-        p.setFont("Helvetica-Bold", 7.5)
-        p.drawString(66, y + 2, "⚠  Estimates & Disclaimer")
-        y -= 12
-        p.setFillColor(LIGHT_GRAY)
-        p.setFont("Helvetica", 7.5)
-        for line in disc_lines:
-            p.drawString(66, y, line)
+            for item in checklist:
+                y = check_page(y, 14)
+                passed = item.get("passed", True)
+                text   = item.get("text", "")
+                badge_color = GREEN if passed else AMBER
+                label = "PASS" if passed else "WARN"
+                p.setFillColor(badge_color)
+                p.roundRect(60, y - 3, 34, 13, 4, fill=True, stroke=False)
+                p.setFillColor(WHITE)
+                p.setFont("Helvetica-Bold", 7)
+                p.drawCentredString(77, y + 3, label)
+                p.setFillColor(DARK_TEXT)
+                p.setFont("Helvetica", 9)
+                lines = simpleSplit(text, "Helvetica", 9, w - 220)
+                p.drawString(102, y + 3, lines[0] if lines else text)
+                y -= 14
             y -= 10
-        y -= 10
+
+        # SUMMARY NOTES
+        if report.summary:
+            y = check_page(y, 60)
+            p.setStrokeColor(TEAL)
+            p.setLineWidth(0.5)
+            p.line(60, y, w - 60, y)
+            y -= 16
+            p.setFillColor(DARK_TEXT)
+            p.setFont("Helvetica-Bold", 11)
+            p.drawString(60, y, "Inspector Notes")
+            y -= 14
+            p.setFillColor(LIGHT_GRAY)
+            p.setFont("Helvetica", 8)
+            for line in simpleSplit(report.summary, "Helvetica", 8, w - 120):
+                y = check_page(y, 12)
+                p.drawString(60, y, line)
+                y -= 11
 
         # FOOTER
         p.setStrokeColor(TEAL)
@@ -658,7 +489,7 @@ def generate_pdf(report_id):
             p.setFillColor(DARK_TEXT)
             p.setFont("Helvetica-Bold", 10)
             p.drawString(70, y, name)
-            p.setFillColor(TEAL)
+            p.setFillColor(PINK)
             p.setFont("Helvetica-Bold", 10)
             p.drawString(170, y, cost)
             p.setFillColor(LIGHT_GRAY)
@@ -682,7 +513,7 @@ def generate_pdf(report_id):
         for passed, text in checks:
             p.setFillColor(TEAL if passed else HexColor('#c89600'))
             p.setFont("Helvetica-Bold", 9)
-            p.drawString(70, y, "SATS" if passed else "ATTN")
+            p.drawString(70, y, "PASS" if passed else "WARN")
             p.setFillColor(DARK_TEXT)
             p.setFont("Helvetica", 10)
             p.drawString(110, y, text)
@@ -729,17 +560,33 @@ def upload_report():
     try:
         if 'file' not in request.files:
             return jsonify({'error': 'No file provided'}), 400
-
+        
         file = request.files['file']
         if file.filename == '':
             return jsonify({'error': 'No file selected'}), 400
-
-        # Save file and extract text (fast — no AI yet)
+        
+        # Save file
         filepath = save_uploaded_file(file, app.config['UPLOAD_FOLDER'])
+        
+        # Extract text
         print("Extracting text from PDF...")
-        extracted_text = extract_text_from_pdf(filepath).replace('\x00', '')
+        extractedText = extract_text_from_pdf(filepath).replace('\x00', '')
+        
+        # Generate summary
+        print("Generating AI summary...")
+        summary = generate_summary_from_report(extractedText).replace('\x00', '')
 
-        # Create DB record immediately with no summary/analysis yet
+        # Generate structured analysis (NEW)
+        print("Generating structured analysis...")
+        try:
+            analysis_raw = generate_structured_analysis(extractedText)
+            json.loads(analysis_raw)  # validate it's real JSON
+            analysis_json = analysis_raw
+        except Exception as e:
+            print(f"Structured analysis failed: {e}")
+            analysis_json = None
+        
+        # Create database record
         report = InspectionReport(
             address=request.form.get('address', 'Unknown Address'),
             customerName=request.form.get('customer_name', 'Unknown'),
@@ -751,50 +598,35 @@ def upload_report():
             originalFilename=secure_filename(file.filename),
             filePath=filepath,
             fileSize=os.path.getsize(filepath),
-            extractedText=extracted_text,
-            summary='Analysis in progress...',
-            analysis_json=None,
+            extractedText=extractedText,
+            summary=summary,
+            analysis_json=analysis_json,
             isShared=True,
-            shareToken=str(uuid.uuid4())[:8]
+            shareToken=str(uuid.uuid4())[:8] 
         )
+        
         db.session.add(report)
         db.session.commit()
-
-        report_id = report.id
-        JOB_STATUS[report_id] = {'status': 'processing', 'progress': 5}
-
-        # Kick off AI analysis in background thread
-        ctx = app.app_context()
-        t = threading.Thread(
-            target=run_analysis_background,
-            args=(ctx, report_id, extracted_text),
-            daemon=True
-        )
-        t.start()
-
+        
+        # Cache the conversation
+        qa_system = InspectionReportQA(extractedText)
+        REPORT_CACHE[report.id] = qa_system
+        if len(REPORT_CACHE) > MAX_CACHE_SIZE:
+            REPORT_CACHE.popitem(last=False)
+        
         return jsonify({
             'success': True,
-            'report_id': report_id,
+            'report_id': report.id,
             'shareToken': report.shareToken,
+            'summary': summary,
             'address': report.address,
-            'message': 'Upload received — analysis running'
-        }), 202
-
+            'message': 'Report uploaded successfully'
+        }), 201
+        
     except Exception as e:
-        print(f"Upload error: {e}")
+        db.session.rollback()
+        print(f"Error: {str(e)}")
         return jsonify({'error': str(e)}), 500
-
-@app.route('/api/status/<report_id>', methods=['GET'])
-def get_upload_status(report_id):
-    """Poll this endpoint to track background analysis progress."""
-    job = JOB_STATUS.get(report_id)
-    if not job:
-        # Not in memory — check DB (e.g. after server restart)
-        report = InspectionReport.query.get(report_id)
-        if report and report.analysis_json:
-            return jsonify({'status': 'done', 'progress': 100})
-        return jsonify({'status': 'unknown', 'progress': 0})
-    return jsonify(job)
 
 @app.route('/api/ask/<report_id>', methods=['POST'])
 def ask_question(report_id):
@@ -954,38 +786,6 @@ def create_contractor():
     except Exception as e:
         db.session.rollback()
         return jsonify({'error': str(e)}), 500
-
-@app.route('/api/admin/contractors/<contractor_id>', methods=['PUT', 'DELETE'])
-def manage_contractor(contractor_id):
-    contractor = Contractor.query.get(contractor_id)
-    if not contractor:
-        return jsonify({'error': 'Contractor not found'}), 404
-
-    if request.method == 'DELETE':
-        try:
-            contractor.isActive = False  # soft delete
-            db.session.commit()
-            return jsonify({'success': True, 'message': 'Contractor deleted'}), 200
-        except Exception as e:
-            db.session.rollback()
-            return jsonify({'error': str(e)}), 500
-
-    if request.method == 'PUT':
-        try:
-            data = request.get_json()
-            if 'name' in data: contractor.name = data['name']
-            if 'specialty' in data: contractor.specialty = data['specialty']
-            if 'phone' in data: contractor.phone = data['phone']
-            if 'email' in data: contractor.email = data['email']
-            if 'city' in data: contractor.city = data['city']
-            if 'state' in data: contractor.state = data['state']
-            if 'zip_codes' in data: contractor.zipCodes = data['zip_codes']
-            if 'rating' in data: contractor.rating = float(data['rating'])
-            db.session.commit()
-            return jsonify({'success': True, 'message': 'Contractor updated'}), 200
-        except Exception as e:
-            db.session.rollback()
-            return jsonify({'error': str(e)}), 500
 
 @app.route('/api/admin/leads', methods=['GET'])
 def get_leads():
@@ -1258,44 +1058,6 @@ def upload_warranty(report_id):
         return jsonify({'error': str(e)}), 500
 
 # Warranty endpoints removed - functionality moved to unified /api/ask endpoint
-# ============================================================================
-# STRIPE PAYMENT
-# ============================================================================
-
-@app.route('/api/create-checkout/<report_id>', methods=['POST'])
-def create_checkout(report_id):
-    try:
-        session = stripe.checkout.Session.create(
-            payment_method_types=['card'],
-            line_items=[{
-                'price': 'price_1T76JzBBFtZ2bcRJvOkXbYiJ',
-                'quantity': 1,
-            }],
-            mode='payment',
-            success_url=request.host_url + 'dashboard?report_id=' + report_id + '&paid=true',
-            cancel_url=request.host_url + 'dashboard?report_id=' + report_id,
-            metadata={'report_id': report_id}
-        )
-        return jsonify({'checkout_url': session.url})
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
-
-@app.route('/api/stripe-webhook', methods=['POST'])
-def stripe_webhook():
-    payload = request.get_data()
-    sig_header = request.headers.get('Stripe-Signature')
-    webhook_secret = os.getenv('STRIPE_WEBHOOK_SECRET')
-    try:
-        event = stripe.Webhook.construct_event(payload, sig_header, webhook_secret)
-        if event['type'] == 'checkout.session.completed':
-            report_id = event['data']['object']['metadata']['report_id']
-            report = InspectionReport.query.get(report_id)
-            if report:
-                report.is_paid = True
-                db.session.commit()
-    except Exception as e:
-        return jsonify({'error': str(e)}), 400
-    return jsonify({'status': 'ok'})
 
 # ============================================================================
 # ERROR HANDLERS

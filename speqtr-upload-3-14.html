@@ -194,51 +194,24 @@
       submitBtn.style.display='none';
       processingState.classList.add('visible');
       const stepInterval=animateSteps();
-
       const formData=new FormData();
       formData.append('file',selectedFile);
       formData.append('customer_name',document.getElementById('customerName').value);
       formData.append('customer_email',document.getElementById('customerEmail').value);
       formData.append('customer_phone',document.getElementById('customerPhone').value);
       formData.append('address', selectedFile.name);
-
-      let reportId=null;
       try {
         const res=await fetch('/api/upload',{method:'POST',body:formData});
         const data=await res.json();
-        if(!data.report_id) throw new Error(data.error||'Upload failed');
-        reportId=data.report_id;
+        clearInterval(stepInterval);
+        if(data.report_id){window.location.href='/dashboard?report_id='+data.report_id}
       } catch(err){
         clearInterval(stepInterval);
         processingState.classList.remove('visible');
         submitBtn.style.display='';
         submitBtn.disabled=false;
         alert('Upload failed. Please try again.');
-        return;
       }
-
-      // Poll /api/status every 3 seconds until done
-      const pollInterval=setInterval(async()=>{
-        try {
-          const sr=await fetch('/api/status/'+reportId);
-          const sd=await sr.json();
-          if(sd.status==='done'){
-            clearInterval(pollInterval);
-            clearInterval(stepInterval);
-            window.location.href='/dashboard?report_id='+reportId;
-          } else if(sd.status==='error'){
-            clearInterval(pollInterval);
-            clearInterval(stepInterval);
-            processingState.classList.remove('visible');
-            submitBtn.style.display='';
-            submitBtn.disabled=false;
-            alert('Analysis failed. Please try again.');
-          }
-          // still 'processing' — keep waiting
-        } catch(err){
-          // network blip — keep polling, don't abort
-        }
-      },3000);
     });
   </script>
 </body>
