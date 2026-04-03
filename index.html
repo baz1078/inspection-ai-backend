@@ -1339,7 +1339,7 @@
                                     </div>
                                 `;
                                 return teaser.map(item => `
-                                    <div class="issue-card" onclick="${state.isPaid ? `askQuestionCard('Tell me more about this issue and what I should do')` : 'startCheckout()'}">
+                                    <div class="issue-card" onclick="${state.isPaid ? `askQuestionCard('Tell me more about ${item.name.replace(/'/g, "\\'")} and what I should do')` : 'startCheckout()'}">
                                         <div class="issue-title" style="margin-bottom:10px;">${escapeHtml(item.name)}</div>
                                         <div class="issue-cost">${escapeHtml(item.cost)}</div>
                                     </div>
@@ -1357,7 +1357,7 @@
                                     ${urgentRest.length > 0 ? `
                                         <div class="issues-grid">
                                             ${urgentRest.map(item => `
-                                                <div class="issue-card" onclick="askQuestionCard('Tell me more about this issue and what I should do')">
+                                                <div class="issue-card" onclick="askQuestionCard('Tell me more about ${item.name.replace(/'/g, "\\'")} and what I should do')">
                                                     <div class="issue-title" style="margin-bottom:10px;">${escapeHtml(item.name)}</div>
                                                     <div class="issue-cost">${escapeHtml(item.cost)}</div>
                                                 </div>
@@ -1369,7 +1369,7 @@
                                         <div class="section-label section-label-maintenance">Attention</div>
                                         <div class="maint-rows">
                                             ${a.maintenance_items.map(item => `
-                                                <div class="maint-row" onclick="askQuestionCard('Tell me about this item and when I should address it')">
+                                                <div class="maint-row" onclick="askQuestionCard('Tell me about ${item.name.replace(/'/g, "\\'")} and when I should address it')">
                                                     <div class="maint-row-left">${escapeHtml(item.name)}</div>
                                                     <div class="maint-row-right">
                                                         <span class="maint-row-cost">${escapeHtml(item.cost)}</span>
