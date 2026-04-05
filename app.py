@@ -37,9 +37,8 @@ def index():
 
 @app.route('/dashboard')
 def dashboard():
-    from flask import redirect
-    args = request.query_string.decode()
-    return redirect('https://www.lot7.ai/index.html?' + args if args else 'https://www.lot7.ai/index.html')
+    with open('index.html', 'r', encoding='utf-8') as f:
+        return f.read()
 
 # Database config
 app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URL', 'sqlite:///inspection_reports.db')
@@ -1273,8 +1272,8 @@ def create_checkout(report_id):
                 'quantity': 1,
             }],
             mode='payment',
-            success_url='https://www.lot7.ai/?report_id=' + report_id + '&paid=true',
-            cancel_url='https://www.lot7.ai/?report_id=' + report_id,
+            success_url=request.host_url + 'dashboard?report_id=' + report_id + '&paid=true',
+            cancel_url=request.host_url + 'dashboard?report_id=' + report_id,
             metadata={'report_id': report_id}
         )
         return jsonify({'checkout_url': session.url})
