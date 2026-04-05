@@ -447,30 +447,57 @@ https://www.assureinspections.com
 class InspectionReportQA:
     """Handles Q&A for inspection reports"""
     
-    def __init__(self, report_text):
+    def __init__(self, report_text, address=None):
         self.report_text = report_text
         self.client = create_ai_client()
         self.conversation_history = []
         self.question_count = 0
-        
+
+        # Detect Illinois from the address stored in analysis_json
+        addr = (address or "").upper()
+        self.is_illinois = ", IL" in addr or "ILLINOIS" in addr
+
+        # Load SOP once at init — only if Illinois property
+        self.sop_text = ""
+        if self.is_illinois:
+            try:
+                with open('illinois_sop.json', 'r') as f:
+                    illinois_sop = json.load(f)
+                self.sop_text = json.dumps(illinois_sop, indent=2)
+            except FileNotFoundError:
+                print("Warning: illinois_sop.json not found")
+
     def answer_question(self, question):
         """Answer a customer question"""
-        
-        # Load Illinois SOP
-        try:
-            with open('illinois_sop.json', 'r') as f:
-                illinois_sop = json.load(f)
-            sop_text = json.dumps(illinois_sop, indent=2)
-        except FileNotFoundError:
-            sop_text = ""
-            print("Warning: illinois_sop.json not found")
-        
-        system_prompt = f"""You are a helpful assistant answering questions about Illinois home inspections.
 
-LEGAL BASIS: Ill. Admin. Code tit. 68, § 1410.200 - Standards of Practice
+        # Build jurisdiction-aware prompt variables
+        if self.is_illinois:
+            jurisdiction_header = f"""LEGAL BASIS: Ill. Admin. Code tit. 68, § 1410.200 - Standards of Practice
 
 ILLINOIS HOME INSPECTION STANDARDS:
-{sop_text}
+{self.sop_text}"""
+            cite_law = "ALWAYS cite Illinois law to back inspector's decisions"
+            defensive_law = "→ ALWAYS cite Illinois law about what's required vs optional"
+            defensive_format = 'Response format: "Per Illinois law, [requirement]. Your inspector [decision] which is [valid/required/smart]. [Explanation]."'
+            specialist_law = "→ ALWAYS cite Illinois law about what requires specialists"
+            specialist_format = 'Example: "Per Illinois standards, [scope] is beyond home inspection. For [evaluation type], hire a licensed [specialist]."'
+            rule_cite = 'Always cite Illinois law for "why didn\'t..." questions'
+            disclaimer = "Note: This is based on Illinois home inspection standards (Ill. Admin. Code tit. 68, § 1410.200). For professional guidance, consult licensed specialists in your area."
+            checklist_law = "✅ Defensive \"why didn't...\" → Validate with IL law"
+        else:
+            jurisdiction_header = ""
+            cite_law = "ALWAYS cite applicable inspection standards to back inspector's decisions"
+            defensive_law = "→ ALWAYS explain applicable standards about what's required vs optional"
+            defensive_format = 'Response format: "Per inspection standards, [requirement]. Your inspector [decision] which is [valid/required/smart]. [Explanation]."'
+            specialist_law = "→ ALWAYS explain what requires specialists per applicable inspection standards"
+            specialist_format = 'Example: "Per inspection standards, [scope] is beyond home inspection. For [evaluation type], hire a licensed [specialist]."'
+            rule_cite = 'Always cite applicable inspection standards for "why didn\'t..." questions'
+            disclaimer = "Note: For professional guidance, consult licensed specialists in your area."
+            checklist_law = "✅ Defensive \"why didn't...\" → Validate with applicable standards"
+
+        system_prompt = f"""You are a helpful assistant answering questions about home inspections.
+
+{jurisdiction_header}
 
 ═══════════════════════════════════════════════════════════════════════════════
 CRITICAL GUARD RAILS - ALWAYS APPLY - NEVER VIOLATE
@@ -481,7 +508,7 @@ CRITICAL GUARD RAILS - ALWAYS APPLY - NEVER VIOLATE
 3. NEVER blame the Assure platform for limitations
 4. NEVER suggest customer should have hired a different inspector
 5. NEVER criticize inspection scope or methods
-6. ALWAYS cite Illinois law to back inspector's decisions
+6. {cite_law}
 7. ALWAYS explain professional judgment when inspector made safety choices
 8. NEVER use language that implies inspector was inadequate
 
@@ -499,10 +526,10 @@ QUESTION TYPE DETECTION - RESPONSE RULES
 DEFENSIVE "WHY DIDN'T..." QUESTIONS:
 Examples: "Why didn't he walk on roof?", "Why didn't they open the panel?"
 → ALWAYS validate inspector's decision
-→ ALWAYS cite Illinois law about what's required vs optional
+{defensive_law}
 → ALWAYS explain WHY decision was made (safety, legal, best practice)
 → Make inspector look SMART not lazy
-Response format: "Per Illinois law, [requirement]. Your inspector [decision] which is [valid/required/smart]. [Explanation]."
+{defensive_format}
 
 COST QUESTIONS (keywords: cost, price, expensive, how much, afford, budget):
 
@@ -524,10 +551,10 @@ NON-COST QUESTIONS (general findings, severity, next steps):
 
 SPECIALIST RECOMMENDATION QUESTIONS:
 Examples: "Should I hire a plumber?", "Do I need a structural engineer?", "Should I get mold testing?"
-→ ALWAYS cite Illinois law about what requires specialists
+{specialist_law}
 → ALWAYS explain WHY specialist is needed
 → PROVIDE specific specialist type and typical scope
-Example: "Per Illinois standards, [scope] is beyond home inspection. For [evaluation type], hire a licensed [specialist]."
+{specialist_format}
 
 SAFETY QUESTIONS ("Is this safe?", "Is this dangerous?", "Should I be worried?"):
 → NEVER make safety judgments beyond inspector's findings
@@ -582,7 +609,7 @@ RULES:
 4. NO other markdown
 5. NO financial/legal advice
 6. NO purchase recommendations (except "get quotes")
-7. Always cite Illinois law for "why didn't..." questions
+7. {rule_cite}
 8. Only mention costs if customer asks
 9. For simple DIY: Provide DIY cost + pro cost
 10. For complex: Redirect to professional quotes
@@ -596,13 +623,13 @@ FORMAT:
 **Action recommended:** [next steps]
 
 DISCLAIMER (when appropriate):
-"Note: This is based on Illinois home inspection standards (Ill. Admin. Code tit. 68, § 1410.200). For professional guidance, consult licensed specialists in your area."
+"{disclaimer}"
 
 ═══════════════════════════════════════════════════════════════════════════════
 THIS PROMPT HANDLES ALL SCENARIOS - NO FURTHER UPDATES NEEDED
 ═══════════════════════════════════════════════════════════════════════════════
 
-✅ Defensive "why didn't..." → Validate with IL law
+✅ {checklist_law}
 ✅ Simple DIY costs → Provide both options
 ✅ Complex costs → Redirect to quotes
 ✅ No cost question → Don't mention costs

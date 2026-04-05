@@ -105,7 +105,8 @@ def run_analysis_background(app_ctx, report_id, extracted_text):
                 report.analysis_json = analysis_json
                 db.session.commit()
 
-            qa_system = InspectionReportQA(extracted_text)
+            _address = json.loads(analysis_json).get('address', '') if analysis_json else ''
+            qa_system = InspectionReportQA(extracted_text, address=_address)
             REPORT_CACHE[report_id] = qa_system
             if len(REPORT_CACHE) > MAX_CACHE_SIZE:
                 REPORT_CACHE.popitem(last=False)
@@ -825,7 +826,9 @@ def ask_question(report_id):
         if report_id in REPORT_CACHE:
             qa_system = REPORT_CACHE[report_id]
         else:
-            qa_system = InspectionReportQA(report.extractedText)
+            _analysis = json.loads(report.analysis_json or '{}')
+            _address = _analysis.get('address', '')
+            qa_system = InspectionReportQA(report.extractedText, address=_address)
             REPORT_CACHE[report_id] = qa_system
             if len(REPORT_CACHE) > MAX_CACHE_SIZE:
                 REPORT_CACHE.popitem(last=False)
