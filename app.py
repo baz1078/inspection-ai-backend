@@ -39,7 +39,7 @@ def index():
 def dashboard():
     from flask import redirect
     args = request.query_string.decode()
-    return redirect('https://www.lot7.ai/?' + args if args else 'https://www.lot7.ai/')
+    return redirect('https://www.lot7.ai/index.html?' + args if args else 'https://www.lot7.ai/index.html')
 
 # Database config
 app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URL', 'sqlite:///inspection_reports.db')
