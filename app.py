@@ -1183,6 +1183,24 @@ def get_dashboard_stats():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
+@app.route('/api/admin/questions/recent', methods=['GET'])
+def get_recent_questions():
+    try:
+        limit = int(request.args.get('limit', 25))
+        questions = Question.query.order_by(Question.createdAt.desc()).limit(limit).all()
+        return jsonify({
+            'questions': [{
+                'id': q.id,
+                'question': q.question,
+                'answer': q.answer,
+                'issue_type': q.issueType,
+                'report_id': q.reportId,
+                'created_at': q.createdAt.isoformat() if q.createdAt else None
+            } for q in questions]
+        }), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
 # ============================================================================
 # WARRANTY ENDPOINTS
 # ============================================================================

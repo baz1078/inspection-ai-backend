@@ -3,556 +3,616 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Assure Inspections - Admin Dashboard</title>
+    <title>Lot7 — Admin Panel</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        * {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', sans-serif;
-        }
+        * { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', sans-serif; }
+
+        body { background: #0f1419; }
+
         .sidebar {
-            background: linear-gradient(135deg, #0EA5E9 0%, #0369A1 100%);
+            background: #0f1419;
+            border-right: 1px solid #1e2a35;
         }
         .nav-item {
-            padding: 12px 16px;
+            padding: 11px 20px;
             cursor: pointer;
-            transition: all 0.3s;
-            color: rgba(255,255,255,0.8);
-            border-left: 4px solid transparent;
+            transition: all 0.2s;
+            color: rgba(255,255,255,0.5);
+            border-left: 3px solid transparent;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
         }
-        .nav-item:hover {
-            background: rgba(255,255,255,0.1);
-        }
+        .nav-item:hover { background: rgba(20,184,166,0.08); color: rgba(255,255,255,0.8); }
         .nav-item.active {
-            background: rgba(255,255,255,0.2);
-            border-left-color: white;
-            color: white;
+            background: rgba(20,184,166,0.12);
+            border-left-color: #14b8a6;
+            color: #14b8a6;
             font-weight: 600;
         }
+
+        .main-content { background: #f8fafc; }
+
         .stat-card {
             background: white;
             border: 1px solid #e5e7eb;
-            border-radius: 12px;
-            padding: 20px;
-            transition: all 0.3s;
+            border-radius: 10px;
+            padding: 20px 24px;
+            transition: box-shadow 0.2s;
         }
-        .stat-card:hover {
-            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-        }
-        .stat-number {
-            font-size: 32px;
-            font-weight: bold;
-            color: #0ea5e9;
-        }
-        .table-row {
-            padding: 12px;
-            border-bottom: 1px solid #f3f4f6;
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-            gap: 12px;
-            align-items: center;
-        }
-        .table-row:hover {
-            background: #f9fafb;
-        }
-        .button-small {
-            padding: 6px 12px;
-            border-radius: 6px;
-            font-size: 12px;
-            cursor: pointer;
-            transition: all 0.2s;
-        }
-        .button-primary {
-            background: #0ea5e9;
-            color: white;
-        }
-        .button-primary:hover {
-            background: #0284c7;
-        }
-        .button-danger {
-            background: #ef4444;
-            color: white;
-        }
-        .button-danger:hover {
-            background: #dc2626;
-        }
-        .modal {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: rgba(0,0,0,0.5);
-            z-index: 1000;
-            align-items: center;
-            justify-content: center;
-        }
-        .modal.active {
-            display: flex;
-        }
-        .modal-content {
+        .stat-card:hover { box-shadow: 0 4px 16px rgba(0,0,0,0.08); }
+        .stat-number { font-size: 36px; font-weight: 700; color: #14b8a6; line-height: 1; }
+        .stat-label { font-size: 12px; color: #6b7280; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 8px; }
+
+        .card {
             background: white;
-            border-radius: 12px;
-            padding: 24px;
-            max-width: 500px;
-            width: 90%;
-            max-height: 90vh;
-            overflow-y: auto;
+            border: 1px solid #e5e7eb;
+            border-radius: 10px;
+            overflow: hidden;
         }
-        .form-group {
-            margin-bottom: 16px;
+        .card-header {
+            padding: 16px 20px;
+            border-bottom: 1px solid #f3f4f6;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
         }
-        .form-group label {
-            display: block;
-            margin-bottom: 6px;
-            font-weight: 500;
-            color: #374151;
+        .card-title { font-weight: 600; color: #111827; font-size: 14px; }
+
+        .q-row {
+            padding: 14px 20px;
+            border-bottom: 1px solid #f3f4f6;
+            transition: background 0.15s;
         }
+        .q-row:last-child { border-bottom: none; }
+        .q-row:hover { background: #fafafa; }
+        .q-text { font-size: 14px; color: #111827; font-weight: 500; margin-bottom: 4px; }
+        .q-answer { font-size: 12px; color: #6b7280; line-height: 1.5; }
+        .q-meta { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+
+        .badge {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.03em;
+        }
+        .badge-electrical { background: #fef3c7; color: #92400e; }
+        .badge-roofing     { background: #fee2e2; color: #991b1b; }
+        .badge-plumbing    { background: #dbeafe; color: #1e40af; }
+        .badge-hvac        { background: #f3e8ff; color: #6b21a8; }
+        .badge-structural  { background: #fce7f3; color: #9d174d; }
+        .badge-pest        { background: #ecfdf5; color: #065f46; }
+        .badge-mold        { background: #fff7ed; color: #9a3412; }
+        .badge-general     { background: #f1f5f9; color: #475569; }
+        .badge-siding      { background: #e0f2fe; color: #0c4a6e; }
+        .badge-radon       { background: #fdf4ff; color: #6b21a8; }
+
+        .type-bar { display: flex; align-items: center; gap: 12px; padding: 10px 0; border-bottom: 1px solid #f3f4f6; }
+        .type-bar:last-child { border-bottom: none; }
+        .type-bar-label { font-size: 13px; color: #374151; width: 90px; }
+        .type-bar-track { flex: 1; background: #f3f4f6; border-radius: 4px; height: 6px; overflow: hidden; }
+        .type-bar-fill { height: 100%; background: #14b8a6; border-radius: 4px; transition: width 0.6s ease; }
+        .type-bar-count { font-size: 13px; font-weight: 700; color: #111827; width: 24px; text-align: right; }
+
+        .topbar { background: white; border-bottom: 1px solid #e5e7eb; }
+
+        table { border-collapse: collapse; width: 100%; }
+        th { padding: 11px 16px; text-align: left; font-size: 12px; font-weight: 600; color: #6b7280; text-transform: uppercase; letter-spacing: 0.04em; background: #f9fafb; border-bottom: 1px solid #e5e7eb; }
+        td { padding: 12px 16px; font-size: 13px; color: #374151; border-bottom: 1px solid #f3f4f6; }
+        tr:last-child td { border-bottom: none; }
+        tr:hover td { background: #fafafa; }
+
+        .btn { padding: 6px 14px; border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer; transition: all 0.2s; border: none; }
+        .btn-teal { background: #14b8a6; color: white; }
+        .btn-teal:hover { background: #0d9488; }
+        .btn-red { background: #fee2e2; color: #991b1b; }
+        .btn-red:hover { background: #fecaca; }
+        .btn-outline { background: white; border: 1px solid #d1d5db; color: #374151; }
+        .btn-outline:hover { background: #f9fafb; }
+
+        .modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 1000; align-items: center; justify-content: center; }
+        .modal.active { display: flex; }
+        .modal-box { background: white; border-radius: 12px; padding: 28px; max-width: 480px; width: 90%; max-height: 90vh; overflow-y: auto; }
+
+        .form-group { margin-bottom: 14px; }
+        .form-group label { display: block; margin-bottom: 5px; font-size: 13px; font-weight: 500; color: #374151; }
         .form-group input, .form-group select {
-            width: 100%;
-            padding: 8px 12px;
-            border: 1px solid #d1d5db;
-            border-radius: 6px;
-            font-size: 14px;
+            width: 100%; padding: 8px 12px; border: 1px solid #d1d5db; border-radius: 6px;
+            font-size: 13px; box-sizing: border-box;
         }
+        .form-group input:focus, .form-group select:focus { outline: 2px solid #14b8a6; border-color: transparent; }
+
+        .status-badge { display: inline-block; padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 600; }
+        .status-pending   { background: #fef9c3; color: #854d0e; }
+        .status-contacted { background: #dbeafe; color: #1d4ed8; }
+        .status-quoted    { background: #f3e8ff; color: #7e22ce; }
+        .status-converted { background: #dcfce7; color: #166534; }
+        .status-lost      { background: #fee2e2; color: #991b1b; }
+
+        .expand-btn { cursor: pointer; color: #14b8a6; font-size: 11px; font-weight: 600; background: none; border: none; padding: 0; }
+        .q-answer.collapsed { max-height: 36px; overflow: hidden; }
     </style>
 </head>
-<body class="bg-gray-50">
-    <div class="flex h-screen">
-        <!-- Sidebar -->
-        <div class="sidebar w-64 text-white flex flex-col">
-            <div class="p-6 border-b border-white/10">
-                <img src="assure-logo.jpg" alt="Assure" class="h-8 mb-2" />
-                <h2 class="text-xl font-bold">Admin Panel</h2>
-            </div>
-            <nav class="flex-1 py-4">
-                <div class="nav-item active" onclick="switchTab('dashboard')">📊 Dashboard</div>
-                <div class="nav-item" onclick="switchTab('contractors')">👷 Contractors</div>
-                <div class="nav-item" onclick="switchTab('leads')">📞 Leads</div>
-                <div class="nav-item" onclick="switchTab('analytics')">📈 Analytics</div>
-            </nav>
-            <div class="p-4 border-t border-white/10 text-sm text-white/70">
-                Assure Inspections AI v1.0
-            </div>
+<body>
+<div class="flex h-screen overflow-hidden">
+
+    <!-- Sidebar -->
+    <div class="sidebar w-56 flex-shrink-0 flex flex-col">
+        <div class="p-6 border-b border-white/5">
+            <div style="color:#14b8a6; font-size:22px; font-weight:800; letter-spacing:-0.5px;">LOT7</div>
+            <div style="color:rgba(255,255,255,0.35); font-size:11px; margin-top:2px; letter-spacing:0.05em; text-transform:uppercase;">Admin Panel</div>
         </div>
-
-        <!-- Main Content -->
-        <div class="flex-1 flex flex-col">
-            <!-- Top Bar -->
-            <div class="bg-white border-b border-gray-200 px-8 py-4 flex justify-between items-center">
-                <h1 class="text-2xl font-bold text-gray-900" id="pageTitle">Dashboard</h1>
-                <div class="text-sm text-gray-600">
-                    <span id="timestamp"></span>
-                </div>
+        <nav class="flex-1 py-3">
+            <div class="nav-item active" onclick="switchTab('dashboard', this)">
+                <span>📊</span> Dashboard
             </div>
-
-            <!-- Content Area -->
-            <div class="flex-1 overflow-y-auto p-8">
-                <!-- Dashboard Tab -->
-                <div id="dashboard-tab" class="tab-content">
-                    <div class="grid grid-cols-4 gap-6 mb-8">
-                        <div class="stat-card">
-                            <div class="text-gray-600 text-sm mb-2">Total Reports</div>
-                            <div class="stat-number" id="stat-reports">0</div>
-                        </div>
-                        <div class="stat-card">
-                            <div class="text-gray-600 text-sm mb-2">Total Questions</div>
-                            <div class="stat-number" id="stat-questions">0</div>
-                        </div>
-                        <div class="stat-card">
-                            <div class="text-gray-600 text-sm mb-2">Active Leads</div>
-                            <div class="stat-number" id="stat-leads">0</div>
-                        </div>
-                        <div class="stat-card">
-                            <div class="text-gray-600 text-sm mb-2">Contractors</div>
-                            <div class="stat-number" id="stat-contractors">0</div>
-                        </div>
-                    </div>
-
-                    <div class="grid grid-cols-2 gap-6">
-                        <div class="bg-white rounded-12 p-6 border border-gray-200">
-                            <h3 class="font-semibold text-gray-900 mb-4">Questions by Issue Type</h3>
-                            <div id="questions-by-type" class="space-y-3"></div>
-                        </div>
-                        <div class="bg-white rounded-12 p-6 border border-gray-200">
-                            <h3 class="font-semibold text-gray-900 mb-4">Leads by Status</h3>
-                            <div id="leads-by-status" class="space-y-3"></div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Contractors Tab -->
-                <div id="contractors-tab" class="tab-content hidden">
-                    <div class="mb-6 flex justify-between items-center">
-                        <h2 class="text-xl font-semibold text-gray-900">Manage Contractors</h2>
-                        <button onclick="openAddContractorModal()" class="button-primary button-small">+ Add Contractor</button>
-                    </div>
-
-                    <div class="bg-white rounded-12 border border-gray-200 overflow-x-auto">
-                        <table class="w-full" style="border-collapse: collapse;">
-                            <thead style="background: #f3f4f6;">
-                                <tr>
-                                    <th style="padding: 12px; text-align: left; font-weight: 600; color: #374151; border-bottom: 1px solid #e5e7eb;">Name</th>
-                                    <th style="padding: 12px; text-align: left; font-weight: 600; color: #374151; border-bottom: 1px solid #e5e7eb;">Specialty</th>
-                                    <th style="padding: 12px; text-align: left; font-weight: 600; color: #374151; border-bottom: 1px solid #e5e7eb;">Location</th>
-                                    <th style="padding: 12px; text-align: left; font-weight: 600; color: #374151; border-bottom: 1px solid #e5e7eb;">Rating</th>
-                                    <th style="padding: 12px; text-align: left; font-weight: 600; color: #374151; border-bottom: 1px solid #e5e7eb;">Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody id="contractors-list">
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-
-                <!-- Leads Tab -->
-                <div id="leads-tab" class="tab-content hidden">
-                    <h2 class="text-xl font-semibold text-gray-900 mb-6">Lead Tracking</h2>
-
-                    <div class="bg-white rounded-12 border border-gray-200 overflow-x-auto">
-                        <table class="w-full" style="border-collapse: collapse;">
-                            <thead style="background: #f3f4f6;">
-                                <tr>
-                                    <th style="padding: 12px; text-align: left; font-weight: 600; color: #374151; border-bottom: 1px solid #e5e7eb;">Contractor</th>
-                                    <th style="padding: 12px; text-align: left; font-weight: 600; color: #374151; border-bottom: 1px solid #e5e7eb;">Issue</th>
-                                    <th style="padding: 12px; text-align: left; font-weight: 600; color: #374151; border-bottom: 1px solid #e5e7eb;">Status</th>
-                                    <th style="padding: 12px; text-align: left; font-weight: 600; color: #374151; border-bottom: 1px solid #e5e7eb;">Date</th>
-                                    <th style="padding: 12px; text-align: left; font-weight: 600; color: #374151; border-bottom: 1px solid #e5e7eb;">Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody id="leads-list">
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-
-                <!-- Analytics Tab -->
-                <div id="analytics-tab" class="tab-content hidden">
-                    <h2 class="text-xl font-semibold text-gray-900 mb-6">Contractor Analytics</h2>
-
-                    <div class="bg-white rounded-12 border border-gray-200 overflow-x-auto">
-                        <table class="w-full" style="border-collapse: collapse;">
-                            <thead style="background: #f3f4f6;">
-                                <tr>
-                                    <th style="padding: 12px; text-align: left; font-weight: 600; color: #374151; border-bottom: 1px solid #e5e7eb;">Contractor</th>
-                                    <th style="padding: 12px; text-align: left; font-weight: 600; color: #374151; border-bottom: 1px solid #e5e7eb;">Specialty</th>
-                                    <th style="padding: 12px; text-align: left; font-weight: 600; color: #374151; border-bottom: 1px solid #e5e7eb;">Total Leads</th>
-                                    <th style="padding: 12px; text-align: left; font-weight: 600; color: #374151; border-bottom: 1px solid #e5e7eb;">Converted</th>
-                                    <th style="padding: 12px; text-align: left; font-weight: 600; color: #374151; border-bottom: 1px solid #e5e7eb;">Conv. Rate</th>
-                                    <th style="padding: 12px; text-align: left; font-weight: 600; color: #374151; border-bottom: 1px solid #e5e7eb;">Rating</th>
-                                </tr>
-                            </thead>
-                            <tbody id="analytics-list">
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
+            <div class="nav-item" onclick="switchTab('questions', this)">
+                <span>💬</span> Questions
             </div>
+            <div class="nav-item" onclick="switchTab('contractors', this)">
+                <span>👷</span> Contractors
+            </div>
+            <div class="nav-item" onclick="switchTab('leads', this)">
+                <span>📞</span> Leads
+            </div>
+            <div class="nav-item" onclick="switchTab('analytics', this)">
+                <span>📈</span> Analytics
+            </div>
+        </nav>
+        <div class="p-5 border-t border-white/5" style="font-size:11px; color:rgba(255,255,255,0.25);">
+            Lot7 v2.0 · lot7.ai
         </div>
     </div>
 
-    <!-- Add/Edit Contractor Modal -->
-    <div id="contractorModal" class="modal">
-        <div class="modal-content">
-            <h2 class="text-2xl font-bold text-gray-900 mb-6" id="modalTitle">Add Contractor</h2>
-            
-            <form onsubmit="saveContractor(event)">
-                <div class="form-group">
-                    <label>Name *</label>
-                    <input type="text" id="contractorName" required>
+    <!-- Main -->
+    <div class="flex-1 flex flex-col overflow-hidden main-content">
+
+        <!-- Topbar -->
+        <div class="topbar px-8 py-4 flex justify-between items-center flex-shrink-0">
+            <h1 class="text-xl font-bold text-gray-900" id="pageTitle">Dashboard</h1>
+            <div style="font-size:12px; color:#6b7280;" id="timestamp"></div>
+        </div>
+
+        <!-- Content -->
+        <div class="flex-1 overflow-y-auto p-8">
+
+            <!-- ── Dashboard Tab ─────────────────────────────── -->
+            <div id="dashboard-tab" class="tab-content">
+
+                <!-- Stat cards -->
+                <div class="grid grid-cols-4 gap-5 mb-8">
+                    <div class="stat-card">
+                        <div class="stat-label">Total Reports</div>
+                        <div class="stat-number" id="stat-reports">—</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">Questions Asked</div>
+                        <div class="stat-number" id="stat-questions">—</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">Active Leads</div>
+                        <div class="stat-number" id="stat-leads">—</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">Contractors</div>
+                        <div class="stat-number" id="stat-contractors">—</div>
+                    </div>
                 </div>
 
-                <div class="form-group">
-                    <label>Specialty *</label>
-                    <select id="contractorSpecialty" required>
-                        <option value="">Select...</option>
-                        <option value="electrical">Electrical</option>
-                        <option value="plumbing">Plumbing</option>
-                        <option value="roofing">Roofing</option>
-                        <option value="hvac">HVAC</option>
-                        <option value="structural">Structural Engineer</option>
-                        <option value="mold">Mold Specialist</option>
-                        <option value="radon">Radon Testing</option>
-                        <option value="pest">Pest Control</option>
-                        <option value="general">General Contractor</option>
-                        <option value="foundation">Foundation Specialist</option>
-                    </select>
-                </div>
+                <!-- Bottom grid -->
+                <div class="grid grid-cols-3 gap-5">
 
-                <div class="form-group">
-                    <label>Phone *</label>
-                    <input type="tel" id="contractorPhone" required>
-                </div>
+                    <!-- Questions by type -->
+                    <div class="card">
+                        <div class="card-header">
+                            <span class="card-title">Questions by Type</span>
+                        </div>
+                        <div id="questions-by-type" style="padding: 12px 20px;"></div>
+                    </div>
 
-                <div class="form-group">
-                    <label>Email *</label>
-                    <input type="email" id="contractorEmail" required>
-                </div>
+                    <!-- Leads by status -->
+                    <div class="card">
+                        <div class="card-header">
+                            <span class="card-title">Leads by Status</span>
+                        </div>
+                        <div id="leads-by-status" style="padding: 12px 20px;"></div>
+                    </div>
 
-                <div class="form-group">
-                    <label>City</label>
-                    <input type="text" id="contractorCity">
+                    <!-- Recent questions feed -->
+                    <div class="card" style="grid-column: span 1;">
+                        <div class="card-header">
+                            <span class="card-title">Recent Questions</span>
+                            <a onclick="switchTab('questions', document.querySelector('.nav-item:nth-child(2)'))" style="font-size:12px; color:#14b8a6; cursor:pointer;">View all →</a>
+                        </div>
+                        <div id="recent-questions-mini" style="max-height:320px; overflow-y:auto;"></div>
+                    </div>
                 </div>
+            </div>
 
-                <div class="form-group">
-                    <label>State</label>
-                    <input type="text" id="contractorState" placeholder="IL">
+            <!-- ── Questions Tab ─────────────────────────────── -->
+            <div id="questions-tab" class="tab-content hidden">
+                <div class="flex items-center justify-between mb-6">
+                    <div>
+                        <div style="font-size:13px; color:#6b7280;">Every question asked across all reports, with the AI answer.</div>
+                    </div>
+                    <div style="display:flex; gap:10px; align-items:center;">
+                        <select id="q-filter-type" onchange="loadQuestions()" style="padding:7px 12px; border:1px solid #d1d5db; border-radius:6px; font-size:13px;">
+                            <option value="">All types</option>
+                            <option value="electrical">Electrical</option>
+                            <option value="roofing">Roofing</option>
+                            <option value="plumbing">Plumbing</option>
+                            <option value="hvac">HVAC</option>
+                            <option value="structural">Structural</option>
+                            <option value="pest">Pest</option>
+                            <option value="mold">Mold</option>
+                            <option value="general">General</option>
+                        </select>
+                    </div>
                 </div>
+                <div class="card" id="questions-full-list"></div>
+            </div>
 
-                <div class="form-group">
-                    <label>Zip Codes (comma separated)</label>
-                    <input type="text" id="contractorZips" placeholder="60601,60602,60603">
+            <!-- ── Contractors Tab ─────────────────────────────── -->
+            <div id="contractors-tab" class="tab-content hidden">
+                <div class="flex justify-between items-center mb-6">
+                    <div style="font-size:13px; color:#6b7280;">Manage contractor network by specialty and location.</div>
+                    <button onclick="openAddContractorModal()" class="btn btn-teal">+ Add Contractor</button>
                 </div>
+                <div class="card overflow-x-auto">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Name</th><th>Specialty</th><th>Location</th><th>Rating</th><th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="contractors-list"></tbody>
+                    </table>
+                </div>
+            </div>
 
-                <div class="form-group">
-                    <label>Rating (0-5)</label>
-                    <input type="number" id="contractorRating" step="0.1" min="0" max="5" value="4.8">
+            <!-- ── Leads Tab ─────────────────────────────── -->
+            <div id="leads-tab" class="tab-content hidden">
+                <div style="font-size:13px; color:#6b7280; margin-bottom:24px;">Contractor referrals generated from user questions.</div>
+                <div class="card overflow-x-auto">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Contractor</th><th>Issue Type</th><th>Status</th><th>Date</th><th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="leads-list"></tbody>
+                    </table>
                 </div>
+            </div>
 
-                <div class="flex gap-3 justify-end">
-                    <button type="button" onclick="closeContractorModal()" class="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50">Cancel</button>
-                    <button type="submit" class="button-primary px-6 py-2">Save</button>
+            <!-- ── Analytics Tab ─────────────────────────────── -->
+            <div id="analytics-tab" class="tab-content hidden">
+                <div style="font-size:13px; color:#6b7280; margin-bottom:24px;">Contractor lead conversion performance.</div>
+                <div class="card overflow-x-auto">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Contractor</th><th>Specialty</th><th>Total Leads</th><th>Converted</th><th>Conv. Rate</th><th>Rating</th>
+                            </tr>
+                        </thead>
+                        <tbody id="analytics-list"></tbody>
+                    </table>
                 </div>
-            </form>
+            </div>
+
         </div>
     </div>
+</div>
 
-    <script>
-        const API_URL =  'https://inspection-ai-backend-det9.onrender.com';
-        let currentTab = 'dashboard';
-        let currentContractorId = null;
+<!-- Contractor Modal -->
+<div id="contractorModal" class="modal">
+    <div class="modal-box">
+        <h2 class="text-lg font-bold text-gray-900 mb-5" id="modalTitle">Add Contractor</h2>
+        <form onsubmit="saveContractor(event)">
+            <div class="form-group"><label>Name *</label><input type="text" id="contractorName" required></div>
+            <div class="form-group">
+                <label>Specialty *</label>
+                <select id="contractorSpecialty" required>
+                    <option value="">Select...</option>
+                    <option value="electrical">Electrical</option>
+                    <option value="plumbing">Plumbing</option>
+                    <option value="roofing">Roofing</option>
+                    <option value="hvac">HVAC</option>
+                    <option value="structural">Structural Engineer</option>
+                    <option value="mold">Mold Specialist</option>
+                    <option value="radon">Radon Testing</option>
+                    <option value="pest">Pest Control</option>
+                    <option value="general">General Contractor</option>
+                    <option value="foundation">Foundation Specialist</option>
+                </select>
+            </div>
+            <div class="form-group"><label>Phone *</label><input type="tel" id="contractorPhone" required></div>
+            <div class="form-group"><label>Email *</label><input type="email" id="contractorEmail" required></div>
+            <div class="grid grid-cols-2 gap-3">
+                <div class="form-group"><label>City</label><input type="text" id="contractorCity"></div>
+                <div class="form-group"><label>State</label><input type="text" id="contractorState" placeholder="IL"></div>
+            </div>
+            <div class="form-group"><label>Zip Codes (comma separated)</label><input type="text" id="contractorZips" placeholder="60601,60602"></div>
+            <div class="form-group"><label>Rating (0–5)</label><input type="number" id="contractorRating" step="0.1" min="0" max="5" value="4.8"></div>
+            <div class="flex gap-3 justify-end mt-4">
+                <button type="button" onclick="closeContractorModal()" class="btn btn-outline">Cancel</button>
+                <button type="submit" class="btn btn-teal">Save Contractor</button>
+            </div>
+        </form>
+    </div>
+</div>
 
-        // Initialize
-        window.addEventListener('load', () => {
-            updateTimestamp();
-            loadDashboard();
-            setInterval(updateTimestamp, 60000);
-        });
+<script>
+    const API_URL = 'https://inspection-ai-backend-det9.onrender.com';
+    let currentTab = 'dashboard';
+    let currentContractorId = null;
+    let allQuestions = [];
 
-        function updateTimestamp() {
-            const now = new Date().toLocaleString();
-            document.getElementById('timestamp').textContent = now;
+    window.addEventListener('load', () => {
+        updateTimestamp();
+        loadDashboard();
+        setInterval(updateTimestamp, 60000);
+    });
+
+    function updateTimestamp() {
+        document.getElementById('timestamp').textContent = new Date().toLocaleString();
+    }
+
+    function switchTab(tab, el) {
+        currentTab = tab;
+        document.querySelectorAll('.tab-content').forEach(e => e.classList.add('hidden'));
+        document.getElementById(tab + '-tab').classList.remove('hidden');
+        document.querySelectorAll('.nav-item').forEach(e => e.classList.remove('active'));
+        if (el) el.classList.add('active');
+
+        const titles = { dashboard: 'Dashboard', questions: 'All Questions', contractors: 'Manage Contractors', leads: 'Lead Tracking', analytics: 'Contractor Analytics' };
+        document.getElementById('pageTitle').textContent = titles[tab] || tab;
+
+        if (tab === 'contractors') loadContractors();
+        else if (tab === 'leads') loadLeads();
+        else if (tab === 'analytics') loadAnalytics();
+        else if (tab === 'questions') loadQuestions();
+        else loadDashboard();
+    }
+
+    // ── Badge helper ───────────────────────────────────────────
+    function typeBadge(type) {
+        const t = (type || 'general').toLowerCase();
+        return `<span class="badge badge-${t}">${t}</span>`;
+    }
+
+    function timeAgo(isoStr) {
+        if (!isoStr) return '';
+        const diff = Date.now() - new Date(isoStr).getTime();
+        const m = Math.floor(diff / 60000);
+        if (m < 1) return 'just now';
+        if (m < 60) return `${m}m ago`;
+        const h = Math.floor(m / 60);
+        if (h < 24) return `${h}h ago`;
+        return `${Math.floor(h / 24)}d ago`;
+    }
+
+    // ── Dashboard ──────────────────────────────────────────────
+    async function loadDashboard() {
+        try {
+            const [statsRes, qRes] = await Promise.all([
+                fetch(`${API_URL}/api/admin/dashboard/stats`),
+                fetch(`${API_URL}/api/admin/questions/recent?limit=8`)
+            ]);
+            const stats = await statsRes.json();
+            const qData = await qRes.json();
+
+            document.getElementById('stat-reports').textContent     = stats.total_reports ?? 0;
+            document.getElementById('stat-questions').textContent   = stats.total_questions ?? 0;
+            document.getElementById('stat-leads').textContent       = stats.total_leads ?? 0;
+            document.getElementById('stat-contractors').textContent = stats.total_contractors ?? 0;
+
+            // Questions by type bars
+            const counts = stats.questions_by_issue_type || {};
+            const maxCount = Math.max(...Object.values(counts), 1);
+            let typeHtml = Object.entries(counts)
+                .sort((a, b) => b[1] - a[1])
+                .map(([type, count]) => `
+                    <div class="type-bar">
+                        <div class="type-bar-label">${type}</div>
+                        <div class="type-bar-track"><div class="type-bar-fill" style="width:${(count/maxCount*100).toFixed(0)}%"></div></div>
+                        <div class="type-bar-count">${count}</div>
+                    </div>`).join('');
+            document.getElementById('questions-by-type').innerHTML = typeHtml || '<p style="color:#9ca3af;font-size:13px;padding:8px 0;">No data yet</p>';
+
+            // Leads by status
+            const statuses = stats.leads_by_status || {};
+            let leadsHtml = Object.entries(statuses).map(([s, c]) =>
+                `<div class="type-bar"><div class="type-bar-label">${s}</div><div class="type-bar-count" style="width:auto;margin-left:auto;font-size:15px;">${c}</div></div>`
+            ).join('');
+            document.getElementById('leads-by-status').innerHTML = leadsHtml || '<p style="color:#9ca3af;font-size:13px;padding:8px 0;">No leads yet</p>';
+
+            // Mini questions feed
+            const qs = qData.questions || [];
+            let miniHtml = qs.map(q => `
+                <div class="q-row">
+                    <div class="q-meta">${typeBadge(q.issue_type)}<span style="font-size:11px;color:#9ca3af;">${timeAgo(q.created_at)}</span></div>
+                    <div class="q-text">${escHtml(q.question)}</div>
+                </div>`).join('');
+            document.getElementById('recent-questions-mini').innerHTML = miniHtml || '<div style="padding:20px;color:#9ca3af;font-size:13px;">No questions yet</div>';
+
+        } catch (e) {
+            console.error('Dashboard load error:', e);
+        }
+    }
+
+    // ── All Questions Tab ──────────────────────────────────────
+    async function loadQuestions() {
+        const container = document.getElementById('questions-full-list');
+        container.innerHTML = '<div style="padding:32px;text-align:center;color:#9ca3af;font-size:13px;">Loading questions…</div>';
+        try {
+            const res = await fetch(`${API_URL}/api/admin/questions/recent?limit=200`);
+            const data = await res.json();
+            allQuestions = data.questions || [];
+            renderQuestions();
+        } catch (e) {
+            container.innerHTML = '<div style="padding:32px;text-align:center;color:#ef4444;font-size:13px;">Failed to load questions.</div>';
+        }
+    }
+
+    function renderQuestions() {
+        const filterType = document.getElementById('q-filter-type')?.value || '';
+        const filtered = filterType ? allQuestions.filter(q => q.issue_type === filterType) : allQuestions;
+
+        if (!filtered.length) {
+            document.getElementById('questions-full-list').innerHTML = '<div style="padding:32px;text-align:center;color:#9ca3af;font-size:13px;">No questions found.</div>';
+            return;
         }
 
-        function switchTab(tab) {
-            currentTab = tab;
-            document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
-            document.getElementById(tab + '-tab').classList.remove('hidden');
-            document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
-            event.target.classList.add('active');
-            
-            const titles = {
-                dashboard: 'Dashboard',
-                contractors: 'Manage Contractors',
-                leads: 'Lead Tracking',
-                analytics: 'Contractor Analytics'
-            };
-            document.getElementById('pageTitle').textContent = titles[tab];
+        let html = filtered.map((q, i) => `
+            <div class="q-row">
+                <div class="q-meta">
+                    ${typeBadge(q.issue_type)}
+                    <span style="font-size:11px;color:#9ca3af;">${timeAgo(q.created_at)}</span>
+                    ${q.report_id ? `<span style="font-size:11px;color:#d1d5db;">· report ${q.report_id.slice(0,8)}…</span>` : ''}
+                </div>
+                <div class="q-text">${escHtml(q.question)}</div>
+                <div class="q-answer collapsed" id="ans-${i}">${escHtml(q.answer || '')}</div>
+                ${q.answer ? `<button class="expand-btn" onclick="toggleAnswer(${i})">show answer ▾</button>` : ''}
+            </div>`).join('');
 
-            if (tab === 'contractors') loadContractors();
-            else if (tab === 'leads') loadLeads();
-            else if (tab === 'analytics') loadAnalytics();
-            else loadDashboard();
+        document.getElementById('questions-full-list').innerHTML = html;
+    }
+
+    function toggleAnswer(i) {
+        const el = document.getElementById('ans-' + i);
+        const btn = el.nextElementSibling;
+        if (el.classList.contains('collapsed')) {
+            el.classList.remove('collapsed');
+            btn.textContent = 'hide answer ▴';
+        } else {
+            el.classList.add('collapsed');
+            btn.textContent = 'show answer ▾';
         }
+    }
 
-        async function loadDashboard() {
-            try {
-                const res = await fetch(`${API_URL}/api/admin/dashboard/stats`);
-                const data = await res.json();
+    // ── Contractors ────────────────────────────────────────────
+    async function loadContractors() {
+        try {
+            const res = await fetch(`${API_URL}/api/admin/contractors`);
+            const data = await res.json();
+            let html = (data.contractors || []).map(c => `
+                <tr>
+                    <td style="font-weight:500;">${c.name}</td>
+                    <td>${typeBadge(c.specialty)}</td>
+                    <td style="color:#6b7280;">${c.city || '—'}, ${c.state || ''}</td>
+                    <td>⭐ ${c.rating || '—'}</td>
+                    <td>
+                        <button onclick="editContractor('${c.id}')" class="btn btn-outline" style="margin-right:6px;">Edit</button>
+                        <button onclick="deleteContractor('${c.id}')" class="btn btn-red">Delete</button>
+                    </td>
+                </tr>`).join('');
+            document.getElementById('contractors-list').innerHTML = html || '<tr><td colspan="5" style="text-align:center;color:#9ca3af;padding:32px;">No contractors yet</td></tr>';
+        } catch (e) { console.error(e); }
+    }
 
-                document.getElementById('stat-reports').textContent = data.total_reports;
-                document.getElementById('stat-questions').textContent = data.total_questions;
-                document.getElementById('stat-leads').textContent = data.total_leads;
-                document.getElementById('stat-contractors').textContent = data.total_contractors;
+    // ── Leads ──────────────────────────────────────────────────
+    async function loadLeads() {
+        try {
+            const res = await fetch(`${API_URL}/api/admin/leads`);
+            const data = await res.json();
+            let html = (data.leads || []).map(l => `
+                <tr>
+                    <td style="font-weight:500;">${l.contractor_name || '—'}</td>
+                    <td>${typeBadge(l.issue_type)}</td>
+                    <td><span class="status-badge status-${l.status}">${l.status}</span></td>
+                    <td style="color:#6b7280;">${l.created_at ? new Date(l.created_at).toLocaleDateString() : '—'}</td>
+                    <td><button onclick="updateLeadStatus('${l.id}')" class="btn btn-outline">Update</button></td>
+                </tr>`).join('');
+            document.getElementById('leads-list').innerHTML = html || '<tr><td colspan="5" style="text-align:center;color:#9ca3af;padding:32px;">No leads yet</td></tr>';
+        } catch (e) { console.error(e); }
+    }
 
-                // Questions by type
-                let questionsHtml = '';
-                for (const [type, count] of Object.entries(data.questions_by_issue_type)) {
-                    questionsHtml += `<div class="flex justify-between"><span>${type}</span><span class="font-semibold text-gray-900">${count}</span></div>`;
-                }
-                document.getElementById('questions-by-type').innerHTML = questionsHtml || '<p class="text-gray-600">No data yet</p>';
+    // ── Analytics ──────────────────────────────────────────────
+    async function loadAnalytics() {
+        try {
+            const res = await fetch(`${API_URL}/api/admin/analytics/contractors`);
+            const data = await res.json();
+            let html = (data.contractors || []).map(c => `
+                <tr>
+                    <td style="font-weight:500;">${c.name}</td>
+                    <td>${typeBadge(c.specialty)}</td>
+                    <td>${c.total_leads}</td>
+                    <td>${c.converted_leads}</td>
+                    <td><span style="color:${c.conversion_rate > 20 ? '#16a34a' : '#6b7280'};font-weight:600;">${c.conversion_rate.toFixed(1)}%</span></td>
+                    <td>⭐ ${c.rating}</td>
+                </tr>`).join('');
+            document.getElementById('analytics-list').innerHTML = html || '<tr><td colspan="6" style="text-align:center;color:#9ca3af;padding:32px;">No data yet</td></tr>';
+        } catch (e) { console.error(e); }
+    }
 
-                // Leads by status
-                let leadsHtml = '';
-                for (const [status, count] of Object.entries(data.leads_by_status)) {
-                    leadsHtml += `<div class="flex justify-between"><span>${status}</span><span class="font-semibold text-gray-900">${count}</span></div>`;
-                }
-                document.getElementById('leads-by-status').innerHTML = leadsHtml || '<p class="text-gray-600">No data yet</p>';
-            } catch (e) {
-                console.error('Error loading dashboard:', e);
-            }
-        }
+    // ── Contractor Modal ───────────────────────────────────────
+    function openAddContractorModal() {
+        currentContractorId = null;
+        document.getElementById('modalTitle').textContent = 'Add Contractor';
+        ['contractorName','contractorPhone','contractorEmail','contractorCity','contractorZips'].forEach(id => document.getElementById(id).value = '');
+        document.getElementById('contractorSpecialty').value = '';
+        document.getElementById('contractorState').value = 'IL';
+        document.getElementById('contractorRating').value = '4.8';
+        document.getElementById('contractorModal').classList.add('active');
+    }
 
-        async function loadContractors() {
-            try {
-                const res = await fetch(`${API_URL}/api/admin/contractors`);
-                const data = await res.json();
+    function editContractor(id) {
+        openAddContractorModal();
+        currentContractorId = id;
+        document.getElementById('modalTitle').textContent = 'Edit Contractor';
+    }
 
-                let html = '';
-                for (const c of data.contractors) {
-                    html += `
-                        <tr style="border-bottom: 1px solid #f3f4f6;">
-                            <td style="padding: 12px;">${c.name}</td>
-                            <td style="padding: 12px;">${c.specialty}</td>
-                            <td style="padding: 12px;">${c.city}, ${c.state}</td>
-                            <td style="padding: 12px;">⭐ ${c.rating}</td>
-                            <td style="padding: 12px;">
-                                <button onclick="editContractor('${c.id}')" class="button-primary button-small">Edit</button>
-                                <button onclick="deleteContractor('${c.id}')" class="button-danger button-small" style="margin-left: 4px;">Delete</button>
-                            </td>
-                        </tr>
-                    `;
-                }
-                document.getElementById('contractors-list').innerHTML = html || '<tr><td colspan="5" style="padding: 32px; text-align: center; color: #6b7280;">No contractors yet</td></tr>';
-            } catch (e) {
-                console.error('Error loading contractors:', e);
-            }
-        }
+    function closeContractorModal() {
+        document.getElementById('contractorModal').classList.remove('active');
+    }
 
-        async function loadLeads() {
-            try {
-                const res = await fetch(`${API_URL}/api/admin/leads`);
-                const data = await res.json();
+    async function saveContractor(e) {
+        e.preventDefault();
+        const data = {
+            name: document.getElementById('contractorName').value,
+            specialty: document.getElementById('contractorSpecialty').value,
+            phone: document.getElementById('contractorPhone').value,
+            email: document.getElementById('contractorEmail').value,
+            city: document.getElementById('contractorCity').value,
+            state: document.getElementById('contractorState').value,
+            zip_codes: document.getElementById('contractorZips').value,
+            rating: parseFloat(document.getElementById('contractorRating').value)
+        };
+        try {
+            const url = currentContractorId ? `${API_URL}/api/admin/contractors/${currentContractorId}` : `${API_URL}/api/admin/contractors`;
+            const res = await fetch(url, { method: currentContractorId ? 'PUT' : 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(data) });
+            if (res.ok) { closeContractorModal(); loadContractors(); }
+            else alert('Error saving contractor');
+        } catch (e) { alert('Error: ' + e.message); }
+    }
 
-                let html = '';
-                for (const l of data.leads) {
-                    html += `
-                        <tr style="border-bottom: 1px solid #f3f4f6;">
-                            <td style="padding: 12px;">${l.contractor_name}</td>
-                            <td style="padding: 12px;">${l.issue_type}</td>
-                            <td style="padding: 12px;"><span class="px-2 py-1 rounded text-xs bg-blue-100 text-blue-800">${l.status}</span></td>
-                            <td style="padding: 12px;">${new Date(l.created_at).toLocaleDateString()}</td>
-                            <td style="padding: 12px;"><button onclick="updateLeadStatus('${l.id}')" class="button-primary button-small">Update</button></td>
-                        </tr>
-                    `;
-                }
-                document.getElementById('leads-list').innerHTML = html || '<tr><td colspan="5" style="padding: 32px; text-align: center; color: #6b7280;">No leads yet</td></tr>';
-            } catch (e) {
-                console.error('Error loading leads:', e);
-            }
-        }
+    async function deleteContractor(id) {
+        if (!confirm('Remove this contractor?')) return;
+        try {
+            const res = await fetch(`${API_URL}/api/admin/contractors/${id}`, { method: 'DELETE' });
+            if (res.ok) loadContractors();
+        } catch (e) { alert('Error: ' + e.message); }
+    }
 
-        async function loadAnalytics() {
-            try {
-                const res = await fetch(`${API_URL}/api/admin/analytics/contractors`);
-                const data = await res.json();
+    async function updateLeadStatus(id) {
+        const s = prompt('New status (pending, contacted, quoted, converted, lost):');
+        if (!s) return;
+        try {
+            const res = await fetch(`${API_URL}/api/admin/leads/${id}`, { method: 'PUT', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ status: s }) });
+            if (res.ok) loadLeads();
+        } catch (e) { alert('Error: ' + e.message); }
+    }
 
-                let html = '';
-                for (const c of data.contractors) {
-                    html += `
-                        <tr style="border-bottom: 1px solid #f3f4f6;">
-                            <td style="padding: 12px;">${c.name}</td>
-                            <td style="padding: 12px;">${c.specialty}</td>
-                            <td style="padding: 12px;">${c.total_leads}</td>
-                            <td style="padding: 12px;">${c.converted_leads}</td>
-                            <td style="padding: 12px;">${c.conversion_rate.toFixed(1)}%</td>
-                            <td style="padding: 12px;">⭐ ${c.rating}</td>
-                        </tr>
-                    `;
-                }
-                document.getElementById('analytics-list').innerHTML = html || '<tr><td colspan="6" style="padding: 32px; text-align: center; color: #6b7280;">No data yet</td></tr>';
-            } catch (e) {
-                console.error('Error loading analytics:', e);
-            }
-        }
-
-        function openAddContractorModal() {
-            currentContractorId = null;
-            document.getElementById('modalTitle').textContent = 'Add Contractor';
-            document.getElementById('contractorName').value = '';
-            document.getElementById('contractorSpecialty').value = '';
-            document.getElementById('contractorPhone').value = '';
-            document.getElementById('contractorEmail').value = '';
-            document.getElementById('contractorCity').value = '';
-            document.getElementById('contractorState').value = 'IL';
-            document.getElementById('contractorZips').value = '';
-            document.getElementById('contractorRating').value = '4.8';
-            document.getElementById('contractorModal').classList.add('active');
-        }
-
-        function editContractor(id) {
-            // For now, just open add modal
-            openAddContractorModal();
-            currentContractorId = id;
-            document.getElementById('modalTitle').textContent = 'Edit Contractor';
-        }
-
-        function closeContractorModal() {
-            document.getElementById('contractorModal').classList.remove('active');
-        }
-
-        async function saveContractor(e) {
-            e.preventDefault();
-
-            const data = {
-                name: document.getElementById('contractorName').value,
-                specialty: document.getElementById('contractorSpecialty').value,
-                phone: document.getElementById('contractorPhone').value,
-                email: document.getElementById('contractorEmail').value,
-                city: document.getElementById('contractorCity').value,
-                state: document.getElementById('contractorState').value,
-                zip_codes: document.getElementById('contractorZips').value,
-                rating: parseFloat(document.getElementById('contractorRating').value)
-            };
-
-            try {
-                const url = currentContractorId 
-                    ? `${API_URL}/api/admin/contractors/${currentContractorId}`
-                    : `${API_URL}/api/admin/contractors`;
-                
-                const method = currentContractorId ? 'PUT' : 'POST';
-
-                const res = await fetch(url, {
-                    method: method,
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(data)
-                });
-
-                if (res.ok) {
-                    closeContractorModal();
-                    loadContractors();
-                    alert('Contractor saved!');
-                } else {
-                    alert('Error saving contractor');
-                }
-            } catch (e) {
-                alert('Error: ' + e.message);
-            }
-        }
-
-        async function deleteContractor(id) {
-            if (!confirm('Delete this contractor?')) return;
-
-            try {
-                const res = await fetch(`${API_URL}/api/admin/contractors/${id}`, { method: 'DELETE' });
-                if (res.ok) {
-                    loadContractors();
-                    alert('Contractor deleted');
-                }
-            } catch (e) {
-                alert('Error: ' + e.message);
-            }
-        }
-
-        async function updateLeadStatus(id) {
-            const newStatus = prompt('New status (pending, contacted, quoted, converted, lost):');
-            if (!newStatus) return;
-
-            try {
-                const res = await fetch(`${API_URL}/api/admin/leads/${id}`, {
-                    method: 'PUT',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ status: newStatus })
-                });
-
-                if (res.ok) {
-                    loadLeads();
-                    alert('Lead updated');
-                }
-            } catch (e) {
-                alert('Error: ' + e.message);
-            }
-        }
-    </script>
+    function escHtml(str) {
+        if (!str) return '';
+        return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    }
+</script>
 </body>
 </html>
