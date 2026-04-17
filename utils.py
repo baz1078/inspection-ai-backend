@@ -188,7 +188,7 @@ Return ONLY a valid JSON object in this exact structure. No markdown, no backtic
   "category_items": [
     {{
       "name": "Short display name",
-      "category": "Roof or Exterior or Garage or Attic or Interior or Kitchen or Laundry or Bathroom or Mechanical or Structure",
+      "category": "REQUIRED — must be exactly one of: Roof, Exterior, Garage, Attic, Interior, Kitchen, Laundry, Bathroom, Mechanical, Structure — never null, never omitted, never a different value",
       "cost": "$X - $Y",
       "cost_note": "One sentence explaining scope",
       "trade": "Trade type",
@@ -205,7 +205,7 @@ Return ONLY a valid JSON object in this exact structure. No markdown, no backtic
 CLASSIFICATION RULES:
 - urgent_items: Items the inspector flagged as Immediate Attention (via legend, icon, note text such as "Service Advised", or explicit severity label), plus safety hazards, systems not functioning, active leaks, structural concerns, and fire/life safety issues. Always respect the inspector's native severity classification — do not downgrade based on how simple the fix sounds.
 - maintenance_items: Items inspector flagged for future planning, routine maintenance, end-of-life monitoring, or note text such as "Maintenance".
-- category_items: All other documented findings and observations not already in urgent or maintenance. Every documented finding must appear somewhere — do not omit.
+- category_items: All other documented findings and observations not already in urgent or maintenance. Every documented finding must appear somewhere — do not omit. CRITICAL: every category_items entry MUST include the "category" field — it is never optional, never null. A missing "category" field makes that item completely invisible to the user. Choose the closest match from: Roof, Exterior, Garage, Attic, Interior, Kitchen, Laundry, Bathroom, Mechanical, Structure.
 - checklist: 6-10 items summarizing major system status. passed:true = good condition. notable:true = limited scope or not tested. Do not repeat items already classified above.
 - Do NOT duplicate items across sections.
 - Do NOT add speculative items not documented in the report.
