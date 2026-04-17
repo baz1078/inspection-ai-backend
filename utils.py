@@ -88,9 +88,9 @@ def generate_structured_analysis(extracted_text):
 
     step1_prompt = f"""You are a senior home inspection analyst and regional contractor cost estimator with deep knowledge of residential repair pricing across North America.
 
-Before you do anything else: read this entire inspection report from beginning to end without skipping any section. Treat it like a human expert reviewing a colleague's work — absorb every finding, every note, every header, every address field, every detail on every page. Nothing in this report is irrelevant. Only after you have a complete picture of the entire report should you begin building your response.
+Before you do anything else: read this entire inspection report from beginning to end without skipping any section. Treat it like a human expert reviewing a colleague's work — absorb every finding, every note, every header, every address field, every detail on every page. Nothing in this report is irrelevant. As you begin reading, scan specifically for any legend, key, severity scale, or iconography guide — these often appear on the first few pages and define how the inspector classifies severity (e.g. filled dot = Immediate Attention, open dot = Attention, dashes = Notable; or colour-coded labels; or note text conventions). If you find one, internalize it completely and treat it as the authoritative severity system for this report. It overrides your own judgment about how serious something sounds. Only after you have a complete picture of the entire report — including its severity system — should you begin building your response.
 
-Your job is then to provide clear, useful information so a buyer or realtor can understand what actually needs attention. Classify findings based on what the inspector documented — not your interpretation of how serious something sounds. Inspectors don't always use words like "immediate" or "attention" — use your understanding of the English language, construction knowledge, and real-world context to determine severity based on what the issue actually is.
+Your job is then to provide clear, useful information so a buyer or realtor can understand what actually needs attention. Classify findings based on the inspector's own severity system first. Price what was documented at the correct repair scope — but never downgrade a severity classification because the fix sounds simple.
 
 For cost estimates: use the reference pricing table as your anchor. For anything not in the table, apply real-world knowledge of what that repair actually costs in that region — do not guess, do not use generic ranges, and do not be an alarmist. A loose toilet seat is not a plumbing emergency. A small crack in drywall is not structural failure. Price what was documented, not the worst-case scenario.
 
@@ -112,12 +112,29 @@ Read this inspection report completely. Before outputting anything, build a full
    - Rural markets: add mobilization. Urban markets: competitive but minimum service calls are higher.
    - Use USD for US locations, CAD for Canadian locations.
 
-3. READING INSPECTOR LANGUAGE — Interpret severity correctly:
-   - "Monitor" / "for your information" = Attention, not Immediate
-   - "Recommend evaluation by structural engineer" / "safety concern" / "insurance may not cover" = Immediate
-   - "Deficient" / "not functioning" / "active leak" = Immediate
-   - "Recommended maintenance" / "plan and budget" = Attention
-   - Do NOT be anchored by the inspector's label — route based on what is physically described
+3. READING INSPECTOR SEVERITY — Respect the report's native severity system:
+   PRIORITY ORDER — follow the highest applicable level:
+
+   a) REPORT HAS A LEGEND OR SEVERITY KEY (found during initial scan above):
+      USE IT. The inspector's assigned severity label is authoritative and must be honoured.
+      A toilet flagged as "Immediate Attention" by the inspector goes in urgent_items — regardless
+      of whether tightening a bolt sounds minor to you. Do not substitute your own judgment
+      for the inspector's documented classification.
+
+   b) REPORT USES NOTE TEXT AS SEVERITY SIGNALS (common in Inspectagram and similar formats):
+      - "Service Advised" in the notes → Immediate → urgent_items
+      - "Maintenance" in the notes → Attention → maintenance_items
+      - "Monitor" / "for your information" → Attention → maintenance_items
+      - "Recommended" / "plan and budget" → Attention → maintenance_items
+
+   c) REPORT HAS NO SEVERITY SYSTEM — apply your own judgment using these signals:
+      - "Recommend evaluation by structural engineer" / "safety concern" / "insurance may not cover" → Immediate
+      - "Deficient" / "not functioning" / "active leak" → Immediate
+      - "Recommended maintenance" / "plan and budget" → Attention
+      - "Monitor" / "for your information" → Attention
+
+   In all cases: do NOT downgrade an item's severity because the physical fix sounds simple.
+   Classify at the inspector's level; price at the correct repair scope.
 
 4. SCOPE PRECISION — Price what was actually documented, not the worst case:
    - "Toilet unstable/very loose" = reset and resecure, not full replacement. Plumber minimum service call.
@@ -186,8 +203,8 @@ Return ONLY a valid JSON object in this exact structure. No markdown, no backtic
 }}
 
 CLASSIFICATION RULES:
-- urgent_items: Safety hazards, systems not functioning, active leaks, structural concerns, insurance-affecting conditions, fire/life safety issues. Do not be anchored by inspector's disclaimer language — route on physical condition described.
-- maintenance_items: Items inspector flagged for future planning, routine maintenance, end-of-life monitoring.
+- urgent_items: Items the inspector flagged as Immediate Attention (via legend, icon, note text such as "Service Advised", or explicit severity label), plus safety hazards, systems not functioning, active leaks, structural concerns, and fire/life safety issues. Always respect the inspector's native severity classification — do not downgrade based on how simple the fix sounds.
+- maintenance_items: Items inspector flagged for future planning, routine maintenance, end-of-life monitoring, or note text such as "Maintenance".
 - category_items: All other documented findings and observations not already in urgent or maintenance. Every documented finding must appear somewhere — do not omit.
 - checklist: 6-10 items summarizing major system status. passed:true = good condition. notable:true = limited scope or not tested. Do not repeat items already classified above.
 - Do NOT duplicate items across sections.
@@ -360,7 +377,7 @@ def send_contractor_email(contractor_email, contractor_name, customer_name, cust
         
         # Create HTML and plain text versions
         text = f"""
-NEW QUOTE REQUEST FROM ASSURE INSPECTIONS
+NEW QUOTE REQUEST FROM LOT7
 
 PROPERTY DETAILS:
 Address: {property_address}
@@ -380,15 +397,15 @@ NEXT STEPS:
 Please contact the customer directly at {customer_email} or {customer_phone} to discuss the work and provide a quote.
 
 Best regards,
-Assure Inspections AI System
-https://www.assureinspections.com
+Lot7 AI System
+https://lot7.ai
 """
         
         html = f"""
 <html>
 <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
     <div style="max-width: 800px; margin: 0 auto; padding: 20px;">
-        <h2 style="color: #0369a1;">NEW QUOTE REQUEST FROM ASSURE INSPECTIONS</h2>
+        <h2 style="color: #0369a1;">NEW QUOTE REQUEST FROM LOT7</h2>
         
         <h3 style="color: #1f2937; margin-top: 20px;">PROPERTY DETAILS:</h3>
         <p><strong>Address:</strong> {property_address}</p>
@@ -412,8 +429,8 @@ https://www.assureinspections.com
         <p>Please contact the customer directly at <a href="mailto:{customer_email}">{customer_email}</a> or <a href="tel:{customer_phone}">{customer_phone}</a> to discuss the work and provide a quote.</p>
         
         <p style="margin-top: 40px; color: #6b7280; font-size: 12px;">
-            <strong>Assure Inspections AI System</strong><br>
-            https://www.assureinspections.com
+            <strong>Lot7 AI System</strong><br>
+            https://lot7.ai
         </p>
     </div>
 </body>
@@ -505,7 +522,7 @@ CRITICAL GUARD RAILS - ALWAYS APPLY - NEVER VIOLATE
 
 1. ALWAYS VALIDATE INSPECTOR'S WORK AND DECISIONS
 2. NEVER suggest inspector made an error or missed something
-3. NEVER blame the Assure platform for limitations
+3. NEVER blame the Lot7 platform for limitations
 4. NEVER suggest customer should have hired a different inspector
 5. NEVER criticize inspection scope or methods
 6. {cite_law}
@@ -516,7 +533,7 @@ FORBIDDEN PHRASES - NEVER USE:
 ❌ "Inspector should have..."
 ❌ "Better inspection would have..."
 ❌ "You might want a different inspector..."
-❌ "Assure platform doesn't cover..."
+❌ "Lot7 platform doesn't cover..."
 ❌ "This is a limitation of home inspection"
 
 ═══════════════════════════════════════════════════════════════════════════════
