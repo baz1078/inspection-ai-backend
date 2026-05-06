@@ -1,1958 +1,1305 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <!-- Google tag (gtag.js) -->
-    <script async src="https://www.googletagmanager.com/gtag/js?id=G-GPD4KPJRF1"></script>
-    <script>
-      window.dataLayer = window.dataLayer || [];
-      function gtag(){dataLayer.push(arguments);}
-      gtag('js', new Date());
-      gtag('config', 'G-GPD4KPJRF1');
-    </script>
-
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>LOT7</title>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        :root {
-            --dark-bg: #0f1419;
-            --card-bg: #1a1f2e;
-            --accent-teal: #14b8a6;
-            --accent-pink: #d946a6;
-            --text-primary: #ffffff;
-            --text-secondary: #a1a1a1;
-            --border-color: #2d3748;
-        }
-
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
-            background: var(--dark-bg);
-            color: var(--text-primary);
-            line-height: 1.6;
-        }
-
-        html, body, #app {
-            height: 100%;
-            width: 100%;
-        }
-
-        /* UPLOAD SCREEN */
-        .upload-screen {
-            height: 100%;
-            background: linear-gradient(135deg, var(--dark-bg) 0%, #1a2332 100%);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 40px;
-        }
-
-        .upload-container {
-            background: var(--card-bg);
-            border: 1px solid var(--border-color);
-            border-radius: 16px;
-            padding: 40px;
-            max-width: 600px;
-            width: 100%;
-            max-height: 90vh;
-            overflow-y: auto;
-        }
-
-        .upload-container h2 {
-            font-size: 24px;
-            font-weight: 600;
-            margin-bottom: 12px;
-        }
-
-        .upload-container p {
-            color: var(--text-secondary);
-            margin-bottom: 24px;
-            font-size: 14px;
-        }
-
-        .form-group {
-            margin-bottom: 20px;
-        }
-
-        .form-group label {
-            display: block;
-            font-size: 13px;
-            font-weight: 600;
-            margin-bottom: 8px;
-        }
-
-        .form-group input {
-            width: 100%;
-            padding: 10px 12px;
-            border: 1px solid var(--border-color);
-            border-radius: 8px;
-            background: rgba(255, 255, 255, 0.03);
-            color: var(--text-primary);
-            font-size: 14px;
-        }
-
-        .form-group input::placeholder {
-            color: #666;
-        }
-
-        .drop-zone {
-            border: 2px dashed var(--border-color);
-            border-radius: 12px;
-            padding: 32px 20px;
-            text-align: center;
-            cursor: pointer;
-            transition: all 0.3s;
-            margin: 24px 0;
-        }
-
-        .drop-zone:hover {
-            border-color: var(--accent-teal);
-            background: rgba(20, 184, 166, 0.05);
-        }
-
-        .drop-zone-icon {
-            font-size: 48px;
-            margin-bottom: 12px;
-        }
-
-        .drop-zone p {
-            color: var(--text-secondary);
-            font-size: 13px;
-        }
-
-        .loader {
-            display: flex;
-            justify-content: center;
-            gap: 4px;
-        }
-
-        .dot {
-            width: 8px;
-            height: 8px;
-            border-radius: 50%;
-            background: var(--accent-teal);
-            animation: bounce 1.4s infinite;
-        }
-
-        .dot:nth-child(2) { animation-delay: 0.2s; }
-        .dot:nth-child(3) { animation-delay: 0.4s; }
-
-        @keyframes bounce {
-            0%, 80%, 100% { transform: scale(0); opacity: 0.5; }
-            40% { transform: scale(1); opacity: 1; }
-        }
-
-        /* DASHBOARD */
-        .dashboard-screen {
-            height: 100%;
-            display: flex;
-            flex-direction: column;
-        }
-
-        .dashboard-header {
-            background: var(--card-bg);
-            border-bottom: 1px solid var(--border-color);
-            padding: 16px 24px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .dashboard-header-title {
-            font-size: 20px;
-            font-weight: 700;
-            color: var(--accent-teal);
-            letter-spacing: 0.05em;
-        }
-
-        .dashboard-header-address {
-            display: none;
-        }
-
-        .dashboard-header button {
-            padding: 8px 16px;
-            background: var(--accent-teal);
-            color: white;
-            border: none;
-            border-radius: 6px;
-            font-size: 12px;
-            cursor: pointer;
-            font-weight: 600;
-            transition: all 0.2s;
-        }
-
-        .dashboard-header button:hover {
-            background: #0d9488;
-        }
-
-        .dashboard-content {
-            flex: 1;
-            overflow-y: auto;
-            padding: 24px;
-            max-width: 1000px;
-            margin: 0 auto;
-            width: 100%;
-        }
-
-        .section-title {
-            font-size: 12px;
-            color: var(--text-secondary);
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            font-weight: 600;
-            margin: 32px 0 16px 0;
-        }
-
-        .section-title:first-of-type {
-            margin-top: 0;
-        }
-
-        /* HERO CARD */
-        .hero-card {
-            background: linear-gradient(135deg, var(--card-bg) 0%, #1f2a3a 100%);
-            border: 1px solid var(--border-color);
-            border-radius: 16px;
-            padding: 32px;
-            margin-bottom: 32px;
-            text-align: center;
-        }
-
-        .condition-label {
-            font-size: 18px;
-            color: var(--text-secondary);
-            text-transform: uppercase;
-            letter-spacing: 2px;
-            margin-bottom: 12px;
-            font-weight: 600;
-        }
-
-        .condition-status {
-            font-size: 56px;
-            font-weight: 700;
-            color: var(--accent-teal);
-            margin-bottom: 24px;
-        }
-
-        @media (max-width: 480px) {
-            .condition-status { font-size: 36px; }
-        }
-
-        .condition-note {
-            font-size: 14px;
-            color: var(--text-secondary);
-            margin-bottom: 24px;
-        }
-
-        .condition-summary {
-            display: flex;
-            justify-content: center;
-            gap: 40px;
-            padding-top: 24px;
-            border-top: 1px solid var(--border-color);
-        }
-
-        .condition-summary-item {
-            text-align: center;
-        }
-
-        .condition-summary-number {
-            font-size: 24px;
-            font-weight: 700;
-            color: var(--accent-teal);
-            margin-bottom: 4px;
-        }
-
-        .condition-summary-label {
-            color: var(--text-secondary);
-            font-size: 12px;
-        }
-
-        /* BUDGET CARDS */
-        .budget-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 16px;
-            margin-bottom: 32px;
-        }
-
-        .budget-card {
-            background: var(--card-bg);
-            border: 1px solid var(--border-color);
-            border-radius: 12px;
-            padding: 20px;
-            transition: all 0.3s;
-        }
-
-        .budget-card:hover {
-            transform: translateY(-2px);
-            border-color: var(--accent-teal);
-        }
-
-        .budget-card-label {
-            font-size: 12px;
-            color: var(--text-secondary);
-            margin-bottom: 8px;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-
-        .budget-card-amount {
-            font-size: 28px;
-            font-weight: 700;
-            color: var(--accent-teal);
-            margin-bottom: 8px;
-        }
-
-        .budget-card-description {
-            font-size: 12px;
-            color: var(--text-secondary);
-        }
-
-        /* ISSUES GRID - urgent cards */
-        .issues-grid {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 14px;
-            margin-bottom: 32px;
-        }
-
-        .issue-card {
-            background: var(--card-bg);
-            border: 1px solid var(--border-color);
-            border-left: 3px solid #ef4444;
-            border-radius: 12px;
-            padding: 22px;
-            text-align: left;
-            cursor: pointer;
-            transition: all 0.3s;
-            position: relative;
-            overflow: hidden;
-        }
-
-        .issue-card::before {
-            content: '';
-            position: absolute; top: 0; left: 0; right: 0; height: 1px;
-            background: linear-gradient(90deg, transparent, rgba(239,68,68,0.5), transparent);
-        }
-
-        .issue-card:hover {
-            transform: translateY(-3px);
-            border-color: var(--accent-teal);
-            border-left-color: #ef4444;
-            box-shadow: 0 12px 40px rgba(0,0,0,0.3);
-        }
-
-        .issue-icon {
-            width: 42px;
-            height: 42px;
-            border-radius: 10px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin-bottom: 14px;
-        }
-
-        .icon-electric  { background: rgba(251,191,36,0.12); border: 1px solid rgba(251,191,36,0.25); }
-        .icon-plumbing  { background: rgba(59,130,246,0.12); border: 1px solid rgba(59,130,246,0.25); }
-        .icon-hvac      { background: rgba(99,205,218,0.12); border: 1px solid rgba(99,205,218,0.25); }
-        .icon-roof      { background: rgba(168,85,247,0.12); border: 1px solid rgba(168,85,247,0.25); }
-        .icon-structural{ background: rgba(249,115,22,0.12); border: 1px solid rgba(249,115,22,0.25); }
-        .icon-pest      { background: rgba(132,204,22,0.12); border: 1px solid rgba(132,204,22,0.25); }
-        .icon-mold      { background: rgba(20,184,166,0.12); border: 1px solid rgba(20,184,166,0.25); }
-        .icon-radon     { background: rgba(239,68,68,0.12);  border: 1px solid rgba(239,68,68,0.25); }
-        .icon-sewer     { background: rgba(100,116,139,0.12);border: 1px solid rgba(100,116,139,0.25); }
-        .icon-general   { background: rgba(148,163,184,0.12);border: 1px solid rgba(148,163,184,0.25); }
-
-        .issue-title {
-            font-size: 13px;
-            font-weight: 600;
-            margin-bottom: 10px;
-            line-height: 1.5;
-            color: var(--text-primary);
-        }
-
-        .issue-cost {
-            font-size: 15px;
-            font-weight: 700;
-            color: var(--accent-teal);
-            margin-bottom: 8px;
-        }
-
-        .issue-timeline {
-            font-size: 12px;
-            color: var(--text-secondary);
-        }
-
-        /* MAINTENANCE ROWS */
-        .maint-rows {
-            display: flex;
-            flex-direction: column;
-            gap: 6px;
-            margin-bottom: 32px;
-        }
-
-        .maint-row {
-            background: var(--card-bg);
-            border: 1px solid var(--border-color);
-            border-left: 3px solid #f59e0b;
-            border-radius: 8px;
-            padding: 13px 18px;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            cursor: pointer;
-            transition: all 0.2s;
-        }
-
-        .maint-row:hover { border-color: var(--accent-teal); border-left-color: #f59e0b; }
-
-        .maint-row-left {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            font-size: 13px;
-            color: var(--text-secondary);
-            flex: 1;
-        }
-
-        .maint-row-icon {
-            width: 28px; height: 28px;
-            border-radius: 7px;
-            display: flex; align-items: center; justify-content: center;
-            flex-shrink: 0;
-        }
-
-        .maint-row-right {
-            display: flex;
-            align-items: center;
-            gap: 20px;
-            flex-shrink: 0;
-        }
-
-        .maint-row-cost {
-            font-size: 13px;
-            font-weight: 600;
-            color: var(--accent-teal);
-        }
-
-        .maint-row-timeline {
-            font-size: 11px;
-            color: var(--text-secondary);
-            min-width: 70px;
-            text-align: right;
-        }
-
-        /* PRIORITY DOTS */
-        .issue-priority-dot {
-            width: 10px;
-            height: 10px;
-            border-radius: 50%;
-            display: inline-block;
-            margin-right: 6px;
-            flex-shrink: 0;
-            box-shadow: 0 0 6px currentColor;
-        }
-        .priority-red   { background: #ef4444; color: #ef4444; }
-        .priority-yellow{ background: #f59e0b; color: #f59e0b; }
-        .priority-green { background: #22c55e; color: #22c55e; }
-
-        .issue-timeline-row {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 12px;
-            color: var(--text-secondary);
-        }
-
-        /* CONDITION CIRCLE */
-        .condition-circle {
-            width: 14px;
-            height: 14px;
-            border-radius: 50%;
-            display: inline-block;
-            margin-right: 10px;
-            vertical-align: middle;
-            box-shadow: 0 0 10px currentColor;
-        }
-        .circle-good { background: #22c55e; color: #22c55e; }
-        .circle-fair { background: #f59e0b; color: #f59e0b; }
-        .circle-poor { background: #ef4444; color: #ef4444; }
-
-        /* COMPARISON */
-        .comparison-section {
-            background: var(--card-bg);
-            border: 1px solid var(--border-color);
-            border-radius: 12px;
-            padding: 24px;
-            margin-bottom: 32px;
-        }
-
-        .comparison-badge {
-            background: rgba(20, 184, 166, 0.15);
-            color: var(--accent-teal);
-            padding: 6px 12px;
-            border-radius: 20px;
-            font-size: 12px;
-            font-weight: 600;
-            display: inline-block;
-            margin-bottom: 16px;
-            border: 1px solid rgba(20, 184, 166, 0.3);
-        }
-
-        .comparison-text {
-            font-size: 14px;
-            color: var(--text-secondary);
-            margin-bottom: 16px;
-        }
-
-        .comparison-bar {
-            background: rgba(255, 255, 255, 0.02);
-            border-radius: 8px;
-            padding: 12px;
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 12px;
-            border: 1px solid var(--border-color);
-        }
-
-        .comparison-bar-label {
-            font-size: 12px;
-            color: var(--text-secondary);
-        }
-
-        .comparison-bar-value {
-            font-size: 14px;
-            font-weight: 700;
-            color: var(--accent-teal);
-        }
-
-        /* CHECKLIST */
-        .checklist-section {
-            background: var(--card-bg);
-            border: 1px solid var(--border-color);
-            border-radius: 12px;
-            padding: 24px;
-            margin-bottom: 32px;
-        }
-
-        .checklist-item {
-            display: flex;
-            gap: 12px;
-            padding: 12px 0;
-            border-bottom: 1px solid var(--border-color);
-            font-size: 14px;
-        }
-
-        .checklist-item:last-child {
-            border-bottom: none;
-        }
-
-        .checklist-icon {
-            font-size: 18px;
-            min-width: 20px;
-        }
-
-        .checklist-notable { color: var(--text-secondary); font-weight: 700; font-size: 18px; white-space: nowrap; }
-
-        .legend-card {
-            background: var(--card-bg);
-            border: 1px solid var(--border-color);
-            border-radius: 12px;
-            padding: 16px 20px;
-            margin-bottom: 32px;
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-        }
-        .legend-row { display: flex; align-items: center; gap: 10px; font-size: 13px; }
-        .legend-text { color: var(--text-secondary); }
-        .legend-text strong { color: var(--text-primary); }
-        .legend-notable-dash { font-size: 18px; font-weight: 700; color: var(--text-secondary); min-width: 12px; text-align: center; }
-
-        /* WARRANTY */
-        .warranty-badge {
-            background: rgba(120, 113, 169, 0.1);
-            border: 1px solid rgba(120, 113, 169, 0.3);
-            border-radius: 8px;
-            padding: 12px;
-            margin-bottom: 24px;
-            font-size: 13px;
-            color: #c4b5fd;
-        }
-
-        /* REALTOR CARD */
-        .realtor-card {
-            background: linear-gradient(135deg, rgba(20, 184, 166, 0.1) 0%, rgba(20, 184, 166, 0.05) 100%);
-            border: 1px solid rgba(20, 184, 166, 0.2);
-            border-radius: 12px;
-            padding: 24px;
-            margin-bottom: 32px;
-            text-align: center;
-        }
-
-        .realtor-card h4 {
-            font-size: 14px;
-            margin-bottom: 12px;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            color: var(--accent-teal);
-        }
-
-        .realtor-card p {
-            font-size: 16px;
-            font-weight: 600;
-            margin-bottom: 16px;
-        }
-
-        .realtor-card-buttons {
-            display: flex;
-            gap: 12px;
-        }
-
-        .realtor-card-buttons button {
-            flex: 1;
-            padding: 11px 10px;
-            border-radius: 8px;
-            font-weight: 600;
-            cursor: pointer;
-            font-size: 12px;
-            transition: all 0.2s;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 6px;
-            letter-spacing: 0.3px;
-        }
-        .realtor-card-buttons button.btn-primary-report {
-            background: var(--accent-teal);
-            color: #0f1419;
-            border: none;
-        }
-        .realtor-card-buttons button.btn-primary-report:hover {
-            background: #0fa89a;
-            transform: translateY(-1px);
-            box-shadow: 0 4px 12px rgba(20,184,166,0.3);
-        }
-        .realtor-card-buttons button.btn-secondary-report {
-            background: transparent;
-            color: var(--accent-teal);
-            border: 1px solid rgba(20, 184, 166, 0.4);
-        }
-        .realtor-card-buttons button.btn-secondary-report:hover {
-            background: rgba(20, 184, 166, 0.08);
-            border-color: var(--accent-teal);
-        }
-
-        /* ACTION BUTTONS */
-        .action-buttons {
-            display: flex;
-            gap: 12px;
-            margin-bottom: 32px;
-        }
-
-        .btn {
-            flex: 1;
-            padding: 14px 20px;
-            border: none;
-            border-radius: 10px;
-            font-size: 14px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.3s;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-
-        .btn-primary {
-            background: var(--accent-teal);
-            color: white;
-        }
-
-        .btn-primary:hover {
-            background: #0d9488;
-            transform: translateY(-2px);
-        }
-
-        .btn-secondary {
-            background: transparent;
-            color: var(--accent-teal);
-            border: 1px solid var(--accent-teal);
-        }
-
-        .btn-secondary:hover {
-            background: rgba(20, 184, 166, 0.1);
-        }
-
-        /* CHAT PANEL - FIXED POSITION */
-        .chat-panel {
-            position: fixed;
-            bottom: 20px;
-            right: 20px;
-            width: 420px;
-            height: 450px;
-            background: var(--card-bg);
-            border: 1px solid var(--border-color);
-            border-radius: 12px;
-            display: flex;
-            flex-direction: column;
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
-            z-index: 100;
-            transition: transform 0.3s ease, opacity 0.3s ease;
-            transform: translateY(0);
-            opacity: 1;
-        }
-
-        .chat-panel.chat-hidden {
-            transform: translateY(20px);
-            opacity: 0;
-            pointer-events: none;
-        }
-
-        .chat-fab {
-            position: fixed;
-            bottom: 24px;
-            right: 24px;
-            width: 56px;
-            height: 56px;
-            border-radius: 50%;
-            background: var(--accent-teal);
-            border: none;
-            color: white;
-            font-size: 24px;
-            cursor: pointer;
-            box-shadow: 0 4px 20px rgba(20, 184, 166, 0.4);
-            z-index: 99;
-            transition: transform 0.2s ease, opacity 0.2s ease;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-
-        .chat-fab:hover {
-            transform: scale(1.1);
-            box-shadow: 0 6px 28px rgba(20, 184, 166, 0.5);
-        }
-
-        .chat-fab.fab-hidden {
-            transform: scale(0);
-            opacity: 0;
-            pointer-events: none;
-        }
-
-        .chat-panel-header {
-            padding: 16px;
-            border-bottom: 1px solid var(--border-color);
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            user-select: none;
-            background: linear-gradient(90deg, var(--card-bg), rgba(20, 184, 166, 0.05));
-            border-radius: 12px 12px 0 0;
-        }
-
-        .chat-panel-header h3 {
-            font-size: 14px;
-            font-weight: 600;
-        }
-
-        .chat-panel-close {
-            background: none;
-            border: none;
-            color: var(--text-secondary);
-            cursor: pointer;
-            font-size: 20px;
-            padding: 0;
-            width: 24px;
-            height: 24px;
-        }
-
-        .chat-panel-close:hover {
-            color: var(--accent-teal);
-        }
-
-        .chat-messages {
-            flex: 1;
-            overflow-y: auto;
-            padding: 12px;
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
-        }
-
-        .message {
-            padding: 10px 12px;
-            border-radius: 10px;
-            font-size: 12px;
-            line-height: 1.4;
-            word-wrap: break-word;
-        }
-
-        .user-msg {
-            background: var(--accent-teal);
-            color: white;
-            align-self: flex-end;
-            max-width: 85%;
-        }
-
-        .ai-msg {
-            background: rgba(255, 255, 255, 0.05);
-            color: var(--text-secondary);
-            border: 1px solid var(--border-color);
-            max-width: 100%;
-        }
-
-        .ai-msg strong {
-            color: var(--text-primary);
-            font-weight: 600;
-        }
-
-        .ai-msg em {
-            color: var(--accent-pink);
-            font-style: italic;
-        }
-
-        .referral-cta {
-            background: linear-gradient(135deg, rgba(217, 70, 239, 0.15) 0%, rgba(217, 70, 239, 0.05) 100%);
-            border: 1px solid rgba(217, 70, 239, 0.2);
-            border-radius: 8px;
-            padding: 12px;
-            color: white;
-        }
-
-        .referral-cta h4 {
-            font-size: 12px;
-            font-weight: 600;
-            margin-bottom: 6px;
-            color: #d946a6;
-        }
-
-        .referral-cta p {
-            font-size: 11px;
-            margin-bottom: 6px;
-            color: var(--text-secondary);
-        }
-
-        .referral-issues {
-            background: rgba(0, 0, 0, 0.3);
-            border-radius: 6px;
-            padding: 8px;
-            margin-bottom: 8px;
-            font-size: 10px;
-        }
-
-        .referral-issues-list {
-            list-style: none;
-            margin-top: 4px;
-        }
-
-        .referral-issues-list li {
-            margin-bottom: 2px;
-            padding-left: 12px;
-            position: relative;
-            font-size: 10px;
-        }
-
-        .referral-issues-list li:before {
-            content: "✓";
-            position: absolute;
-            left: 0;
-        }
-
-        .referral-cta button {
-            width: 100%;
-            padding: 6px;
-            background: rgba(217, 70, 239, 0.2);
-            color: #d946a6;
-            border: 1px solid rgba(217, 70, 239, 0.3);
-            border-radius: 6px;
-            font-weight: 600;
-            cursor: pointer;
-            font-size: 10px;
-            transition: all 0.2s;
-        }
-
-        .referral-cta button:hover {
-            background: rgba(217, 70, 239, 0.3);
-        }
-
-        .contractor-card {
-            background: rgba(255, 255, 255, 0.03);
-            border: 1px solid var(--border-color);
-            border-radius: 8px;
-            padding: 8px;
-            margin-bottom: 6px;
-            font-size: 11px;
-        }
-
-        .contractor-card:hover {
-            border-color: var(--accent-teal);
-        }
-
-        .contractor-name {
-            font-weight: 600;
-            font-size: 11px;
-            margin-bottom: 2px;
-        }
-
-        .contractor-location {
-            font-size: 10px;
-            color: var(--text-secondary);
-            margin-bottom: 3px;
-        }
-
-        .contractor-badges {
-            display: flex;
-            gap: 4px;
-            margin-bottom: 3px;
-            font-size: 9px;
-        }
-
-        .badge {
-            background: rgba(20, 184, 166, 0.2);
-            color: var(--accent-teal);
-            padding: 1px 6px;
-            border-radius: 3px;
-        }
-
-        .contractor-specialty {
-            font-size: 10px;
-            color: var(--text-secondary);
-            margin-bottom: 6px;
-        }
-
-        .request-button {
-            width: 100%;
-            padding: 5px;
-            background: var(--accent-teal);
-            color: white;
-            border: none;
-            border-radius: 6px;
-            font-size: 10px;
-            font-weight: 600;
-            cursor: pointer;
-        }
-
-        .request-button:hover {
-            background: #0d9488;
-        }
-
-        .chat-input-area {
-            padding: 12px;
-            border-top: 1px solid var(--border-color);
-            display: flex;
-            gap: 8px;
-        }
-
-        .chat-input-area input {
-            flex: 1;
-            padding: 8px 10px;
-            background: rgba(255, 255, 255, 0.03);
-            border: 1px solid var(--border-color);
-            border-radius: 6px;
-            color: var(--text-primary);
-            font-size: 12px;
-        }
-
-        .chat-input-area input::placeholder {
-            color: #666;
-        }
-
-        .chat-input-area button {
-            padding: 8px 12px;
-            background: var(--accent-teal);
-            color: white;
-            border: none;
-            border-radius: 6px;
-            font-weight: 600;
-            cursor: pointer;
-            font-size: 11px;
-        }
-
-        .chat-input-area button:hover {
-            background: #0d9488;
-        }
-
-        /* MODAL */
-        .modal-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: rgba(0, 0, 0, 0.7);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            z-index: 1001;
-        }
-
-        .modal {
-            background: var(--card-bg);
-            border: 1px solid var(--border-color);
-            border-radius: 12px;
-            padding: 32px;
-            max-width: 500px;
-            width: 90%;
-        }
-
-        .modal h3 {
-            font-size: 18px;
-            font-weight: 600;
-            margin-bottom: 12px;
-        }
-
-        .modal p {
-            color: var(--text-secondary);
-            font-size: 13px;
-            margin-bottom: 20px;
-        }
-
-        .modal-field {
-            margin-bottom: 16px;
-        }
-
-        .modal-field label {
-            display: block;
-            font-size: 12px;
-            font-weight: 600;
-            margin-bottom: 6px;
-        }
-
-        .modal-field input {
-            width: 100%;
-            padding: 10px;
-            border: 1px solid var(--border-color);
-            border-radius: 6px;
-            background: rgba(255, 255, 255, 0.03);
-            color: var(--text-primary);
-            font-size: 14px;
-        }
-
-        .modal-buttons {
-            display: flex;
-            gap: 12px;
-            margin-top: 24px;
-        }
-
-        .modal-buttons button {
-            flex: 1;
-            padding: 12px;
-            border: none;
-            border-radius: 8px;
-            font-weight: 600;
-            cursor: pointer;
-            font-size: 14px;
-        }
-
-        .btn-confirm {
-            background: var(--accent-teal);
-            color: white;
-        }
-
-        .btn-cancel {
-            background: transparent;
-            color: var(--accent-teal);
-            border: 1px solid var(--accent-teal);
-        }
-
-        .btn-confirm:hover { background: #0d9488; }
-        .btn-cancel:hover { background: rgba(20, 184, 166, 0.1); }
-
-        #fileInput { display: none; }
-
-        @media (max-width: 1200px) {
-            .issues-grid { grid-template-columns: repeat(2, 1fr); }
-            .chat-panel { width: 380px; }
-        }
-
-        @media (max-width: 768px) {
-            .issues-grid { grid-template-columns: 1fr; }
-            .budget-grid { grid-template-columns: 1fr; }
-            .chat-panel { width: calc(100vw - 24px); right: 12px; bottom: 12px; height: 350px; }
-        }
-
-        /* SECTION LABELS - colored left border */
-        .section-label {
-            display: flex;
-            align-items: center;
-            font-size: 12px;
-            font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            margin: 32px 0 16px 0;
-            padding-left: 12px;
-            position: relative;
-        }
-        .section-label::before {
-            content: '';
-            position: absolute;
-            left: 0;
-            top: 50%;
-            transform: translateY(-50%);
-            width: 3px;
-            height: 16px;
-            border-radius: 2px;
-        }
-        .section-label-immediate { color: #ef4444; }
-        .section-label-immediate::before { background: #ef4444; }
-        .section-label-maintenance { color: #f59e0b; }
-        .section-label-maintenance::before { background: #f59e0b; }
-        .section-label-findings { color: var(--text-secondary); }
-        .section-label-findings::before { background: var(--text-secondary); }
-
-        /* CATEGORY ACCORDION */
-        .cat-accordion {
-            display: flex;
-            flex-direction: column;
-            gap: 4px;
-            margin-bottom: 32px;
-        }
-        .cat-row {
-            background: var(--card-bg);
-            border: 1px solid var(--border-color);
-            border-left: 3px solid #64748b;
-            border-radius: 8px;
-            overflow: hidden;
-        }
-        .cat-row.cat-row-findings { border-left-color: #f59e0b; }
-        .cat-header {
-            padding: 12px 16px;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            cursor: pointer;
-            transition: background 0.2s;
-            user-select: none;
-        }
-        .cat-header:hover { background: rgba(255,255,255,0.03); }
-        .cat-header-left { display: flex; align-items: center; gap: 10px; }
-        .cat-indicator {
-            width: 8px;
-            height: 8px;
-            border-radius: 50%;
-            flex-shrink: 0;
-        }
-        .cat-indicator-green { background: #22c55e; box-shadow: 0 0 6px #22c55e; }
-        .cat-indicator-gray { background: #64748b; }
-        .cat-indicator-yellow { background: #f59e0b; box-shadow: 0 0 6px rgba(245,158,11,0.5); }
-        .cat-name { font-size: 13px; font-weight: 600; color: var(--text-primary); }
-        .cat-count-badge {
-            background: rgba(255,255,255,0.08);
-            color: var(--text-secondary);
-            font-size: 11px;
-            padding: 1px 7px;
-            border-radius: 10px;
-        }
-        .cat-chevron {
-            color: var(--text-secondary);
-            font-size: 18px;
-            transition: transform 0.2s;
-            line-height: 1;
-        }
-        .cat-body { border-top: 1px solid var(--border-color); display: none; }
-        .cat-body.open { display: block; }
-        .cat-empty { padding: 12px 16px; font-size: 12px; color: var(--text-secondary); font-style: italic; }
-        .cat-item {
-            padding: 10px 16px;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            border-bottom: 1px solid rgba(45,55,72,0.5);
-        }
-        .cat-item:last-child { border-bottom: none; }
-        .cat-item-name { color: var(--text-secondary); flex: 1; padding-right: 16px; font-size: 13px; }
-        .cat-item-cost { color: var(--accent-teal); font-weight: 600; flex-shrink: 0; font-size: 12px; }
-
-        ::-webkit-scrollbar { width: 6px; }
-        ::-webkit-scrollbar-track { background: var(--dark-bg); }
-        ::-webkit-scrollbar-thumb { background: var(--border-color); border-radius: 3px; }
-        ::-webkit-scrollbar-thumb:hover { background: var(--accent-teal); }
-    </style>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/bold/style.css">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Lot7 — Turn your inspection report into a game plan.</title>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --teal: #14b8a6;
+      --teal-dim: #0d9488;
+      --teal-glow: rgba(20, 184, 166, 0.15);
+      --teal-glow-strong: rgba(20, 184, 166, 0.3);
+      --dark: #080d0c;
+      --dark-2: #0e1614;
+      --dark-3: #141f1d;
+      --dark-4: #1a2826;
+      --text: #e2f0ee;
+      --text-dim: #7a9e9a;
+      --text-dimmer: #3d6460;
+      --border: rgba(20, 184, 166, 0.12);
+      --border-hover: rgba(20, 184, 166, 0.35);
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      background: var(--dark);
+      color: var(--text);
+      font-family: 'Inter', sans-serif;
+      font-weight: 300;
+      overflow-x: hidden;
+      cursor: default;
+    }
+
+    /* Noise texture overlay */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+      pointer-events: none;
+      z-index: 0;
+      opacity: 0.4;
+    }
+
+    /* Ambient glow top */
+    body::after {
+      content: '';
+      position: fixed;
+      top: -200px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 800px;
+      height: 600px;
+      background: radial-gradient(ellipse, rgba(20,184,166,0.08) 0%, transparent 70%);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* ── NAV ── */
+    nav {
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 20px 48px;
+      border-bottom: 1px solid var(--border);
+      background: rgba(8, 13, 12, 0.85);
+      backdrop-filter: blur(20px);
+    }
+
+    .nav-logo {
+      font-family: 'Syne', sans-serif;
+      font-weight: 800;
+      font-size: 22px;
+      color: var(--teal);
+      letter-spacing: -0.5px;
+      text-decoration: none;
+    }
+
+    .nav-logo span { color: var(--text-dim); }
+
+    .nav-links {
+      display: flex;
+      gap: 36px;
+      list-style: none;
+    }
+
+    .nav-links a {
+      color: var(--text-dim);
+      text-decoration: none;
+      font-size: 14px;
+      font-family: 'Inter', sans-serif;
+      font-weight: 400;
+      letter-spacing: 0.2px;
+      transition: color 0.2s;
+    }
+
+    .nav-links a:hover { color: var(--teal); }
+
+    .nav-cta {
+      background: var(--teal);
+      color: var(--dark) !important;
+      padding: 9px 22px;
+      border-radius: 6px;
+      font-weight: 500 !important;
+      transition: background 0.2s, transform 0.1s !important;
+    }
+
+    .nav-cta:hover {
+      background: #0d9488 !important;
+      color: var(--dark) !important;
+      transform: translateY(-1px);
+    }
+
+    /* ── HERO ── */
+    .hero {
+      position: relative;
+      z-index: 1;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 140px 24px 80px;
+    }
+
+    .hero-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: var(--teal-glow);
+      border: 1px solid var(--border-hover);
+      border-radius: 100px;
+      padding: 6px 16px;
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--teal);
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      margin-bottom: 40px;
+      animation: fadeUp 0.6s ease both;
+    }
+
+    .hero-badge::before {
+      content: '';
+      width: 6px; height: 6px;
+      background: var(--teal);
+      border-radius: 50%;
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.4; transform: scale(0.7); }
+    }
+
+    .hero h1 {
+      font-family: 'Syne', sans-serif;
+      font-weight: 800;
+      font-size: clamp(42px, 7vw, 88px);
+      line-height: 1.0;
+      letter-spacing: -3px;
+      max-width: 900px;
+      animation: fadeUp 0.6s 0.1s ease both;
+    }
+
+    .hero h1 em {
+      font-style: normal;
+      color: var(--teal);
+      position: relative;
+    }
+
+    .hero h1 em::after {
+      content: '';
+      position: absolute;
+      bottom: 4px; left: 0; right: 0;
+      height: 3px;
+      background: linear-gradient(90deg, var(--teal), transparent);
+      border-radius: 2px;
+    }
+
+    .hero-sub {
+      max-width: 520px;
+      font-size: 18px;
+      line-height: 1.7;
+      color: var(--text-dim);
+      margin: 32px auto 0;
+      font-weight: 300;
+      animation: fadeUp 0.6s 0.2s ease both;
+    }
+
+    .hero-actions {
+      display: flex;
+      gap: 16px;
+      margin-top: 48px;
+      animation: fadeUp 0.6s 0.3s ease both;
+    }
+
+    .btn-primary {
+      background: var(--teal);
+      color: var(--dark);
+      padding: 16px 36px;
+      border-radius: 8px;
+      font-family: 'Inter', sans-serif;
+      font-size: 15px;
+      font-weight: 500;
+      text-decoration: none;
+      transition: all 0.2s;
+      border: none;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .btn-primary:hover {
+      background: #0d9488;
+      transform: translateY(-2px);
+      box-shadow: 0 8px 30px rgba(20,184,166,0.3);
+    }
+
+    .btn-secondary {
+      background: transparent;
+      color: var(--text-dim);
+      padding: 16px 36px;
+      border-radius: 8px;
+      font-family: 'Inter', sans-serif;
+      font-size: 15px;
+      font-weight: 400;
+      text-decoration: none;
+      transition: all 0.2s;
+      border: 1px solid var(--border);
+      cursor: pointer;
+    }
+
+    .btn-secondary:hover {
+      border-color: var(--border-hover);
+      color: var(--text);
+    }
+
+    /* Dashboard mockup */
+    .hero-visual {
+      position: relative;
+      margin-top: 80px;
+      max-width: 860px;
+      width: 100%;
+      animation: fadeUp 0.8s 0.4s ease both;
+    }
+
+    .dashboard-mock {
+      background: var(--dark-2);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      overflow: hidden;
+      box-shadow: 0 40px 120px rgba(0,0,0,0.6), 0 0 0 1px var(--border), 0 0 80px rgba(20,184,166,0.05);
+    }
+
+    .mock-bar {
+      background: var(--dark-3);
+      border-bottom: 1px solid var(--border);
+      padding: 14px 20px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .mock-dot {
+      width: 10px; height: 10px;
+      border-radius: 50%;
+    }
+
+    .mock-dot:nth-child(1) { background: #ff5f57; }
+    .mock-dot:nth-child(2) { background: #febc2e; }
+    .mock-dot:nth-child(3) { background: #28c840; }
+
+    .mock-url {
+      margin-left: 12px;
+      background: var(--dark-4);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 5px 14px;
+      font-size: 12px;
+      font-family: 'Inter', sans-serif;
+      color: var(--text-dimmer);
+      flex: 1;
+      max-width: 300px;
+    }
+
+    .mock-body {
+      padding: 28px;
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 16px;
+    }
+
+    .mock-card {
+      background: var(--dark-3);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 20px;
+      transition: border-color 0.3s;
+    }
+
+    .mock-card:hover { border-color: var(--border-hover); }
+
+    .mock-card-label {
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+      color: var(--text-dimmer);
+      margin-bottom: 10px;
+    }
+
+    .mock-card-value {
+      font-family: 'Syne', sans-serif;
+      font-size: 22px;
+      font-weight: 700;
+      color: var(--teal);
+    }
+
+    .mock-card-sub {
+      font-size: 11px;
+      color: var(--text-dimmer);
+      margin-top: 4px;
+    }
+
+    .mock-issues {
+      grid-column: 1 / -1;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .mock-issue {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: var(--dark-3);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 12px 16px;
+    }
+
+    .mock-issue-left {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 13px;
+      color: var(--text-dim);
+    }
+
+    .mock-dot-status {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    .urgent { background: #ef4444; box-shadow: 0 0 8px rgba(239,68,68,0.5); }
+    .medium { background: #f59e0b; box-shadow: 0 0 8px rgba(245,158,11,0.5); }
+    .low { background: var(--teal); box-shadow: 0 0 8px rgba(20,184,166,0.5); }
+
+    .mock-cost {
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--text);
+    }
+
+    /* ── STATS ── */
+    .stats {
+      position: relative;
+      z-index: 1;
+      display: flex;
+      justify-content: center;
+      gap: 0;
+      border-top: 1px solid var(--border);
+      border-bottom: 1px solid var(--border);
+      background: var(--dark-2);
+    }
+
+    .stat {
+      flex: 1;
+      max-width: 240px;
+      padding: 48px 32px;
+      text-align: center;
+      border-right: 1px solid var(--border);
+    }
+
+    .stat:last-child { border-right: none; }
+
+    .stat-num {
+      font-family: 'Syne', sans-serif;
+      font-size: 44px;
+      font-weight: 800;
+      color: var(--teal);
+      line-height: 1;
+    }
+
+    .stat-label {
+      font-size: 13px;
+      color: var(--text-dimmer);
+      margin-top: 8px;
+      letter-spacing: 0.3px;
+    }
+
+    /* ── HOW IT WORKS ── */
+    .section {
+      position: relative;
+      z-index: 1;
+      padding: 120px 48px;
+      max-width: 1100px;
+      margin: 0 auto;
+    }
+
+    .section-label {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 3px;
+      color: var(--teal);
+      margin-bottom: 20px;
+      font-weight: 500;
+    }
+
+    .section-title {
+      font-family: 'Inter', sans-serif;
+      font-size: clamp(28px, 3.5vw, 46px);
+      font-weight: 700;
+      line-height: 1.15;
+      letter-spacing: -1px;
+      max-width: 560px;
+    }
+
+    .steps {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 2px;
+      margin-top: 64px;
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      overflow: hidden;
+      background: var(--border);
+    }
+
+    .step {
+      background: var(--dark-2);
+      padding: 36px 28px;
+      position: relative;
+      transition: background 0.3s;
+    }
+
+    .step:hover { background: var(--dark-3); }
+
+    .step-num {
+      font-family: 'Syne', sans-serif;
+      font-size: 48px;
+      font-weight: 800;
+      color: var(--border-hover);
+      line-height: 1;
+      margin-bottom: 20px;
+    }
+
+    .step-icon {
+      font-size: 28px;
+      margin-bottom: 16px;
+    }
+
+    .step-title {
+      font-family: 'Inter', sans-serif;
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--text);
+      margin-bottom: 10px;
+    }
+
+    .step-desc {
+      font-size: 13px;
+      color: var(--text-dimmer);
+      line-height: 1.7;
+    }
+
+    /* ── FEATURES ── */
+    .features {
+      position: relative;
+      z-index: 1;
+      padding: 0 48px 120px;
+      max-width: 1100px;
+      margin: 0 auto;
+    }
+
+    .features-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+      margin-top: 64px;
+    }
+
+    .feature-card {
+      background: var(--dark-2);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 32px;
+      transition: all 0.3s;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .feature-card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, var(--teal), transparent);
+      opacity: 0;
+      transition: opacity 0.3s;
+    }
+
+    .feature-card:hover {
+      border-color: var(--border-hover);
+      transform: translateY(-4px);
+      box-shadow: 0 20px 60px rgba(0,0,0,0.4);
+    }
+
+    .feature-card:hover::before { opacity: 1; }
+
+    .feature-icon {
+      width: 44px; height: 44px;
+      background: var(--teal-glow);
+      border: 1px solid var(--border-hover);
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+      margin-bottom: 20px;
+    }
+
+    .feature-title {
+      font-family: 'Inter', sans-serif;
+      font-size: 16px;
+      font-weight: 600;
+      margin-bottom: 10px;
+      color: var(--text);
+    }
+
+    .feature-desc {
+      font-size: 13px;
+      color: var(--text-dimmer);
+      line-height: 1.8;
+    }
+
+    /* ── FOR REALTORS ── */
+    .split-section {
+      position: relative;
+      z-index: 1;
+      padding: 0 48px 120px;
+      max-width: 1100px;
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 80px;
+      align-items: center;
+    }
+
+    .split-content .section-title { max-width: 100%; }
+
+    .split-points {
+      margin-top: 36px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    .split-point {
+      display: flex;
+      gap: 16px;
+      align-items: flex-start;
+    }
+
+    .split-point-icon {
+      width: 36px; height: 36px;
+      background: var(--teal-glow);
+      border: 1px solid var(--border-hover);
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+      flex-shrink: 0;
+      margin-top: 2px;
+    }
+
+    .split-point-text h4 {
+      font-family: 'Inter', sans-serif;
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text);
+      margin-bottom: 4px;
+    }
+
+    .split-point-text p {
+      font-size: 13px;
+      color: var(--text-dimmer);
+      line-height: 1.7;
+    }
+
+    .split-visual {
+      background: var(--dark-2);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 36px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .chat-bubble {
+      background: var(--dark-3);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 14px 18px;
+      font-size: 13px;
+      color: var(--text-dim);
+      line-height: 1.6;
+      position: relative;
+    }
+
+    .chat-bubble.ai {
+      border-color: var(--border-hover);
+      background: rgba(20,184,166,0.05);
+    }
+
+    .chat-label {
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+      color: var(--text-dimmer);
+      margin-bottom: 6px;
+    }
+
+    /* ── PRICING ── */
+    .pricing {
+      position: relative;
+      z-index: 1;
+      padding: 0 48px 120px;
+      max-width: 1100px;
+      margin: 0 auto;
+      text-align: center;
+    }
+
+    .pricing-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+      margin-top: 64px;
+      text-align: left;
+    }
+
+    .pricing-card {
+      background: var(--dark-2);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 36px;
+      transition: all 0.3s;
+    }
+
+    .pricing-card.featured {
+      border-color: var(--teal);
+      background: rgba(20,184,166,0.04);
+      position: relative;
+    }
+
+    .pricing-badge {
+      position: absolute;
+      top: -12px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: var(--teal);
+      color: var(--dark);
+      font-size: 11px;
+      font-weight: 600;
+      padding: 4px 16px;
+      border-radius: 100px;
+      white-space: nowrap;
+      letter-spacing: 0.5px;
+    }
+
+    .pricing-tier {
+      font-family: 'Inter', sans-serif;
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      color: var(--text-dimmer);
+      margin-bottom: 16px;
+    }
+
+    .pricing-price {
+      font-family: 'Syne', sans-serif;
+      font-size: 48px;
+      font-weight: 800;
+      color: var(--text);
+      line-height: 1;
+    }
+
+    .pricing-price span {
+      font-size: 18px;
+      color: var(--text-dimmer);
+      font-weight: 400;
+    }
+
+    .pricing-desc {
+      font-size: 13px;
+      color: var(--text-dimmer);
+      margin: 12px 0 28px;
+      line-height: 1.6;
+    }
+
+    .pricing-features {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      margin-bottom: 32px;
+    }
+
+    .pricing-features li {
+      font-size: 13px;
+      color: var(--text-dim);
+      display: flex;
+      gap: 10px;
+      align-items: flex-start;
+    }
+
+    .pricing-features li::before {
+      content: '✓';
+      color: var(--teal);
+      font-weight: 600;
+      flex-shrink: 0;
+    }
+
+    .pricing-btn {
+      width: 100%;
+      text-align: center;
+      display: block;
+      padding: 14px;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 500;
+      text-decoration: none;
+      transition: all 0.2s;
+    }
+
+    .pricing-btn-primary {
+      background: var(--teal);
+      color: var(--dark);
+    }
+
+    .pricing-btn-primary:hover {
+      background: var(--teal-dim);
+      transform: translateY(-1px);
+    }
+
+    .pricing-btn-ghost {
+      background: transparent;
+      color: var(--text-dim);
+      border: 1px solid var(--border);
+    }
+
+    .pricing-btn-ghost:hover {
+      border-color: var(--border-hover);
+      color: var(--text);
+    }
+
+    /* ── PRICING TOGGLE ── */
+    .pricing-toggle {
+      display: flex;
+      justify-content: center;
+      gap: 4px;
+      margin-top: 40px;
+      background: var(--dark-2);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 4px;
+      width: fit-content;
+      margin-left: auto;
+      margin-right: auto;
+    }
+
+    .toggle-btn {
+      background: transparent;
+      border: none;
+      color: var(--text-dimmer);
+      font-family: 'Inter', sans-serif;
+      font-size: 14px;
+      font-weight: 400;
+      padding: 10px 24px;
+      border-radius: 7px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .toggle-btn:hover { color: var(--text-dim); }
+
+    .toggle-btn.active {
+      background: var(--teal);
+      color: var(--dark);
+      font-weight: 500;
+    }
+
+    .pricing-grid-2 {
+      grid-template-columns: repeat(2, 1fr);
+      max-width: 720px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+
+    .pricing-roi {
+      background: var(--teal-glow);
+      border: 1px solid var(--border-hover);
+      border-radius: 10px;
+      padding: 14px 24px;
+      font-size: 14px;
+      color: var(--teal);
+      margin-top: 32px;
+      margin-bottom: 0;
+      text-align: center;
+    }
+
+    /* ── CTA ── */
+    .cta-section {
+      position: relative;
+      z-index: 1;
+      margin: 0 48px 80px;
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 80px 48px;
+      text-align: center;
+      background: var(--dark-2);
+      overflow: hidden;
+    }
+
+    .cta-section::before {
+      content: '';
+      position: absolute;
+      top: -100px; left: 50%;
+      transform: translateX(-50%);
+      width: 600px; height: 400px;
+      background: radial-gradient(ellipse, rgba(20,184,166,0.1), transparent 70%);
+      pointer-events: none;
+    }
+
+    .cta-section h2 {
+      font-family: 'Syne', sans-serif;
+      font-size: clamp(32px, 4vw, 52px);
+      font-weight: 800;
+      letter-spacing: -2px;
+      line-height: 1.1;
+      margin-bottom: 20px;
+    }
+
+    .cta-section p {
+      font-size: 16px;
+      color: var(--text-dimmer);
+      margin-bottom: 40px;
+      max-width: 440px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+
+    /* ── FOOTER ── */
+    footer {
+      position: relative;
+      z-index: 1;
+      border-top: 1px solid var(--border);
+      padding: 40px 48px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .footer-logo {
+      font-family: 'Syne', sans-serif;
+      font-weight: 800;
+      font-size: 18px;
+      color: var(--teal);
+    }
+
+    .footer-text {
+      font-size: 12px;
+      color: var(--text-dimmer);
+    }
+
+    .footer-powered {
+      font-size: 11px;
+      color: var(--text-dimmer);
+      letter-spacing: 0.3px;
+    }
+
+    .footer-powered a {
+      color: var(--teal);
+      text-decoration: none;
+    }
+
+    /* ── ANIMATIONS ── */
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(24px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .reveal {
+      opacity: 0;
+      transform: translateY(30px);
+      transition: opacity 0.7s ease, transform 0.7s ease;
+    }
+
+    .reveal.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    @media (max-width: 768px) {
+      nav { padding: 16px 24px; }
+      .nav-links { display: none; }
+      .section, .features, .pricing { padding-left: 24px; padding-right: 24px; }
+      .steps { grid-template-columns: 1fr 1fr; }
+      .features-grid { grid-template-columns: 1fr; }
+      .pricing-grid { grid-template-columns: 1fr; }
+      .split-section { grid-template-columns: 1fr; padding: 0 24px 80px; }
+      .stats { flex-wrap: wrap; }
+      .stat { min-width: 50%; }
+      .cta-section { margin: 0 24px 60px; padding: 60px 32px; }
+      footer { flex-direction: column; gap: 16px; text-align: center; }
+      .mock-body { grid-template-columns: 1fr 1fr; }
+    }
+  </style>
 </head>
 <body>
-    <div id="app"></div>
 
-    <script>
-        const API_URL = 'https://inspection-ai-backend-det9.onrender.com';
+  <!-- NAV -->
+  <nav>
+    <a class="nav-logo" href="#">Lot7<span>.ai</span></a>
+    <ul class="nav-links">
+      <li><a href="#how">How it works</a></li>
+      <li><a href="#features">Features</a></li>
+      <li><a href="#pricing">Pricing</a></li>
+      <li><a href="https://inspection-ai-backend-det9.onrender.com" class="nav-cta" target="_blank">Try it free →</a></li>
+    </ul>
+  </nav>
 
-        let state = {
-            screen: 'upload',
-            customerName: '',
-            customerEmail: '',
-            customerPhone: '',
-            uploading: false,
-            reportId: null,
-            summary: null,
-            address: null,
-            messages: [],
-            loading: false,
-            pendingQuote: null,
-            warrantyId: null,
-            warrantyBuilderName: null,
-            warrantyType: null,
-            warrantyLoaded: false,
-            showConfirmModal: false,
-            chatVisible: true,
-            isPaid: false,
-            showPaywall: false
-        };
-        // Load report from URL on page load
-        const urlParams = new URLSearchParams(window.location.search);
-        const urlReportId = urlParams.get('report_id');
-        if (urlParams.get('paid') === 'true') state.isPaid = true;
-        if (urlParams.get('paywall') === 'off') state.isPaid = true;
-        if (urlReportId) {
-            state.screen = 'dashboard';
-            state.reportId = urlReportId;
-            fetch(`${API_URL}/api/analysis/${urlReportId}`)
-                .then(r => r.json())
-                .then(data => {
-                    state.analysis = data;
-                    state.summary = data._meta.summary;
-                    state.address = data._meta.address || data.location;
-                    state.shareToken = data._meta.share_token;
-                    state.customerName = data._meta.customer_name;
-                    state.customerEmail = data._meta.customer_email;
-                    render();
-                });
+  <!-- HERO -->
+  <section class="hero">
+    <div class="hero-badge">AI-Powered · Chicago, IL</div>
+
+    <h1>Turn your inspection report<br>into a <em>game plan.</em></h1>
+
+    <p class="hero-sub">Lot7 uses AI to instantly decode complex inspection reports — showing buyers exactly what needs fixing, what it'll cost, and who to call.</p>
+
+    <div class="hero-actions">
+      <a href="https://inspection-ai-backend-det9.onrender.com" class="btn-primary" target="_blank">Upload your report →</a>
+      <a href="#how" class="btn-secondary">See how it works</a>
+    </div>
+
+    <!-- Dashboard mockup -->
+    <div class="hero-visual">
+      <div class="dashboard-mock">
+        <div class="mock-bar">
+          <div class="mock-dot"></div>
+          <div class="mock-dot"></div>
+          <div class="mock-dot"></div>
+          <div class="mock-url">Lot7.ai/dashboard/report-123</div>
+        </div>
+        <div class="mock-body">
+          <div class="mock-card">
+            <div class="mock-card-label">Overall Condition</div>
+            <div class="mock-card-value">Good</div>
+            <div class="mock-card-sub">3 items need attention</div>
+          </div>
+          <div class="mock-card">
+            <div class="mock-card-label">Budget Now</div>
+            <div class="mock-card-value">$1,200</div>
+            <div class="mock-card-sub">0–12 months</div>
+          </div>
+          <div class="mock-card">
+            <div class="mock-card-label">5-Year Outlook</div>
+            <div class="mock-card-value">$4,800</div>
+            <div class="mock-card-sub">Planned maintenance</div>
+          </div>
+          <div class="mock-issues">
+            <div class="mock-issue">
+              <div class="mock-issue-left"><div class="mock-dot-status urgent"></div> Double-tapped breaker in main panel</div>
+              <div class="mock-cost">$150–250 · Electrician</div>
+            </div>
+            <div class="mock-issue">
+              <div class="mock-issue-left"><div class="mock-dot-status medium"></div> Sewer line scaling detected</div>
+              <div class="mock-cost">$300–500 · Plumber</div>
+            </div>
+            <div class="mock-issue">
+              <div class="mock-issue-left"><div class="mock-dot-status low"></div> Water heater — monitor annually</div>
+              <div class="mock-cost">Routine maintenance</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- STATS -->
+  <div class="stats">
+    <div class="stat reveal">
+      <div class="stat-num">80+</div>
+      <div class="stat-label">Pages decoded instantly</div>
+    </div>
+    <div class="stat reveal">
+      <div class="stat-num">20yr</div>
+      <div class="stat-label">Inspection expertise behind the AI</div>
+    </div>
+    <div class="stat reveal">
+      <div class="stat-num">&lt;60s</div>
+      <div class="stat-label">From upload to full dashboard</div>
+    </div>
+    <div class="stat reveal">
+      <div class="stat-num">$0</div>
+      <div class="stat-label">To get your first report analyzed</div>
+    </div>
+  </div>
+
+  <!-- HOW IT WORKS -->
+  <section class="section" id="how">
+    <div class="section-label reveal">How it works</div>
+    <h2 class="section-title reveal">Four steps from confused to confident.</h2>
+    <div class="steps reveal">
+      <div class="step">
+        <div class="step-num">01</div>
+        <div class="step-icon">📄</div>
+        <div class="step-title">Upload your report</div>
+        <div class="step-desc">Drop in any home inspection PDF. Lot7 reads every page instantly — no manual data entry.</div>
+      </div>
+      <div class="step">
+        <div class="step-num">02</div>
+        <div class="step-icon">⚡</div>
+        <div class="step-title">Get your dashboard</div>
+        <div class="step-desc">AI generates a clear summary — condition rating, cost estimates, and a prioritized issues list.</div>
+      </div>
+      <div class="step">
+        <div class="step-num">03</div>
+        <div class="step-icon">💬</div>
+        <div class="step-title">Ask anything</div>
+        <div class="step-desc">Chat with your report. Plain-English answers to every question — no alarm, no jargon.</div>
+      </div>
+      <div class="step">
+        <div class="step-num">04</div>
+        <div class="step-icon">🔧</div>
+        <div class="step-title">Connect with contractors</div>
+        <div class="step-desc">Get matched with vetted local contractors. Send them your punchlist. Get quotes fast.</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- FEATURES -->
+  <section class="features" id="features">
+    <div class="section-label reveal">Features</div>
+    <h2 class="section-title reveal">Everything you need to close with confidence.</h2>
+    <div class="features-grid">
+      <div class="feature-card reveal">
+        <div class="feature-icon">🧠</div>
+        <div class="feature-title">AI Report Analysis</div>
+        <div class="feature-desc">Trained on Illinois inspection standards. Pulls every deficiency, categorizes by urgency, and estimates real contractor costs for your market.</div>
+      </div>
+      <div class="feature-card reveal">
+        <div class="feature-icon">💬</div>
+        <div class="feature-title">Plain-English Chat</div>
+        <div class="feature-desc">Ask "is this serious?" and get a calm, honest answer — not a wall of liability disclaimers. Keeps buyers informed, not scared.</div>
+      </div>
+      <div class="feature-card reveal">
+        <div class="feature-icon">📋</div>
+        <div class="feature-title">Contractor Punchlist</div>
+        <div class="feature-desc">One-click punchlist generation per trade — electrical, plumbing, HVAC. Send directly to contractors for accurate quotes.</div>
+      </div>
+      <div class="feature-card reveal">
+        <div class="feature-icon">💰</div>
+        <div class="feature-title">Real Cost Estimates</div>
+        <div class="feature-desc">Localized to your metro area. Only flags what the inspector actually found — no inflated worst-case stacking.</div>
+      </div>
+      <div class="feature-card reveal">
+        <div class="feature-icon">🏗️</div>
+        <div class="feature-title">Trusted Contractors</div>
+        <div class="feature-desc">Vetted local pros matched to your specific issues. Rated, reviewed, and ready to quote — directly from your dashboard.</div>
+      </div>
+      <div class="feature-card reveal">
+        <div class="feature-icon">🔗</div>
+        <div class="feature-title">Shareable Reports</div>
+        <div class="feature-desc">Share your dashboard with your realtor, spouse, or contractor with a single link. Everyone on the same page, instantly.</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- FOR REALTORS -->
+  <section class="split-section">
+    <div class="split-content reveal">
+      <div class="section-label">For realtors</div>
+      <h2 class="section-title">Stop losing deals to inspection fear.</h2>
+      <div class="split-points">
+        <div class="split-point">
+          <div class="split-point-icon">🤝</div>
+          <div class="split-point-text">
+            <h4>Keep deals alive</h4>
+            <p>Buyers who understand their report don't walk away. Lot7 turns panic into a plan.</p>
+          </div>
+        </div>
+        <div class="split-point">
+          <div class="split-point-icon">⭐</div>
+          <div class="split-point-text">
+            <h4>Differentiate your service</h4>
+            <p>Offer Lot7 to every client. It's the kind of tool that gets you referrals.</p>
+          </div>
+        </div>
+        <div class="split-point">
+          <div class="split-point-icon">⚡</div>
+          <div class="split-point-text">
+            <h4>Close faster</h4>
+            <p>Buyers get answers in seconds, not days. Negotiations move faster when everyone has the same data.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="split-visual reveal">
+      <div class="chat-bubble">
+        <div class="chat-label">Buyer</div>
+        The inspector flagged the electrical panel — should I be worried?
+      </div>
+      <div class="chat-bubble ai">
+        <div class="chat-label" style="color: var(--teal);">Lot7 AI</div>
+        Not seriously. The inspector found a double-tapped breaker — that's when two wires share one slot meant for one. It's common in older homes and easy for a licensed electrician to fix, typically $150–250. It's not a safety emergency, but worth resolving before closing.
+      </div>
+      <div class="chat-bubble">
+        <div class="chat-label">Buyer</div>
+        Can you find me an electrician?
+      </div>
+      <div class="chat-bubble ai">
+        <div class="chat-label" style="color: var(--teal);">Lot7 AI</div>
+        Absolutely. I've matched you with 3 vetted electricians in your area. Want me to send them your punchlist?
+      </div>
+    </div>
+  </section>
+
+  <!-- PRICING -->
+  <section class="pricing" id="pricing">
+    <div class="section-label reveal">Pricing</div>
+    <h2 class="section-title reveal" style="max-width:100%">Start free. Scale when you're ready.</h2>
+
+    <!-- Toggle -->
+    <div class="pricing-toggle reveal">
+      <button class="toggle-btn active" onclick="showPricing('buyer')">I'm a Buyer</button>
+      <button class="toggle-btn" onclick="showPricing('realtor')">I'm a Realtor</button>
+      <button class="toggle-btn" onclick="showPricing('inspector')">I'm an Inspector</button>
+    </div>
+
+    <!-- BUYER -->
+    <div class="pricing-panel" id="pricing-buyer">
+      <div class="pricing-grid pricing-grid-2">
+        <div class="pricing-card reveal">
+          <div class="pricing-tier">Buyer</div>
+          <div class="pricing-price">$0 <span>/ report</span></div>
+          <div class="pricing-desc">Get clarity on your inspection — no credit card needed.</div>
+          <ul class="pricing-features">
+            <li>Full AI dashboard summary</li>
+            <li>Prioritized issues list</li>
+            <li>Cost estimates by trade</li>
+            <li>Plain-English chat (5 questions)</li>
+            <li>Shareable report link</li>
+          </ul>
+          <a href="https://inspection-ai-backend-det9.onrender.com" class="pricing-btn pricing-btn-ghost" target="_blank">Get started free</a>
+        </div>
+        <div class="pricing-card featured reveal">
+          <div class="pricing-badge">Most popular</div>
+          <div class="pricing-tier">Buyer Pro</div>
+          <div class="pricing-price">$29 <span>/ report</span></div>
+          <div class="pricing-desc">Everything you need to negotiate with full confidence.</div>
+          <ul class="pricing-features">
+            <li>Everything in free</li>
+            <li>Unlimited AI chat</li>
+            <li>Full contractor punchlist</li>
+            <li>Contractor matching & quotes</li>
+            <li>5-year cost projections</li>
+          </ul>
+          <a href="https://inspection-ai-backend-det9.onrender.com" class="pricing-btn pricing-btn-primary" target="_blank">Get started →</a>
+        </div>
+      </div>
+    </div>
+
+    <!-- REALTOR -->
+    <div class="pricing-panel" id="pricing-realtor" style="display:none">
+      <div class="pricing-grid" style="grid-template-columns:1fr;max-width:440px;margin:48px auto 0;">
+        <div class="pricing-card featured reveal" style="position:relative;">
+          <div class="pricing-badge">For realtors</div>
+          <div class="pricing-tier">Realtor</div>
+          <div class="pricing-price">$199 <span>/ mo</span></div>
+          <div class="pricing-desc">Offer Lot7 to every client under your brand. Keep deals alive, close faster.</div>
+          <ul class="pricing-features">
+            <li>Unlimited client reports</li>
+            <li>Your branded subdomain</li>
+            <li>Clients get full Buyer Pro experience</li>
+            <li>Contractor marketplace</li>
+            <li>Lead tracking dashboard</li>
+            <li>Shareable branded report links</li>
+          </ul>
+          <a href="https://inspection-ai-backend-det9.onrender.com" class="pricing-btn pricing-btn-primary" target="_blank">Get started →</a>
+        </div>
+      </div>
+    </div>
+
+    <!-- INSPECTOR -->
+    <div class="pricing-panel" id="pricing-inspector" style="display:none">
+      <div class="pricing-roi reveal">💡 Sign up 8 contractors at $200/mo = $1,600. Your platform pays for itself — and then some.</div>
+      <div class="pricing-grid">
+        <div class="pricing-card reveal">
+          <div class="pricing-tier">Starter</div>
+          <div class="pricing-price">$799 <span>/ mo</span></div>
+          <div class="pricing-desc">For solo inspectors building a contractor network.</div>
+          <ul class="pricing-features">
+            <li>Up to 8 contractors listed</li>
+            <li>Branded subdomain</li>
+            <li>Unlimited client reports</li>
+            <li>Lead tracking dashboard</li>
+            <li>Analytics & revenue reporting</li>
+            <li>Direct contractor email leads</li>
+          </ul>
+          <a href="mailto:baz@assureinspections.com" class="pricing-btn pricing-btn-ghost">Get started →</a>
+        </div>
+        <div class="pricing-card featured reveal">
+          <div class="pricing-badge">Best value</div>
+          <div class="pricing-tier">Growth</div>
+          <div class="pricing-price">$999 <span>/ mo</span></div>
+          <div class="pricing-desc">Scale your network and maximize referral revenue.</div>
+          <ul class="pricing-features">
+            <li>Up to 20 contractors listed</li>
+            <li>Everything in Starter</li>
+            <li>Multiple inspector accounts</li>
+            <li>Advanced analytics & trends</li>
+            <li>Priority support</li>
+            <li>Exportable lead reports</li>
+          </ul>
+          <a href="https://inspection-ai-backend-det9.onrender.com" class="pricing-btn pricing-btn-primary" target="_blank">Get started →</a>
+        </div>
+        <div class="pricing-card reveal">
+          <div class="pricing-tier">Agency</div>
+          <div class="pricing-price">$1,299 <span>/ mo</span></div>
+          <div class="pricing-desc">Full white-label. Multiple markets. Zero Lot7 branding.</div>
+          <ul class="pricing-features">
+            <li>Unlimited contractors</li>
+            <li>Everything in Growth</li>
+            <li>Fully white-labeled</li>
+            <li>Custom state SOP configuration</li>
+            <li>Multi-location support</li>
+            <li>Dedicated onboarding</li>
+          </ul>
+          <a href="mailto:baz@assureinspections.com" class="pricing-btn pricing-btn-ghost">Contact us</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CTA -->
+  <div class="cta-section reveal">
+    <h2>Your report is waiting<br>to make sense.</h2>
+    <p>Upload in seconds. No account needed. Free to start.</p>
+    <a href="https://inspection-ai-backend-det9.onrender.com" class="btn-primary" target="_blank">Try Lot7 free →</a>
+  </div>
+
+  <!-- FOOTER -->
+  <footer>
+    <div class="footer-logo">Lot7</div>
+    <div class="footer-text">© 2026 Lot7. All rights reserved.</div>
+    <div class="footer-powered">Powered by <a href="https://assureinspections.com" target="_blank">Assure Home Inspections</a> · 20 years of expertise</div>
+  </footer>
+
+  <script>
+    // Pricing toggle
+    function showPricing(audience) {
+      document.querySelectorAll('.pricing-panel').forEach(p => p.style.display = 'none');
+      document.querySelectorAll('.toggle-btn').forEach(b => b.classList.remove('active'));
+      document.getElementById('pricing-' + audience).style.display = 'block';
+      event.target.classList.add('active');
+    }
+
+    // Scroll reveal
+    const reveals = document.querySelectorAll('.reveal');
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach((entry, i) => {
+        if (entry.isIntersecting) {
+          setTimeout(() => entry.target.classList.add('visible'), i * 80);
+          observer.unobserve(entry.target);
         }
+      });
+    }, { threshold: 0.1 });
+    reveals.forEach(el => observer.observe(el));
+  </script>
 
-        
-        function render() {
-            const app = document.getElementById('app');
-            if (state.screen === 'upload') {
-                app.innerHTML = renderUploadScreen();
-                setupUploadHandlers();
-            } else if (state.screen === 'dashboard') {
-                app.innerHTML = renderDashboardScreen();
-            }
-        }
-
-        function renderUploadScreen() {
-            return `
-                <div class="upload-screen">
-                    <div class="upload-container">
-                        <h2>📋 Upload Your Inspection Report</h2>
-                        <p>Enter your information and upload your PDF to get started</p>
-                        
-                        <div class="form-group">
-                            <label>Your Name</label>
-                            <input type="text" id="customerName" value="${state.customerName || ''}" placeholder="John Doe">
-                        </div>
-                        
-                        <div class="form-group">
-                            <label>Email (optional)</label>
-                            <input type="email" id="customerEmail" value="${state.customerEmail || ''}" placeholder="john@example.com">
-                        </div>
-                        
-                        <div class="form-group">
-                            <label>Phone (optional)</label>
-                            <input type="tel" id="customerPhone" value="${state.customerPhone || ''}" placeholder="(555) 123-4567">
-                        </div>
-
-                        <div class="drop-zone" id="dropZone">
-                            <div class="drop-zone-icon">📄</div>
-                            <p style="font-weight: 600; margin-bottom: 4px;">Drag your PDF here or click to browse</p>
-                            <p>Accepted: PDF inspection reports</p>
-                        </div>
-
-                        ${state.uploading ? `
-                            <div style="text-align: center; padding: 20px;">
-                                <div class="loader">
-                                    <div class="dot"></div><div class="dot"></div><div class="dot"></div>
-                                </div>
-                                <p style="color: var(--text-secondary); margin-top: 12px; font-size: 13px;">Processing your report...</p>
-                            </div>
-                        ` : ''}
-                        
-                        <input type="file" id="fileInput" accept=".pdf">
-                    </div>
-                </div>
-            `;
-        }
-
-        function renderDashboardScreen() {
-            const a = state.analysis; // shorthand, null if not available
-
-            return `
-                <div class="dashboard-screen">
-                    <div class="dashboard-header">
-                        <div>
-                            <div class="dashboard-header-title">LOT7</div>
-                        </div>
-                        <button onclick="resetApp()">↻ New Report</button>
-                    </div>
-
-                    <div class="dashboard-content">
-                        ${state.warrantyLoaded ? `<div class="warranty-badge"><strong>✓ 📋 Warranty on file:</strong> ${state.warrantyBuilderName}</div>` : ''}
-
-                        <div class="hero-card">
-                            <div class="condition-label">Home Condition</div>
-                            <div class="condition-status" style="color:#14b8a6">Needs Attention</div>
-                            <div class="condition-note" style="max-width:520px;margin:0 auto 12px;">${(() => {
-                                const c = a ? a.condition : '';
-                                if (c === 'Satisfactory') return "This home is in solid shape. The findings noted are routine maintenance items — exactly what a thorough inspection surfaces. You're buying with clear eyes and a strong foundation to work from.";
-                                if (c === 'Immediate Action Required') return "This report surfaces some items that need near-term attention — but knowing this upfront is exactly the point of an inspection. You're now in control of the conversation and the costs.";
-                                return "Findings across multiple systems are completely normal for a home of this age and price range. Most buyers use this report to negotiate, budget, and plan — not as a reason to walk away. Here's your full picture.";
-                            })()}</div>
-                            ${a && a.address ? `<div style="font-size:13px;color:var(--text-secondary);margin-bottom:20px;">${escapeHtml(a.address)}</div>` : state.address ? `<div style="font-size:13px;color:var(--text-secondary);margin-bottom:20px;">${escapeHtml(state.address)}</div>` : ''}
-                            <div class="condition-summary" style="justify-content:center;gap:60px;">
-                                <div class="condition-summary-item">
-                                    <div class="condition-summary-number" style="color:#ef4444">${a ? a.urgent_items.length : '-'}</div>
-                                    <div class="condition-summary-label">Immediate</div>
-                                </div>
-                                <div class="condition-summary-item">
-                                    <div class="condition-summary-number" style="color:#f59e0b">${a ? (a.maintenance_items ? a.maintenance_items.length : 0) : '-'}</div>
-                                    <div class="condition-summary-label">Attention</div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="section-title">Budget for Repairs ${a && a.currency ? `(${a.currency})` : ''}</div>
-                        <div class="budget-grid">
-                            <div class="budget-card">
-                                <div class="budget-card-label">Now - 12 Months</div>
-                                <div class="budget-card-amount">${a ? a.budget_now : '...'}</div>
-                                <div class="budget-card-description">Estimated cost · immediate repairs</div>
-                            </div>
-                            <div class="budget-card">
-                                <div class="budget-card-label">5 Year Outlook</div>
-                                <div class="budget-card-amount">${a ? a.budget_5yr : '...'}</div>
-                                <div class="budget-card-description">Estimated cost · long-term replacements</div>
-                            </div>
-                        </div>
-
-                        <div class="legend-card">
-                            <div class="legend-row"><span style="display:inline-block;width:3px;height:14px;background:#ef4444;flex-shrink:0;margin-right:10px;"></span><span class="legend-text"><strong style="color:#ef4444;">Immediate</strong> — Requires prompt attention or repair</span></div>
-                            <div class="legend-row"><span style="display:inline-block;width:3px;height:14px;background:#f59e0b;flex-shrink:0;margin-right:10px;"></span><span class="legend-text"><strong style="color:#f59e0b;">Attention</strong> — Monitor or plan within 1–3 years</span></div>
-                            <div class="legend-row"><span class="legend-notable-dash">- -</span><span class="legend-text"><strong>Notable</strong> — Item observed but not fully tested</span></div>
-                        </div>
-
-                        <div class="section-label section-label-immediate">Immediate</div>
-
-                        <!-- TEASER: first 3 cards always visible -->
-                        <div class="issues-grid" style="margin-bottom:14px;">
-                            ${(() => {
-                                const urgentItems = a && a.urgent_items ? a.urgent_items : [];
-                                const teaser = urgentItems.slice(0, 3);
-                                if (teaser.length === 0) return `
-                                    <div class="issue-card">
-                                        <div class="issue-title">No urgent issues</div>
-                                        <div class="issue-cost">-</div>
-                                    </div>
-                                `;
-                                return teaser.map(item => `
-                                    <div class="issue-card" onclick="${state.isPaid ? `askQuestionCard('Tell me more about ${item.name.replace(/'/g, "\\'")} and what I should do')` : 'startCheckout()'}">
-                                        <div class="issue-title" style="margin-bottom:10px;">${escapeHtml(item.name)}</div>
-                                        <div class="issue-cost">${escapeHtml(item.cost)}</div>
-                                    </div>
-                                `).join('');
-                            })()}
-                        </div>
-
-                        ${(() => {
-                            const urgentItems = a && a.urgent_items ? a.urgent_items : [];
-                            const urgentRest = urgentItems.slice(3);
-
-                            if (state.isPaid) {
-                                // PAID: show everything normally
-                                return `
-                                    ${urgentRest.length > 0 ? `
-                                        <div class="issues-grid">
-                                            ${urgentRest.map(item => `
-                                                <div class="issue-card" onclick="askQuestionCard('Tell me more about ${item.name.replace(/'/g, "\\'")} and what I should do')">
-                                                    <div class="issue-title" style="margin-bottom:10px;">${escapeHtml(item.name)}</div>
-                                                    <div class="issue-cost">${escapeHtml(item.cost)}</div>
-                                                </div>
-                                            `).join('')}
-                                        </div>
-                                    ` : ''}
-
-                                    ${a && a.maintenance_items && a.maintenance_items.length > 0 ? `
-                                        <div class="section-label section-label-maintenance">Attention</div>
-                                        <div class="maint-rows">
-                                            ${a.maintenance_items.map(item => `
-                                                <div class="maint-row" onclick="askQuestionCard('Tell me about ${item.name.replace(/'/g, "\\'")} and when I should address it')">
-                                                    <div class="maint-row-left">${escapeHtml(item.name)}</div>
-                                                    <div class="maint-row-right">
-                                                        <span class="maint-row-cost">${escapeHtml(item.cost)}</span>
-                                                        <span class="maint-row-timeline">${escapeHtml(item.timeline)}</span>
-                                                    </div>
-                                                </div>
-                                            `).join('')}
-                                        </div>
-                                    ` : ''}
-
-                                    ${renderCategoryAccordion(a)}
-
-                                    <div class="checklist-section">
-                                        ${a && a.checklist ? [...a.checklist].filter(item => item.passed || item.notable).sort((x, y) => {
-                                            if (x.notable && !y.notable) return 1;
-                                            if (!x.notable && y.notable) return -1;
-                                            return 0;
-                                        }).map(item => `
-                                            <div class="checklist-item">
-                                                ${item.notable
-                                                    ? '<div class="checklist-icon checklist-notable">- -</div>'
-                                                    : item.passed
-                                                        ? '<div class="checklist-icon">✓</div>'
-                                                        : '<div style="display:flex;align-items:center;min-width:20px;padding-top:2px;"><span class="issue-priority-dot priority-yellow" style="margin:0;"></span></div>'
-                                                }
-                                                <div>${escapeHtml(item.text)}</div>
-                                            </div>
-                                        `).join('') : '<div class="checklist-item"><div class="checklist-icon">...</div><div>Loading analysis...</div></div>'}
-                                    </div>
-
-                                    <div class="realtor-card">
-                                        <h4>📋 For Realtors</h4>
-                                        <p>Share this report with your buyer</p>
-                                        <div class="realtor-card-buttons">
-                                            <button class="btn-primary-report" onclick="generatePunchlist()"><i class="ph-bold ph-wrench"></i> Contractor Punchlist</button>
-                                            <button class="btn-secondary-report" onclick="generateOverview()"><i class="ph-bold ph-file-text"></i> Overview Report</button>
-                                        </div>
-                                        <div style="margin-top:8px;">
-                                            <button class="btn-secondary-report" style="width:100%;padding:8px;border-radius:8px;border:1px solid rgba(20,184,166,0.3);background:transparent;color:var(--accent-teal);font-size:11px;cursor:pointer;font-weight:600;" onclick="copyShareLink()"><i class="ph-bold ph-share-network"></i> Share Link</button>
-                                        </div>
-                                    </div>
-
-                                    <div class="action-buttons">
-                                        <button class="btn btn-primary" onclick="toggleChat(true)">💬 Ask Question</button>
-                                        <button class="btn btn-secondary" onclick="resetApp()">📤 New Report</button>
-                                    </div>
-                                `;
-                            } else {
-                                // NOT PAID: blur everything below the teaser, show paywall overlay
-                                const maintHtml = a && a.maintenance_items && a.maintenance_items.length > 0 ? `
-                                    <div class="section-label section-label-maintenance">Attention</div>
-                                    <div class="maint-rows">
-                                        ${a.maintenance_items.map(item => `
-                                            <div class="maint-row">
-                                                <div class="maint-row-left">${escapeHtml(item.name)}</div>
-                                                <div class="maint-row-right">
-                                                    <span class="maint-row-cost">${escapeHtml(item.cost)}</span>
-                                                    <span class="maint-row-timeline">${escapeHtml(item.timeline)}</span>
-                                                </div>
-                                            </div>
-                                        `).join('')}
-                                    </div>
-                                ` : '';
-                                return `
-                                    <div style="position:relative;margin-bottom:32px;">
-                                        <div style="filter:blur(5px);pointer-events:none;user-select:none;">
-                                            ${urgentRest.length > 0 ? `
-                                                <div class="issues-grid" style="margin-bottom:14px;">
-                                                    ${urgentRest.map(item => `
-                                                        <div class="issue-card">
-                                                            <div class="issue-title" style="margin-bottom:10px;">${escapeHtml(item.name)}</div>
-                                                            <div class="issue-cost">${escapeHtml(item.cost)}</div>
-                                                        </div>
-                                                    `).join('')}
-                                                </div>
-                                            ` : ''}
-                                            ${maintHtml}
-                                            ${renderCategoryAccordion(a)}
-                                            <div class="checklist-section">
-                                                <div class="checklist-item"><div class="checklist-icon">✓</div><div>Roof covering appeared serviceable at time of inspection</div></div>
-                                                <div class="checklist-item"><div class="checklist-icon">✓</div><div>Electrical panel properly labelled and accessible</div></div>
-                                                <div class="checklist-item"><div class="checklist-icon checklist-notable">- -</div><div>Water heater age unknown — verify documentation</div></div>
-                                            </div>
-                                            <div class="realtor-card">
-                                                <h4>📋 For Realtors</h4>
-                                                <p>Share this report with your buyer</p>
-                                            </div>
-                                        </div>
-                                        <div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;background:rgba(15,20,25,0.65);border-radius:12px;padding:32px;min-height:320px;">
-                                            <div style="width:48px;height:48px;border-radius:50%;background:var(--card-bg);border:1px solid var(--border-color);display:flex;align-items:center;justify-content:center;">
-                                                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-                                            </div>
-                                            <div style="text-align:center;max-width:420px;">
-                                                <p style="font-size:16px;font-weight:700;margin:0 0 8px;color:var(--text-primary);">Your report is ready — unlock it now!</p>
-                                                <p style="font-size:13px;color:var(--text-secondary);margin:0 0 14px;line-height:1.6;">Chat directly with your inspection report. Ask anything, get instant answers!</p>
-                                                <div style="display:flex;flex-wrap:wrap;justify-content:center;gap:8px;">
-                                                    <span style="background:var(--card-bg);border:1px solid var(--border-color);border-radius:20px;padding:5px 12px;font-size:12px;color:var(--text-secondary);">✓ Full punchlist</span>
-                                                    <span style="background:var(--card-bg);border:1px solid var(--border-color);border-radius:20px;padding:5px 12px;font-size:12px;color:var(--text-secondary);">✓ All cost estimates</span>
-                                                    <span style="background:var(--card-bg);border:1px solid var(--border-color);border-radius:20px;padding:5px 12px;font-size:12px;color:var(--text-secondary);">✓ Contractor referrals</span>
-                                                    <span style="background:var(--card-bg);border:1px solid var(--border-color);border-radius:20px;padding:5px 12px;font-size:12px;color:var(--text-secondary);">✓ Unlimited AI chat</span>
-                                                </div>
-                                            </div>
-                                            <button id="paywallBtn" onclick="startCheckout()" style="background:var(--accent-teal);color:#0a0f1a;border:none;border-radius:8px;padding:12px 28px;font-size:14px;font-weight:700;cursor:pointer;margin-top:4px;">Unlock Full Report — $29!</button>
-                                        </div>
-                                    </div>
-                                `;
-                            }
-                        })()}
-                    </div>
-                </div>
-
-                <div class="chat-panel ${state.chatVisible ? '' : 'chat-hidden'}" id="chatPanel">
-                    <div class="chat-panel-header">
-                        <h3>Ask About This Report</h3>
-                        <button class="chat-panel-close" onclick="toggleChat(false)">✕</button>
-                    </div>
-                    <div class="chat-messages" id="chatMessages"></div>
-                    <div class="chat-input-area">
-                        <input type="text" id="question" placeholder="Ask about the report..." onkeypress="if(event.key==='Enter') askQuestion()">
-                        <button onclick="askQuestion()">Send</button>
-                    </div>
-                </div>
-
-                <button class="chat-fab ${state.chatVisible ? 'fab-hidden' : ''}" id="chatFab" onclick="toggleChat(true)">💬</button>
-
-                ${state.showPaywall ? `
-                    <div class="modal-overlay" onclick="if(event.target===this){state.showPaywall=false;render();}">
-                        <div class="modal-box" style="max-width:380px;text-align:center;">
-                            <div style="font-size:32px;margin-bottom:8px;">🔒</div>
-                            <h2 style="margin:0 0 6px;font-family:'Syne',sans-serif;font-size:20px;color:var(--text-primary);">Unlock Buyer Pro</h2>
-                            <p style="color:var(--text-secondary);font-size:14px;margin:0 0 20px;">One-time $29 payment for this report.</p>
-                            <ul style="text-align:left;color:var(--text-secondary);font-size:13px;margin:0 0 20px;padding-left:18px;line-height:1.8;">
-                                <li>📋 Contractor Punchlist PDF</li>
-                                <li>📄 Full Overview Report PDF</li>
-                                <li>🔗 Shareable report link</li>
-                                <li>💬 Unlimited AI chat questions</li>
-                            </ul>
-                            <button id="paywallBtn" onclick="startCheckout()"
-                               style="display:block;width:100%;background:var(--accent-teal);color:#fff;padding:12px;border-radius:8px;font-weight:700;font-size:15px;border:none;cursor:pointer;margin-bottom:10px;">
-                                Unlock for $29 →
-                            </button>
-                            <button onclick="state.showPaywall=false;render();" style="background:transparent;border:none;color:var(--text-secondary);font-size:13px;cursor:pointer;">Maybe later</button>
-                        </div>
-                    </div>
-                ` : ''}
-                ${state.showConfirmModal ? `
-                    <div class="modal-overlay" onclick="if(event.target === this) { state.showConfirmModal = false; }">
-                        <div class="modal" onclick="event.stopPropagation()">
-                            <h3>Confirm Your Information</h3>
-                            <p>Please confirm your information before we send this to the contractor:</p>
-                            <div class="modal-field">
-                                <label>Name</label>
-                                <input type="text" id="modalName" value="${escapeHtml(state.customerName)}">
-                            </div>
-                            <div class="modal-field">
-                                <label>Email</label>
-                                <input type="email" id="modalEmail" value="${escapeHtml(state.customerEmail || '')}">
-                            </div>
-                            <div class="modal-field">
-                                <label>Phone</label>
-                                <input type="tel" id="modalPhone" value="${escapeHtml(state.customerPhone || '')}">
-                            </div>
-                            <div class="modal-buttons">
-                                <button class="btn-confirm" onclick="confirmQuote()" ${state.quoteSending ? 'disabled' : ''}>
-                                    ${state.quoteSending ? '⏳ Sending...' : 'Send Request'}
-                                </button>
-                                <button class="btn-cancel" onclick="state.showConfirmModal=false;render()" ${state.quoteSending ? 'disabled' : ''}>Cancel</button>
-                            </div>
-                        </div>
-                    </div>
-                ` : ''}
-            `;
-        }
-
-
-        function setupUploadHandlers() {
-            const fileInput = document.getElementById('fileInput');
-            const dropZone = document.getElementById('dropZone');
-            dropZone.addEventListener('click', () => fileInput.click());
-            dropZone.addEventListener('dragover', (e) => {
-                e.preventDefault();
-                dropZone.style.borderColor = 'var(--accent-teal)';
-                dropZone.style.backgroundColor = 'rgba(20,184,166,0.05)';
-            });
-            dropZone.addEventListener('dragleave', () => {
-                dropZone.style.borderColor = 'var(--border-color)';
-                dropZone.style.backgroundColor = 'transparent';
-            });
-            dropZone.addEventListener('drop', (e) => {
-                e.preventDefault();
-                if (e.dataTransfer.files[0]) uploadFile(e.dataTransfer.files[0]);
-            });
-            fileInput.addEventListener('change', (e) => {
-                if (e.target.files[0]) uploadFile(e.target.files[0]);
-            });
-        }
-
-        async function uploadFile(file) {
-            state.customerName = document.getElementById('customerName').value.trim() || 'Customer';
-            state.customerEmail = document.getElementById('customerEmail').value.trim();
-            state.customerPhone = document.getElementById('customerPhone').value.trim();
-            state.uploading = true;
-            render();
-            
-            const formData = new FormData();
-            formData.append('file', file);
-            formData.append('address', file.name);
-            formData.append('customer_name', state.customerName);
-            formData.append('customer_email', state.customerEmail);
-            formData.append('customer_phone', state.customerPhone);
-            formData.append('inspector_name', 'Inspector');
-            formData.append('report_type', 'home_inspection');
-            
-            try {
-                const res = await fetch(`${API_URL}/api/upload`, { method: 'POST', body: formData });
-                if (res.ok) {
-                    const data = await res.json();
-                    state.reportId = data.report_id;
-                    state.summary = data.summary;
-                    state.address = data.address;
-                    state.shareToken = data.share_token || null;
-                    state.screen = 'dashboard';
-                    state.messages = [];
-
-                    // Fetch structured analysis
-                    try {
-                        const analysisRes = await fetch(`${API_URL}/api/analysis/${state.reportId}`);
-                        if (analysisRes.ok) {
-                            state.analysis = await analysisRes.json();
-                        } else {
-                            state.analysis = null;
-                        }
-                    } catch (e) {
-                        console.log('Analysis not available:', e);
-                        state.analysis = null;
-                    }
-                    render();
-                    setTimeout(() => document.getElementById('question')?.focus(), 100);
-                } else {
-                    alert('Upload failed. Backend running?');
-                    state.uploading = false;
-                    render();
-                }
-            } catch (e) {
-                alert('Error: ' + e.message);
-                state.uploading = false;
-                render();
-            }
-        }
-
-        function askQuestionCard(q) {
-            if (!state.chatVisible) toggleChat(true);
-            const input = document.getElementById('question');
-            if (input) {
-                input.value = q;
-                askQuestion();
-            }
-        }
-
-        function askQuestion() {
-            if (!state.isPaid) { state.showPaywall = true; render(); return; }
-            const input = document.getElementById('question');
-            if (!input) return;
-            const q = input.value.trim();
-            if (!q || state.loading) return;
-            input.value = '';
-            
-            state.messages.push({ type: 'user', text: q });
-            const chat = document.getElementById('chatMessages');
-            if (chat) {
-                const msg = document.createElement('div');
-                msg.className = 'message user-msg';
-                msg.textContent = q;
-                chat.appendChild(msg);
-                chat.scrollTop = chat.scrollHeight;
-            }
-            
-            state.loading = true;
-            
-            fetch(`${API_URL}/api/ask/${state.reportId}`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ question: q, warranty_id: state.warrantyId || null })
-            })
-            .then(res => res.ok ? res.json() : Promise.reject('Error'))
-            .then(data => {
-                state.loading = false;
-                state.messages.push({ type: 'ai', text: data.answer });
-                
-                const chat = document.getElementById('chatMessages');
-                if (chat) {
-                    const msg = document.createElement('div');
-                    msg.className = 'message ai-msg';
-                    let formatted = escapeHtml(data.answer);
-                    formatted = formatted.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
-                    formatted = formatted.replace(/\*(.*?)\*/g, '<em>$1</em>');
-                    formatted = formatted.replace(/\n/g, '<br>');
-                    msg.innerHTML = formatted;
-                    chat.appendChild(msg);
-                    
-                    if (data.referrals && data.referrals.length > 0) {
-                        const issues = extractIssues(data.answer);
-                        state.messages.push({ type: 'referral-cta', questionId: data.conversation_id, contractors: data.referrals, issues });
-                        
-                        const ref = document.createElement('div');
-                        ref.className = 'message referral-cta';
-                        ref.innerHTML = `
-                            <h4>💡 Would you like referrals?</h4>
-                            <p>We work with trusted contractors in your area.</p>
-                            ${issues.length > 0 ? `<div class="referral-issues"><strong>Issues to Address:</strong><ul class="referral-issues-list">${issues.map(i => `<li>${escapeHtml(i)}</li>`).join('')}</ul></div>` : ''}
-                            <button onclick="toggleReferrals('${data.conversation_id}')">View Contractors →</button>
-                        `;
-                        chat.appendChild(ref);
-                    }
-                    chat.scrollTop = chat.scrollHeight;
-                }
-            })
-            .catch(() => {
-                state.loading = false;
-                const chat = document.getElementById('chatMessages');
-                if (chat) {
-                    const msg = document.createElement('div');
-                    msg.className = 'message ai-msg';
-                    msg.textContent = 'Error: Could not get response';
-                    chat.appendChild(msg);
-                }
-            });
-        }
-
-        function extractIssues(text) {
-            const issues = [];
-            const patterns = [/(?:issue|problem|repair):\s*([^\n]+)/gi, /(?:electrical|plumbing|hvac|roofing)/gi];
-            for (const p of patterns) {
-                let m;
-                while ((m = p.exec(text)) !== null) {
-                    const raw = (m[1] || m[0]).trim();
-                    const clean = raw.replace(/\*\*/g, '').replace(/\*/g, '').trim();
-                    const isDupe = issues.some(i => i.toLowerCase() === clean.toLowerCase());
-                    if (clean && !isDupe) issues.push(clean);
-                }
-            }
-            return issues.slice(0, 3);
-        }
-
-        function toggleReferrals(qId) {
-            const msg = state.messages.find(m => m.questionId === qId);
-            if (!msg) return;
-            state.messages.push({ type: 'referrals', contractors: msg.contractors, questionId: qId });
-            
-            const chat = document.getElementById('chatMessages');
-            if (chat) {
-                const ref = document.createElement('div');
-                ref.className = 'message ai-msg';
-                ref.innerHTML = `<p style="font-weight: 600; margin-bottom: 6px;">Vetted Contractors</p>${msg.contractors.map(c => `
-                    <div class="contractor-card">
-                        <div class="contractor-name">${escapeHtml(c.name)}</div>
-                        <div class="contractor-location">${escapeHtml(c.city)}, ${c.state}</div>
-                        <div class="contractor-badges">${c.is_licensed ? '<span class="badge">Licensed</span>' : ''}${c.is_bonded ? '<span class="badge">Bonded</span>' : ''}${c.is_insured ? '<span class="badge">Insured</span>' : ''}</div>
-                        <div class="contractor-specialty">${escapeHtml(c.specialty)}</div>
-                        <button class="request-button" onclick="requestQuote('${qId}', '${c.id}')">Request Quote</button>
-                    </div>
-                `).join('')}`;
-                chat.appendChild(ref);
-                chat.scrollTop = chat.scrollHeight;
-            }
-        }
-
-        function requestQuote(qId, cId) {
-            state.showConfirmModal = true;
-            state.pendingQuote = { qId, cId };
-            render();
-        }
-
-        async function confirmQuote() {
-            const { qId, cId } = state.pendingQuote;
-            const name = document.getElementById('modalName')?.value;
-            const email = document.getElementById('modalEmail')?.value;
-            const phone = document.getElementById('modalPhone')?.value;
-            
-            state.customerName = name;
-            state.customerEmail = email;
-            state.customerPhone = phone;
-            state.quoteSending = true;
-            render();
-            
-            try {
-                const res = await fetch(`${API_URL}/api/referral-request`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ report_id: state.reportId, question_id: qId, contractor_id: cId, customer_name: name, customer_email: email, customer_phone: phone })
-                });
-                if (res.ok) {
-                    state.showConfirmModal = false;
-                    state.pendingQuote = null;
-                    state.quoteSending = false;
-                    render();
-                    alert('Request sent! Contractor will reach out soon.');
-                } else {
-                    state.quoteSending = false;
-                    render();
-                    alert('Error sending request. Please try again.');
-                }
-            } catch (e) {
-                state.quoteSending = false;
-                render();
-                alert('Error: ' + e.message);
-            }
-        }
-
-        function toggleChat(show) {
-            state.chatVisible = show;
-            const panel = document.getElementById('chatPanel');
-            const fab = document.getElementById('chatFab');
-            if (panel) {
-                if (show) {
-                    panel.classList.remove('chat-hidden');
-                    if (fab) fab.classList.add('fab-hidden');
-                    setTimeout(() => {
-                        const input = document.getElementById('question');
-                        if (input) input.focus();
-                    }, 300);
-                } else {
-                    panel.classList.add('chat-hidden');
-                    if (fab) fab.classList.remove('fab-hidden');
-                }
-            }
-        }
-
-        async function startCheckout() {
-            const btn = document.getElementById('paywallBtn');
-            if (btn) { btn.textContent = 'Redirecting...'; btn.style.opacity = '0.7'; btn.style.pointerEvents = 'none'; }
-            try {
-                const res = await fetch(`${API_URL}/api/create-checkout/${state.reportId}`, { method: 'POST' });
-                const data = await res.json();
-                if (data.checkout_url) { window.location.href = data.checkout_url; }
-                else { alert('Could not start checkout. Please try again.'); }
-            } catch(e) {
-                alert('Error: ' + e.message);
-            }
-        }
-
-        function copyShareLink() {
-            if (!state.isPaid) { state.showPaywall = true; render(); return; }
-            const token = state.shareToken || state.reportId;
-            const link = window.location.origin + '/report/' + token;
-            navigator.clipboard.writeText(link).then(() => {
-                alert('Link copied!\n\n' + link);
-            }).catch(() => {
-                prompt('Copy this link:', link);
-            });
-        }
-
-        function resetApp() {
-            state = { screen: 'upload', customerName: '', customerEmail: '', customerPhone: '', uploading: false, reportId: null, summary: null, address: null, messages: [], loading: false, pendingQuote: null, warrantyId: null, warrantyBuilderName: null, warrantyType: null, warrantyLoaded: false, showConfirmModal: false, quoteSending: false, chatVisible: true, shareToken: null, isPaid: false, showPaywall: false };
-            render();
-        }
-
-        function escapeHtml(text) {
-            const div = document.createElement('div');
-            div.textContent = text;
-            return div.innerHTML;
-        }
-
-        function getPriorityColor(timeline) {
-            if (!timeline) return 'priority-yellow';
-            const t = timeline.toLowerCase();
-            if (t.includes('immediate') || t.includes('now') || t.includes('urgent') || t.includes('safety')) return 'priority-red';
-            return 'priority-yellow';
-        }
-
-        function getTradeIcon(trade, size='large') {
-            const t = (trade || '').toLowerCase();
-            const isSmall = size === 'small';
-            const s = isSmall ? 14 : 18;
-            const iconSize = isSmall ? 'width:28px;height:28px;border-radius:7px;' : 'width:42px;height:42px;border-radius:10px;';
-
-            let cls = 'icon-general', color = '#94a3b8', svg = '';
-
-            if (t.includes('electric') || t.includes('wiring') || t.includes('panel'))
-                { cls = 'icon-electric'; color = '#fbbf24';
-                  svg = `<svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="${color}" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>`; }
-            else if (t.includes('plumb') || t.includes('water') || t.includes('sewer') || t.includes('drain'))
-                { cls = 'icon-plumbing'; color = '#3b82f6';
-                  svg = `<svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="${color}" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22a7 7 0 0 0 7-7c0-2-1-3.9-3-5.5s-3.5-4-4-6.5c-.5 2.5-2 4.9-4 6.5C6 11.1 5 13 5 15a7 7 0 0 0 7 7z"/></svg>`; }
-            else if (t.includes('hvac') || t.includes('heat') || t.includes('cool') || t.includes('furnace') || t.includes('ac'))
-                { cls = 'icon-hvac'; color = '#63cdda';
-                  svg = `<svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="${color}" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 14.76V3.5a2.5 2.5 0 0 0-5 0v11.26a4.5 4.5 0 1 0 5 0z"/></svg>`; }
-            else if (t.includes('roof') || t.includes('gutter') || t.includes('chimney'))
-                { cls = 'icon-roof'; color = '#a855f7';
-                  svg = `<svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="${color}" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>`; }
-            else if (t.includes('struct') || t.includes('found') || t.includes('concrete') || t.includes('masonry'))
-                { cls = 'icon-structural'; color = '#f97316';
-                  svg = `<svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="${color}" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>`; }
-            else if (t.includes('insul') || t.includes('thermal') || t.includes('window') || t.includes('door'))
-                { cls = 'icon-mold'; color = '#14b8a6';
-                  svg = `<svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="${color}" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>`; }
-            else if (t.includes('garage') || t.includes('appliance') || t.includes('handyman'))
-                { cls = 'icon-general'; color = '#94a3b8';
-                  svg = `<svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="${color}" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>`; }
-            else
-                { cls = 'icon-general'; color = '#94a3b8';
-                  svg = `<svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="${color}" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>`; }
-
-            return `<div class="issue-icon ${cls}" style="${iconSize}display:flex;align-items:center;justify-content:center;">${svg}</div>`;
-        }
-        function getTradeIcon_OLD(trade) {
-            const key = (trade || 'general').toLowerCase();
-            if (key.includes('electric'))  return '<i class="ph-bold ph-lightning icon-electric"></i>';
-            if (key.includes('plumb') || key.includes('plumber')) return '<i class="ph-bold ph-drop icon-plumbing"></i>';
-            if (key.includes('hvac') || key.includes('heat') || key.includes('cool') || key.includes('furnace')) return '<i class="ph-bold ph-thermometer icon-hvac"></i>';
-            if (key.includes('roof'))      return '<i class="ph-bold ph-house-simple icon-roof"></i>';
-            if (key.includes('struct') || key.includes('found')) return '<i class="ph-bold ph-buildings icon-structural"></i>';
-            if (key.includes('pest'))      return '<i class="ph-bold ph-bug icon-pest"></i>';
-            if (key.includes('mold'))      return '<i class="ph-bold ph-plant icon-mold"></i>';
-            if (key.includes('radon'))     return '<i class="ph-bold ph-radioactive icon-radon"></i>';
-            if (key.includes('sewer') || key.includes('drain')) return '<i class="ph-bold ph-pipe icon-sewer"></i>';
-            return '<i class="ph-bold ph-wrench icon-general"></i>';
-        }
-
-        function generatePunchlist() {
-            if (!state.isPaid) { state.showPaywall = true; render(); return; }
-            if (!state.reportId) return alert('No report loaded');
-            window.open(API_URL + '/api/punchlist-pdf/' + state.reportId, '_blank');
-        }
-        function generateOverview() {
-            if (!state.isPaid) { state.showPaywall = true; render(); return; }
-            if (!state.reportId) return alert('No report loaded');
-            window.open(API_URL + '/api/generate-pdf/' + state.reportId, '_blank');
-        }
-        // legacy alias
-        function generatePDF() { generatePunchlist(); }
-
-        function renderCategoryAccordion(a) {
-            if (!a || !a.category_items || a.category_items.length === 0) return '';
-            const CATS = ['Roof','Exterior','Garage','Attic','Interior','Kitchen','Laundry','Bathroom','Mechanical','Structure'];
-            const catMap = {};
-            CATS.forEach(c => catMap[c] = []);
-            a.category_items.forEach(item => {
-                const cat = item.category;
-                if (catMap.hasOwnProperty(cat)) catMap[cat].push(item);
-            });
-            const rows = CATS.map(cat => {
-                const items = catMap[cat];
-                const empty = items.length === 0;
-                const itemsHtml = empty
-                    ? `<div class="cat-empty">No findings noted at time of inspection</div>`
-                    : items.map(item => `
-                        <div class="cat-item">
-                            <span class="cat-item-name">${escapeHtml(item.name)}</span>
-                            <span class="cat-item-cost">${escapeHtml(item.cost || '')}</span>
-                        </div>`).join('');
-                return `<div class="cat-row ${empty ? '' : 'cat-row-findings'}">
-                    <div class="cat-header" onclick="toggleCat('${cat}')">
-                        <div class="cat-header-left">
-                            <span class="cat-name">${cat}</span>
-                            ${!empty ? `<span class="cat-count-badge">${items.length}</span>` : ''}
-                        </div>
-                        <span class="cat-chevron" id="chev-${cat}">›</span>
-                    </div>
-                    <div class="cat-body" id="catbody-${cat}">${itemsHtml}</div>
-                </div>`;
-            }).join('');
-            return `<div class="section-label section-label-findings">All Findings by Category</div><div class="cat-accordion">${rows}</div>`;
-        }
-
-        function toggleCat(cat) {
-            const body = document.getElementById('catbody-' + cat);
-            const chev = document.getElementById('chev-' + cat);
-            if (!body) return;
-            const open = body.classList.toggle('open');
-            if (chev) chev.style.transform = open ? 'rotate(90deg)' : '';
-        }
-
-        render();
-    </script>
 </body>
 </html>

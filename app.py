@@ -31,8 +31,8 @@ from collections import OrderedDict
 app = Flask(__name__, static_folder='.', static_url_path='')
 
 @app.route('/')
-def index():
-    with open('lot7-home.html', 'r', encoding='utf-8') as f:
+def home():
+    with open('index.html', 'r', encoding='utf-8') as f:
         return f.read()
 
 @app.route('/upload')
@@ -42,7 +42,7 @@ def upload_page():
 
 @app.route('/dashboard')
 def dashboard():
-    with open('index.html', 'r', encoding='utf-8') as f:
+    with open('dashboard.html', 'r', encoding='utf-8') as f:
         return f.read()
 
 # Database config
