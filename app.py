@@ -32,6 +32,11 @@ app = Flask(__name__, static_folder='.', static_url_path='')
 
 @app.route('/')
 def index():
+    with open('lot7-home.html', 'r', encoding='utf-8') as f:
+        return f.read()
+
+@app.route('/upload')
+def upload_page():
     with open('lot7-upload.html', 'r', encoding='utf-8') as f:
         return f.read()
 

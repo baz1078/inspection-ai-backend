@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-GPD4KPJRF1"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-GPD4KPJRF1');
+  </script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LOT7 — Know exactly what you're buying</title>
+  <meta name="description" content="LOT7 turns your home inspection report into a clear visual dashboard with cost estimates, priority issues, and a 5-year budget outlook.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;1,9..40,300&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --dark-bg: #0b0f18;
+      --card-bg: #141928;
+      --surface: #1c2338;
+      --surface2: #222a40;
+      --teal: #14b8a6;
+      --teal-dim: rgba(20,184,166,0.12);
+      --teal-glow: rgba(20,184,166,0.25);
+      --pink: #d946a6;
+      --text: #f0f4ff;
+      --text-muted: #6b7a99;
+      --text-sub: #9aa3b8;
+      --border: rgba(255,255,255,0.07);
+    }
+    html { scroll-behavior: smooth; }
+    body { font-family: 'DM Sans', sans-serif; background: var(--dark-bg); color: var(--text); min-height: 100vh; overflow-x: hidden; }
+
+    /* BG */
+    .bg-mesh { position: fixed; inset: 0; pointer-events: none; z-index: 0; overflow: hidden; }
+    .bg-mesh::before { content: ''; position: absolute; width: 800px; height: 800px; top: -300px; left: -200px; background: radial-gradient(circle, rgba(20,184,166,0.07) 0%, transparent 65%); animation: drift1 20s ease-in-out infinite alternate; }
+    .bg-mesh::after { content: ''; position: absolute; width: 700px; height: 700px; bottom: -200px; right: -150px; background: radial-gradient(circle, rgba(217,70,166,0.06) 0%, transparent 65%); animation: drift2 25s ease-in-out infinite alternate; }
+    @keyframes drift1 { from{transform:translate(0,0)} to{transform:translate(80px,50px)} }
+    @keyframes drift2 { from{transform:translate(0,0)} to{transform:translate(-60px,-40px)} }
+    .bg-grid { position: fixed; inset: 0; z-index: 0; background-image: linear-gradient(rgba(255,255,255,0.012) 1px,transparent 1px), linear-gradient(90deg,rgba(255,255,255,0.012) 1px,transparent 1px); background-size: 48px 48px; }
+
+    /* NAV */
+    nav { position: relative; z-index: 10; display: flex; align-items: center; justify-content: space-between; padding: 20px 40px; border-bottom: 1px solid var(--border); }
+    .nav-logo { font-family: 'Syne', sans-serif; font-size: 20px; font-weight: 800; color: var(--teal); letter-spacing: 2px; }
+    .nav-badge { font-family: 'Syne', sans-serif; font-size: 10px; letter-spacing: 2px; text-transform: uppercase; color: var(--text-muted); }
+    .nav-cta { background: var(--teal); color: #0b0f18; font-family: 'Syne', sans-serif; font-size: 13px; font-weight: 700; letter-spacing: 0.5px; padding: 10px 22px; border-radius: 8px; text-decoration: none; transition: all 0.2s; }
+    .nav-cta:hover { background: #0d9488; transform: translateY(-1px); box-shadow: 0 6px 20px rgba(20,184,166,0.3); }
+
+    /* HERO */
+    .hero { position: relative; z-index: 1; text-align: center; padding: 100px 20px 80px; max-width: 800px; margin: 0 auto; }
+    .hero-eyebrow { display: inline-flex; align-items: center; gap: 8px; font-family: 'Syne', sans-serif; font-size: 11px; font-weight: 600; letter-spacing: 2.5px; text-transform: uppercase; color: var(--teal); background: var(--teal-dim); border: 1px solid rgba(20,184,166,0.2); border-radius: 100px; padding: 6px 16px; margin-bottom: 28px; }
+    .hero-eyebrow::before { content: ''; width: 6px; height: 6px; background: var(--teal); border-radius: 50%; animation: pulse 2s ease-in-out infinite; }
+    @keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:0.5;transform:scale(0.8)} }
+    .hero h1 { font-family: 'Syne', sans-serif; font-size: clamp(36px, 6vw, 62px); font-weight: 800; line-height: 1.1; color: var(--text); margin-bottom: 24px; }
+    .hero h1 span { color: var(--teal); }
+    .hero-sub { font-size: clamp(15px, 2vw, 18px); color: var(--text-sub); line-height: 1.7; max-width: 580px; margin: 0 auto 44px; font-weight: 300; }
+    .hero-actions { display: flex; align-items: center; justify-content: center; gap: 16px; flex-wrap: wrap; }
+    .btn-primary { background: linear-gradient(135deg, var(--teal) 0%, #0d9488 100%); color: #fff; font-family: 'Syne', sans-serif; font-size: 15px; font-weight: 700; padding: 15px 36px; border-radius: 12px; text-decoration: none; transition: all 0.2s; letter-spacing: 0.3px; }
+    .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 10px 30px rgba(20,184,166,0.35); }
+    .btn-secondary { color: var(--text-sub); font-size: 14px; text-decoration: none; display: flex; align-items: center; gap: 6px; transition: color 0.2s; }
+    .btn-secondary:hover { color: var(--teal); }
+    .hero-trust { margin-top: 32px; font-size: 12px; color: var(--text-muted); }
+    .hero-trust span { color: var(--text-sub); font-weight: 500; }
+
+    /* DASHBOARD PREVIEW */
+    .preview-wrap { position: relative; z-index: 1; max-width: 900px; margin: 0 auto 100px; padding: 0 20px; }
+    .preview-glow { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 600px; height: 300px; background: radial-gradient(ellipse, rgba(20,184,166,0.12) 0%, transparent 70%); pointer-events: none; }
+    .preview-card { background: var(--card-bg); border: 1px solid rgba(20,184,166,0.2); border-radius: 20px; overflow: hidden; box-shadow: 0 40px 80px rgba(0,0,0,0.5); }
+    .preview-bar { background: #0f1520; padding: 12px 20px; display: flex; align-items: center; gap: 8px; border-bottom: 1px solid var(--border); }
+    .preview-dot { width: 10px; height: 10px; border-radius: 50%; }
+    .preview-url { flex: 1; background: var(--surface); border-radius: 6px; padding: 5px 14px; font-size: 12px; color: var(--text-muted); text-align: center; margin: 0 12px; }
+    .preview-url span { color: var(--teal); }
+    .preview-body { padding: 32px; }
+    .preview-condition { text-align: center; background: var(--surface); border-radius: 14px; padding: 32px 24px; margin-bottom: 24px; }
+    .preview-label { font-family: 'Syne', sans-serif; font-size: 10px; letter-spacing: 3px; text-transform: uppercase; color: var(--text-muted); margin-bottom: 12px; }
+    .preview-status { font-family: 'Syne', sans-serif; font-size: 36px; font-weight: 800; color: var(--teal); margin-bottom: 12px; }
+    .preview-desc { font-size: 13px; color: var(--text-muted); max-width: 420px; margin: 0 auto; line-height: 1.6; }
+    .preview-counts { display: flex; justify-content: center; gap: 48px; margin-top: 20px; }
+    .preview-count-item { text-align: center; }
+    .preview-count-num { font-family: 'Syne', sans-serif; font-size: 28px; font-weight: 800; }
+    .preview-count-num.red { color: #ef4444; }
+    .preview-count-num.amber { color: #f59e0b; }
+    .preview-count-label { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+    .preview-budgets { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    .preview-budget-card { background: var(--surface); border-radius: 12px; padding: 20px; }
+    .preview-budget-period { font-size: 10px; letter-spacing: 2px; text-transform: uppercase; color: var(--text-muted); margin-bottom: 8px; }
+    .preview-budget-amount { font-family: 'Syne', sans-serif; font-size: 28px; font-weight: 800; color: var(--teal); margin-bottom: 4px; }
+    .preview-budget-desc { font-size: 11px; color: var(--text-muted); }
+
+    /* HOW IT WORKS */
+    .section { position: relative; z-index: 1; max-width: 1000px; margin: 0 auto 100px; padding: 0 20px; }
+    .section-eyebrow { font-family: 'Syne', sans-serif; font-size: 11px; font-weight: 600; letter-spacing: 2.5px; text-transform: uppercase; color: var(--teal); text-align: center; margin-bottom: 16px; }
+    .section-title { font-family: 'Syne', sans-serif; font-size: clamp(24px, 4vw, 36px); font-weight: 800; text-align: center; color: var(--text); margin-bottom: 60px; }
+    .steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; }
+    .step-card { background: var(--card-bg); border: 1px solid var(--border); border-radius: 16px; padding: 28px 24px; position: relative; overflow: hidden; transition: border-color 0.3s; }
+    .step-card:hover { border-color: rgba(20,184,166,0.3); }
+    .step-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px; background: linear-gradient(90deg, transparent, var(--teal-glow), transparent); opacity: 0; transition: opacity 0.3s; }
+    .step-card:hover::before { opacity: 1; }
+    .step-num { font-family: 'Syne', sans-serif; font-size: 40px; font-weight: 800; color: rgba(20,184,166,0.15); margin-bottom: 16px; line-height: 1; }
+    .step-title { font-family: 'Syne', sans-serif; font-size: 16px; font-weight: 700; color: var(--text); margin-bottom: 10px; }
+    .step-desc { font-size: 13.5px; color: var(--text-muted); line-height: 1.7; }
+
+    /* FEATURES */
+    .features { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+    .feature-card { background: var(--card-bg); border: 1px solid var(--border); border-radius: 16px; padding: 28px 24px; }
+    .feature-icon { font-size: 28px; margin-bottom: 16px; }
+    .feature-title { font-family: 'Syne', sans-serif; font-size: 15px; font-weight: 700; color: var(--text); margin-bottom: 10px; }
+    .feature-desc { font-size: 13.5px; color: var(--text-muted); line-height: 1.7; }
+
+    /* PRICING */
+    .pricing-card { background: var(--card-bg); border: 1px solid rgba(20,184,166,0.25); border-radius: 20px; padding: 48px 40px; max-width: 520px; margin: 0 auto; text-align: center; position: relative; overflow: hidden; }
+    .pricing-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px; background: linear-gradient(90deg, transparent, var(--teal), transparent); }
+    .pricing-badge { display: inline-block; background: var(--teal-dim); border: 1px solid rgba(20,184,166,0.2); color: var(--teal); font-family: 'Syne', sans-serif; font-size: 11px; font-weight: 600; letter-spacing: 2px; text-transform: uppercase; border-radius: 100px; padding: 5px 14px; margin-bottom: 24px; }
+    .pricing-amount { font-family: 'Syne', sans-serif; font-size: 64px; font-weight: 800; color: var(--text); line-height: 1; margin-bottom: 4px; }
+    .pricing-amount sup { font-size: 28px; vertical-align: top; margin-top: 12px; }
+    .pricing-sub { font-size: 14px; color: var(--text-muted); margin-bottom: 32px; }
+    .pricing-includes { text-align: left; margin-bottom: 36px; }
+    .pricing-item { display: flex; align-items: center; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--border); font-size: 14px; color: var(--text-sub); }
+    .pricing-item:last-child { border-bottom: none; }
+    .pricing-item::before { content: '✓'; color: var(--teal); font-weight: 700; font-size: 14px; flex-shrink: 0; }
+    .pricing-cta { display: block; background: linear-gradient(135deg, var(--teal) 0%, #0d9488 100%); color: #fff; font-family: 'Syne', sans-serif; font-size: 15px; font-weight: 700; padding: 16px; border-radius: 12px; text-decoration: none; transition: all 0.2s; letter-spacing: 0.3px; }
+    .pricing-cta:hover { transform: translateY(-2px); box-shadow: 0 10px 30px rgba(20,184,166,0.35); }
+    .pricing-note { margin-top: 16px; font-size: 12px; color: var(--text-muted); }
+
+    /* FOOTER */
+    footer { position: relative; z-index: 1; border-top: 1px solid var(--border); padding: 32px 40px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 16px; }
+    .footer-logo { font-family: 'Syne', sans-serif; font-size: 16px; font-weight: 800; color: var(--teal); letter-spacing: 2px; }
+    .footer-copy { font-size: 12px; color: var(--text-muted); }
+    .footer-link { font-size: 12px; color: var(--text-muted); text-decoration: none; }
+    .footer-link:hover { color: var(--teal); }
+
+    @media(max-width: 700px) {
+      nav { padding: 16px 20px; }
+      .steps, .features { grid-template-columns: 1fr; }
+      .preview-budgets { grid-template-columns: 1fr; }
+      .pricing-card { padding: 36px 24px; }
+      footer { flex-direction: column; align-items: flex-start; }
+    }
+  </style>
+</head>
+<body>
+  <div class="bg-mesh"></div>
+  <div class="bg-grid"></div>
+
+  <!-- NAV -->
+  <nav>
+    <div class="nav-logo">LOT7</div>
+    <div class="nav-badge">By Assure Home Inspections</div>
+    <a href="/upload" class="nav-cta">Get Your Report</a>
+  </nav>
+
+  <!-- HERO -->
+  <section class="hero">
+    <div class="hero-eyebrow">Industry First Platform</div>
+    <h1>Know exactly<br>what you're <span>buying.</span></h1>
+    <p class="hero-sub">LOT7 transforms your home inspection report into a clear visual dashboard — with prioritized issues, real cost estimates, and a 5-year ownership budget.</p>
+    <div class="hero-actions">
+      <a href="/upload" class="btn-primary">Analyse My Report →</a>
+      <a href="#how-it-works" class="btn-secondary">See how it works ↓</a>
+    </div>
+    <div class="hero-trust">Trusted by buyers across <span>Chicagoland</span> &amp; <span>Alberta</span></div>
+  </section>
+
+  <!-- DASHBOARD PREVIEW -->
+  <div class="preview-wrap">
+    <div class="preview-glow"></div>
+    <div class="preview-card">
+      <div class="preview-bar">
+        <div class="preview-dot" style="background:#ef4444"></div>
+        <div class="preview-dot" style="background:#f59e0b"></div>
+        <div class="preview-dot" style="background:#22c55e"></div>
+        <div class="preview-url"><span>lot7.ai</span>/dashboard</div>
+      </div>
+      <div class="preview-body">
+        <div class="preview-condition">
+          <div class="preview-label">Home Condition</div>
+          <div class="preview-status">Needs Attention</div>
+          <div class="preview-desc">Findings across multiple systems are completely normal for a home of this age and price range. Most buyers use this report to negotiate, budget, and plan — not as a reason to walk away.</div>
+          <div class="preview-counts">
+            <div class="preview-count-item">
+              <div class="preview-count-num red">4</div>
+              <div class="preview-count-label">Immediate</div>
+            </div>
+            <div class="preview-count-item">
+              <div class="preview-count-num amber">17</div>
+              <div class="preview-count-label">Attention</div>
+            </div>
+          </div>
+        </div>
+        <div class="preview-budgets">
+          <div class="preview-budget-card">
+            <div class="preview-budget-period">Now — 12 Months</div>
+            <div class="preview-budget-amount">~$1,350</div>
+            <div class="preview-budget-desc">Estimated cost · immediate repairs</div>
+          </div>
+          <div class="preview-budget-card">
+            <div class="preview-budget-period">5 Year Outlook</div>
+            <div class="preview-budget-amount">~$6,422</div>
+            <div class="preview-budget-desc">Estimated cost · long-term replacements</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- HOW IT WORKS -->
+  <section class="section" id="how-it-works">
+    <div class="section-eyebrow">Simple Process</div>
+    <div class="section-title">From confusing report to clear picture</div>
+    <div class="steps">
+      <div class="step-card">
+        <div class="step-num">01</div>
+        <div class="step-title">Upload Your PDF</div>
+        <div class="step-desc">Upload the inspection report you received from your home inspector. Any standard PDF report works.</div>
+      </div>
+      <div class="step-card">
+        <div class="step-num">02</div>
+        <div class="step-title">AI Analysis</div>
+        <div class="step-desc">Our AI reads every finding, categorizes issues by priority, and calculates real cost estimates for your market.</div>
+      </div>
+      <div class="step-card">
+        <div class="step-num">03</div>
+        <div class="step-title">Your Dashboard</div>
+        <div class="step-desc">Get a clear visual breakdown — immediate issues, maintenance items, repair budget, and a 5-year ownership outlook.</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- FEATURES -->
+  <section class="section">
+    <div class="section-eyebrow">What You Get</div>
+    <div class="section-title">Everything in one place</div>
+    <div class="features">
+      <div class="feature-card">
+        <div class="feature-icon">🔴</div>
+        <div class="feature-title">Immediate Issues</div>
+        <div class="feature-desc">Critical findings that need attention now, each with trade recommendations and estimated cost ranges.</div>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">🟡</div>
+        <div class="feature-title">Maintenance Items</div>
+        <div class="feature-desc">Items to plan and budget for over time, organized by timeline and priority so nothing catches you off guard.</div>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">💰</div>
+        <div class="feature-title">Budget Outlook</div>
+        <div class="feature-desc">A 12-month repair budget and 5-year ownership cost estimate — real numbers, not guesswork.</div>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">⚖️</div>
+        <div class="feature-title">Illinois Law Citations</div>
+        <div class="feature-desc">AI references specific IL inspection statutes so you understand exactly why each finding matters legally.</div>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">💬</div>
+        <div class="feature-title">Ask Anything</div>
+        <div class="feature-desc">Chat with your report. Ask follow-up questions and get plain-English answers based on your specific inspection.</div>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">🏗️</div>
+        <div class="feature-title">Contractor Connections</div>
+        <div class="feature-desc">Get connected to vetted local contractors for each issue type — no searching, no guessing who to call.</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- PRICING -->
+  <section class="section">
+    <div class="section-eyebrow">Pricing</div>
+    <div class="section-title">One report, total clarity</div>
+    <div class="pricing-card">
+      <div class="pricing-badge">LOT7 Report</div>
+      <div class="pricing-amount"><sup>$</sup>49</div>
+      <div class="pricing-sub">One-time · per inspection report</div>
+      <div class="pricing-includes">
+        <div class="pricing-item">Full visual dashboard with prioritized findings</div>
+        <div class="pricing-item">Immediate issues with cost estimates</div>
+        <div class="pricing-item">Maintenance plan and budget timeline</div>
+        <div class="pricing-item">12-month repair budget + 5-year outlook</div>
+        <div class="pricing-item">AI Q&amp;A — ask anything about your report</div>
+        <div class="pricing-item">Illinois law citations and explanations</div>
+        <div class="pricing-item">Vetted contractor connections by trade</div>
+      </div>
+      <a href="/upload" class="pricing-cta">Get My LOT7 Report →</a>
+      <div class="pricing-note">🔒 Private &amp; secure · Your data is never sold</div>
+    </div>
+  </section>
+
+  <!-- FOOTER -->
+  <footer>
+    <div class="footer-logo">LOT7</div>
+    <div class="footer-copy">© 2026 Assure Home Inspections · Chicagoland Area</div>
+    <a href="https://assurehomeinspector.com" class="footer-link" target="_blank">assurehomeinspector.com</a>
+  </footer>
+
+</body>
+</html>

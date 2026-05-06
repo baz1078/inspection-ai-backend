@@ -117,23 +117,24 @@
             </svg>
           </div>
           <div class="drop-title">Drop your PDF here</div>
-          <div class="drop-sub">or <span class="drop-link">browse files</span> &nbsp;&middot;&nbsp; PDF inspection reports only</div>
+          <div class="drop-sub">or <span class="drop-link">browse files</span> &middot; PDF inspection reports only</div>
+          <input type="file" id="fileInput" accept=".pdf,application/pdf">
         </div>
         <div class="file-selected" id="fileSelected">
           <div class="file-selected-icon">
-            <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <polyline points="20 6 9 17 4 12"/>
+            <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+              <polyline points="14 2 14 8 20 8"/>
             </svg>
           </div>
           <span class="file-selected-name" id="fileName"></span>
-          <span class="file-remove" id="fileRemove">&#x2715;</span>
+          <span class="file-remove" id="fileRemove">&times;</span>
         </div>
-        <input type="file" id="fileInput" accept=".pdf">
         <div class="processing" id="processingState">
           <div class="processing-ring"></div>
-          <div class="processing-text">Analysing your report with AI&hellip;</div>
-          <div class="processing-timing">This takes 60&ndash;90 seconds</div>
-          <div class="processing-step" id="processingStep">Reading inspection data</div>
+          <div class="processing-text">Analysing your report&hellip;</div>
+          <div class="processing-timing">This usually takes 30&ndash;60 seconds</div>
+          <div class="processing-step" id="processingStep"></div>
           <div class="processing-fact" id="processingFact"></div>
         </div>
         <button type="submit" class="btn-submit" id="submitBtn" disabled>
@@ -243,7 +244,7 @@
             submitBtn.disabled=false;
             alert('Analysis failed. Please try again.');
           }
-          // still 'processing' — keep waiting
+          // still 'processing' — keep polling, don't abort
         } catch(err){
           // network blip — keep polling, don't abort
         }
