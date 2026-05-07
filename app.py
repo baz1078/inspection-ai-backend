@@ -1298,8 +1298,8 @@ def create_checkout(report_id):
                 'quantity': 1,
             }],
             mode='payment',
-            success_url=request.host_url + 'dashboard?report_id=' + report_id + '&paid=true',
-            cancel_url=request.host_url + 'dashboard?report_id=' + report_id,
+            success_url='https://lot7.ai/dashboard?report_id=' + report_id + '&paid=true',
+            cancel_url='https://lot7.ai/dashboard?report_id=' + report_id,
             metadata={'report_id': report_id}
         )
         return jsonify({'checkout_url': session.url})
