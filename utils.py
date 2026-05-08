@@ -1,4 +1,3 @@
-import PyPDF2
 import os
 import json
 from anthropic import Anthropic
@@ -7,18 +6,14 @@ from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 
 def extract_text_from_pdf(pdf_path):
-    """Extract all text from a PDF file"""
+    """Extract all text from a PDF file using pdfplumber for accurate layout reading"""
     try:
+        import pdfplumber
         text = ""
-        with open(pdf_path, 'rb') as file:
-            pdf_reader = PyPDF2.PdfReader(file)
-            num_pages = len(pdf_reader.pages)
-            
-            for page_num in range(num_pages):
-                page = pdf_reader.pages[page_num]
-                text += f"\n--- Page {page_num + 1} ---\n"
-                text += page.extract_text()
-        
+        with pdfplumber.open(pdf_path) as pdf:
+            for i, page in enumerate(pdf.pages):
+                text += f"\n--- Page {i + 1} ---\n"
+                text += page.extract_text() or ""
         return text
     except Exception as e:
         raise Exception(f"Error extracting PDF text: {str(e)}")
@@ -52,6 +47,7 @@ RULES:
     message = client.messages.create(
         model="claude-sonnet-4-5-20250929",
         max_tokens=1000,
+        temperature=0,
         system=system_prompt,
         messages=[{"role": "user", "content": report_text}]
     )
@@ -672,6 +668,7 @@ Customer Question: {question}"""
         response = self.client.messages.create(
             model="claude-sonnet-4-5-20250929",
             max_tokens=800,
+            temperature=0,
             system=system_prompt,
             messages=self.conversation_history
         )
