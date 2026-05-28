@@ -167,17 +167,23 @@ def admin_set_subscription(user_id):
 @admin_required
 def admin_link_report(report_id):
     data = request.get_json()
-    user_id = data.get('user_id')
+    identifier = (data.get('user_id') or '').strip()
     report = InspectionReport.query.get(report_id)
     if not report:
         return jsonify({'error': 'Report not found'}), 404
-    if user_id:
-        user = User.query.get(user_id)
+    if identifier:
+        # Accept email address or user ID
+        if '@' in identifier:
+            user = User.query.filter_by(email=identifier).first()
+        else:
+            user = User.query.get(identifier)
         if not user:
-            return jsonify({'error': 'User not found'}), 404
-    report.user_id = user_id
+            return jsonify({'error': f'No account found for "{identifier}". They need to sign up at lot7.ai/signup first.'}), 404
+        report.user_id = user.id
+    else:
+        report.user_id = None
     db.session.commit()
-    return jsonify({'success': True})
+    return jsonify({'success': True, 'linked_to': user.email if identifier else None})
 
 @app.route('/api/admin/delete-user/<user_id>', methods=['POST'])
 @login_required
