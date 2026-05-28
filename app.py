@@ -1,7 +1,9 @@
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, session, redirect
 from flask_cors import CORS
+from flask_login import LoginManager, login_user, logout_user, login_required, current_user
+from flask_bcrypt import Bcrypt
 from werkzeug.utils import secure_filename
-from models import db, InspectionReport, Conversation, Question, Contractor, Lead, Analytics, WarrantyDocument, ReportWarranty, WarrantyQuery
+from models import db, User, InspectionReport, Conversation, Question, Contractor, Lead, Analytics, WarrantyDocument, ReportWarranty, WarrantyQuery
 from utils import (
     extract_text_from_pdf,
     generate_summary_from_report,
@@ -45,6 +47,31 @@ def dashboard():
     with open('dashboard.html', 'r', encoding='utf-8') as f:
         return f.read()
 
+@app.route('/login')
+def login_page():
+    with open('login.html', 'r', encoding='utf-8') as f:
+        return f.read()
+
+@app.route('/signup')
+def signup_page():
+    with open('signup.html', 'r', encoding='utf-8') as f:
+        return f.read()
+
+@app.route('/account')
+def account_page():
+    with open('account.html', 'r', encoding='utf-8') as f:
+        return f.read()
+
+@app.route('/report/<token>')
+def report_by_token(token):
+    report = InspectionReport.query.filter_by(shareToken=token).first()
+    if not report:
+        return "Report not found", 404
+    return redirect(f'/dashboard?report_id={report.id}&paid=true')
+
+# Auth config
+app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'change-this-in-production-please')
+
 # Database config
 app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URL', 'sqlite:///inspection_reports.db')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
@@ -63,9 +90,17 @@ app.config['MAIL_USERNAME'] = os.getenv('MAIL_USERNAME')
 app.config['MAIL_PASSWORD'] = os.getenv('MAIL_PASSWORD')
 app.config['MAIL_DEFAULT_SENDER'] = os.getenv('MAIL_DEFAULT_SENDER', 'noreply@lot7.ai')
 
-# Initialize database
+# Initialize extensions
 db.init_app(app)
-CORS(app, resources={r"/api/*": {"origins": "*"}})
+bcrypt = Bcrypt(app)
+login_manager = LoginManager(app)
+login_manager.login_view = 'login_page'
+
+@login_manager.user_loader
+def load_user(user_id):
+    return User.query.get(user_id)
+
+CORS(app, resources={r"/api/*": {"origins": "*"}}, supports_credentials=True)
 @app.after_request
 def set_headers(response):
     response.headers['Access-Control-Allow-Origin'] = '*'
@@ -746,9 +781,12 @@ def upload_report():
         extracted_text = extract_text_from_pdf(filepath).replace('\x00', '')
 
         # Create DB record immediately with no summary/analysis yet
+        # Link to logged-in user if present, otherwise anonymous
+        uploading_user_id = current_user.id if current_user.is_authenticated else None
+
         report = InspectionReport(
             address=request.form.get('address', 'Unknown Address'),
-            customerName=request.form.get('customer_name', 'Unknown'),
+            customerName=request.form.get('customer_name', 'Customer'),
             customerEmail=request.form.get('customer_email', ''),
             customerPhone=request.form.get('customer_phone', ''),
             inspectorName=request.form.get('inspector_name', 'Inspector'),
@@ -761,7 +799,8 @@ def upload_report():
             summary='Analysis in progress...',
             analysis_json=None,
             isShared=True,
-            shareToken=str(uuid.uuid4())[:8]
+            shareToken=str(uuid.uuid4())[:8],
+            user_id=uploading_user_id,
         )
         db.session.add(report)
         db.session.commit()
@@ -1285,13 +1324,182 @@ def upload_warranty(report_id):
 
 # Warranty endpoints removed - functionality moved to unified /api/ask endpoint
 # ============================================================================
+# AUTH
+# ============================================================================
+
+@app.route('/api/auth/register', methods=['POST'])
+def register():
+    data = request.get_json()
+    email = (data.get('email') or '').strip().lower()
+    password = data.get('password') or ''
+
+    if not email or not password:
+        return jsonify({'error': 'Email and password are required'}), 400
+    if len(password) < 8:
+        return jsonify({'error': 'Password must be at least 8 characters'}), 400
+    if User.query.filter_by(email=email).first():
+        return jsonify({'error': 'An account with that email already exists'}), 409
+
+    password_hash = bcrypt.generate_password_hash(password).decode('utf-8')
+    user = User(email=email, password_hash=password_hash)
+
+    # Create Stripe customer immediately so we have a customer ID to attach subscriptions to
+    try:
+        customer = stripe.Customer.create(email=email)
+        user.stripe_customer_id = customer.id
+    except Exception as e:
+        print(f"[Auth] Stripe customer create failed: {e}")
+
+    db.session.add(user)
+    db.session.commit()
+
+    # Link any existing reports submitted with this email
+    orphan_reports = InspectionReport.query.filter_by(customerEmail=email, user_id=None).all()
+    for r in orphan_reports:
+        r.user_id = user.id
+    if orphan_reports:
+        db.session.commit()
+
+    login_user(user, remember=True)
+    return jsonify({
+        'success': True,
+        'user': {'id': user.id, 'email': user.email, 'subscription_status': user.subscription_status},
+        'linked_reports': len(orphan_reports),
+    }), 201
+
+
+@app.route('/api/auth/login', methods=['POST'])
+def login():
+    data = request.get_json()
+    email = (data.get('email') or '').strip().lower()
+    password = data.get('password') or ''
+
+    user = User.query.filter_by(email=email).first()
+    if not user or not bcrypt.check_password_hash(user.password_hash, password):
+        return jsonify({'error': 'Invalid email or password'}), 401
+
+    login_user(user, remember=True)
+    return jsonify({
+        'success': True,
+        'user': {
+            'id': user.id,
+            'email': user.email,
+            'subscription_status': user.subscription_status,
+            'has_active_subscription': user.has_active_subscription,
+        }
+    })
+
+
+@app.route('/api/auth/logout', methods=['POST'])
+@login_required
+def logout():
+    logout_user()
+    return jsonify({'success': True})
+
+
+@app.route('/api/auth/me', methods=['GET'])
+def me():
+    if not current_user.is_authenticated:
+        return jsonify({'authenticated': False}), 401
+    return jsonify({
+        'authenticated': True,
+        'user': {
+            'id': current_user.id,
+            'email': current_user.email,
+            'subscription_status': current_user.subscription_status,
+            'has_active_subscription': current_user.has_active_subscription,
+        }
+    })
+
+
+# ============================================================================
+# SUBSCRIPTION
+# ============================================================================
+
+@app.route('/api/create-subscription-checkout', methods=['POST'])
+@login_required
+def create_subscription_checkout():
+    price_id = os.getenv('STRIPE_SUBSCRIPTION_PRICE_ID')
+    if not price_id:
+        return jsonify({'error': 'Subscription price not configured'}), 500
+
+    try:
+        # Ensure the user has a Stripe customer record
+        if not current_user.stripe_customer_id:
+            customer = stripe.Customer.create(email=current_user.email)
+            current_user.stripe_customer_id = customer.id
+            db.session.commit()
+
+        checkout = stripe.checkout.Session.create(
+            customer=current_user.stripe_customer_id,
+            payment_method_types=['card'],
+            line_items=[{'price': price_id, 'quantity': 1}],
+            mode='subscription',
+            success_url='https://lot7.ai/dashboard?subscribed=true',
+            cancel_url='https://lot7.ai/dashboard',
+        )
+        return jsonify({'checkout_url': checkout.url})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/customer-portal', methods=['POST'])
+@login_required
+def customer_portal():
+    if not current_user.stripe_customer_id:
+        return jsonify({'error': 'No billing account found'}), 400
+    try:
+        portal = stripe.billing_portal.Session.create(
+            customer=current_user.stripe_customer_id,
+            return_url='https://lot7.ai/dashboard',
+        )
+        return jsonify({'portal_url': portal.url})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/report-access/<report_id>', methods=['GET'])
+def report_access(report_id):
+    if not current_user.is_authenticated:
+        return jsonify({'can_access': False})
+    report = InspectionReport.query.get(report_id)
+    if not report:
+        return jsonify({'can_access': False})
+    can_access = (
+        current_user.has_active_subscription or
+        (report.user_id == current_user.id and report.is_paid)
+    )
+    return jsonify({'can_access': can_access})
+
+
+@app.route('/api/my-reports', methods=['GET'])
+@login_required
+def my_reports():
+    reports = InspectionReport.query.filter_by(user_id=current_user.id)\
+        .order_by(InspectionReport.createdAt.desc()).all()
+    return jsonify([{
+        'id': r.id,
+        'address': r.address,
+        'customerName': r.customerName,
+        'createdAt': r.createdAt.isoformat(),
+        'shareToken': r.shareToken,
+        'is_paid': r.is_paid,
+    } for r in reports])
+
+
+# ============================================================================
 # STRIPE PAYMENT
 # ============================================================================
 
 @app.route('/api/create-checkout/<report_id>', methods=['POST'])
+@login_required
 def create_checkout(report_id):
     try:
+        user_id = current_user.id
+        customer_id = current_user.stripe_customer_id
+
         session = stripe.checkout.Session.create(
+            customer=customer_id,
             payment_method_types=['card'],
             line_items=[{
                 'price': 'price_1T76JzBBFtZ2bcRJvOkXbYiJ',
@@ -1300,7 +1508,7 @@ def create_checkout(report_id):
             mode='payment',
             success_url='https://lot7.ai/dashboard?report_id=' + report_id + '&paid=true',
             cancel_url='https://lot7.ai/dashboard?report_id=' + report_id,
-            metadata={'report_id': report_id}
+            metadata={'report_id': report_id, 'user_id': user_id}
         )
         return jsonify({'checkout_url': session.url})
     except Exception as e:
@@ -1313,14 +1521,47 @@ def stripe_webhook():
     webhook_secret = os.getenv('STRIPE_WEBHOOK_SECRET')
     try:
         event = stripe.Webhook.construct_event(payload, sig_header, webhook_secret)
-        if event['type'] == 'checkout.session.completed':
-            report_id = event['data']['object']['metadata']['report_id']
-            report = InspectionReport.query.get(report_id)
-            if report:
-                report.is_paid = True
-                db.session.commit()
     except Exception as e:
         return jsonify({'error': str(e)}), 400
+
+    obj = event['data']['object']
+    event_type = event['type']
+
+    # Per-report one-time payment
+    if event_type == 'checkout.session.completed':
+        if obj.get('mode') == 'payment':
+            meta = obj.get('metadata', {})
+            report_id = meta.get('report_id')
+            user_id = meta.get('user_id')
+            if report_id:
+                report = InspectionReport.query.get(report_id)
+                if report:
+                    report.is_paid = True
+                    if user_id and not report.user_id:
+                        report.user_id = user_id
+                    db.session.commit()
+
+    # Subscription created or renewed
+    elif event_type in ('customer.subscription.created', 'customer.subscription.updated'):
+        customer_id = obj.get('customer')
+        user = User.query.filter_by(stripe_customer_id=customer_id).first()
+        if user:
+            user.subscription_id = obj['id']
+            user.subscription_status = obj['status']  # active, trialing, past_due, canceled, etc.
+            period_end = obj.get('current_period_end')
+            if period_end:
+                user.subscription_end = datetime.utcfromtimestamp(period_end)
+            db.session.commit()
+
+    # Subscription canceled
+    elif event_type == 'customer.subscription.deleted':
+        customer_id = obj.get('customer')
+        user = User.query.filter_by(stripe_customer_id=customer_id).first()
+        if user:
+            user.subscription_status = 'canceled'
+            user.subscription_id = None
+            db.session.commit()
+
     return jsonify({'status': 'ok'})
 
 # ============================================================================
@@ -1346,6 +1587,18 @@ def internal_error(error):
 
 with app.app_context():
     db.create_all()
+    # Safe migration: add user_id column to existing InspectionReport table if absent
+    from sqlalchemy import text, inspect as sa_inspect
+    try:
+        inspector = sa_inspect(db.engine)
+        cols = [c['name'] for c in inspector.get_columns('InspectionReport')]
+        if 'user_id' not in cols:
+            with db.engine.connect() as conn:
+                conn.execute(text('ALTER TABLE "InspectionReport" ADD COLUMN user_id VARCHAR(36) REFERENCES "User"(id)'))
+                conn.commit()
+            print("Migration: added user_id column to InspectionReport")
+    except Exception as e:
+        print(f"Migration note: {e}")
     print("Database tables verified/created")
 
 if __name__ == '__main__':

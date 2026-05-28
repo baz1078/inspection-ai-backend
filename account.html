@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>My Reports — Lot7</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;1,9..40,300&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --dark-bg: #0b0f18; --card-bg: #141928; --surface: #1c2338;
+      --teal: #14b8a6; --teal-dim: rgba(20,184,166,0.12); --teal-glow: rgba(20,184,166,0.25);
+      --pink: #d946a6;
+      --text: #f0f4ff; --text-muted: #6b7a99; --text-sub: #9aa3b8;
+      --border: rgba(255,255,255,0.07); --border-focus: rgba(20,184,166,0.5);
+      --red: #ef4444; --amber: #f59e0b; --green: #22c55e;
+    }
+    html, body { min-height: 100vh; }
+    body {
+      font-family: 'DM Sans', sans-serif;
+      background: var(--dark-bg);
+      color: var(--text);
+      overflow-x: hidden;
+    }
+
+    /* Background */
+    .bg-mesh { position: fixed; inset: 0; pointer-events: none; z-index: 0; overflow: hidden; }
+    .bg-mesh::before { content: ''; position: absolute; width: 700px; height: 700px; top: -200px; left: -200px; background: radial-gradient(circle, rgba(20,184,166,0.07) 0%, transparent 65%); animation: drift1 18s ease-in-out infinite alternate; }
+    .bg-mesh::after { content: ''; position: absolute; width: 600px; height: 600px; bottom: -150px; right: -100px; background: radial-gradient(circle, rgba(217,70,166,0.06) 0%, transparent 65%); animation: drift2 22s ease-in-out infinite alternate; }
+    @keyframes drift1 { from { transform: translate(0,0); } to { transform: translate(60px, 40px); } }
+    @keyframes drift2 { from { transform: translate(0,0); } to { transform: translate(-50px, -30px); } }
+    .bg-grid { position: fixed; inset: 0; z-index: 0; background-image: linear-gradient(rgba(255,255,255,0.012) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.012) 1px, transparent 1px); background-size: 48px 48px; }
+
+    /* Nav */
+    nav {
+      position: relative; z-index: 10;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 20px 40px;
+      border-bottom: 1px solid var(--border);
+      background: rgba(11,15,24,0.8);
+      backdrop-filter: blur(12px);
+    }
+    .nav-logo { font-family: 'Syne', sans-serif; font-size: 20px; font-weight: 800; color: var(--teal); letter-spacing: 2px; text-decoration: none; }
+    .nav-right { display: flex; align-items: center; gap: 16px; }
+    .nav-email { font-size: 13px; color: var(--text-muted); }
+    .nav-btn {
+      font-family: 'Syne', sans-serif; font-size: 13px; font-weight: 700;
+      padding: 9px 20px; border-radius: 8px; cursor: pointer; transition: all 0.2s; text-decoration: none; border: none;
+    }
+    .nav-btn-primary { background: var(--teal); color: #0b0f18; }
+    .nav-btn-primary:hover { background: #0d9488; transform: translateY(-1px); }
+    .nav-btn-ghost { background: transparent; color: var(--text-muted); border: 1px solid var(--border); }
+    .nav-btn-ghost:hover { border-color: var(--border-focus); color: var(--text); }
+
+    /* Page */
+    .page { position: relative; z-index: 1; max-width: 860px; margin: 0 auto; padding: 48px 24px 80px; }
+
+    /* Subscription banner */
+    .sub-banner {
+      border-radius: 14px; padding: 18px 24px;
+      display: flex; align-items: center; justify-content: space-between; gap: 16px;
+      margin-bottom: 36px; flex-wrap: wrap;
+    }
+    .sub-banner-left { display: flex; align-items: center; gap: 12px; }
+    .sub-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+    .sub-label { font-family: 'Syne', sans-serif; font-size: 14px; font-weight: 700; }
+    .sub-detail { font-size: 13px; color: var(--text-muted); margin-top: 2px; }
+    .sub-banner.active { background: rgba(34,197,94,0.08); border: 1px solid rgba(34,197,94,0.2); }
+    .sub-banner.active .sub-dot { background: var(--green); box-shadow: 0 0 8px var(--green); }
+    .sub-banner.active .sub-label { color: var(--green); }
+    .sub-banner.warning { background: rgba(245,158,11,0.08); border: 1px solid rgba(245,158,11,0.25); }
+    .sub-banner.warning .sub-dot { background: var(--amber); box-shadow: 0 0 8px var(--amber); }
+    .sub-banner.warning .sub-label { color: var(--amber); }
+    .sub-banner.inactive { background: rgba(255,255,255,0.03); border: 1px solid var(--border); }
+    .sub-banner.inactive .sub-dot { background: var(--text-muted); }
+    .sub-banner.inactive .sub-label { color: var(--text-muted); }
+    .sub-action {
+      font-family: 'Syne', sans-serif; font-size: 12px; font-weight: 700;
+      padding: 8px 16px; border-radius: 8px; cursor: pointer; transition: all 0.2s;
+      text-decoration: none; border: none; white-space: nowrap;
+    }
+    .sub-action-teal { background: var(--teal); color: #0b0f18; }
+    .sub-action-teal:hover { background: #0d9488; }
+    .sub-action-ghost { background: transparent; color: var(--text-muted); border: 1px solid var(--border); }
+    .sub-action-ghost:hover { border-color: var(--border-focus); color: var(--text); }
+
+    /* Header row */
+    .page-header { margin-bottom: 28px; }
+    .page-title { font-family: 'Syne', sans-serif; font-size: 26px; font-weight: 800; margin-bottom: 6px; }
+    .page-sub { font-size: 14px; color: var(--text-muted); }
+
+    /* Search */
+    .search-wrap { position: relative; margin-bottom: 20px; }
+    .search-icon { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: var(--text-muted); pointer-events: none; }
+    .search-input {
+      width: 100%; padding: 12px 14px 12px 42px;
+      background: var(--surface); border: 1px solid var(--border); border-radius: 12px;
+      color: var(--text); font-family: 'DM Sans', sans-serif; font-size: 14px;
+      outline: none; transition: border-color 0.2s, box-shadow 0.2s;
+    }
+    .search-input::placeholder { color: var(--text-muted); }
+    .search-input:focus { border-color: var(--border-focus); box-shadow: 0 0 0 3px var(--teal-dim); }
+    .result-count { font-size: 12px; color: var(--text-muted); margin-bottom: 12px; }
+
+    /* Report list */
+    .report-list { display: flex; flex-direction: column; gap: 8px; }
+
+    .report-row {
+      background: var(--card-bg); border: 1px solid var(--border); border-radius: 12px;
+      padding: 18px 20px; display: flex; align-items: center; justify-content: space-between; gap: 16px;
+      cursor: pointer; transition: all 0.2s; text-decoration: none; color: inherit;
+      position: relative; overflow: hidden;
+    }
+    .report-row::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 3px; background: var(--teal); opacity: 0; transition: opacity 0.2s; border-radius: 3px 0 0 3px; }
+    .report-row:hover { border-color: rgba(20,184,166,0.3); transform: translateY(-1px); box-shadow: 0 8px 24px rgba(0,0,0,0.25); }
+    .report-row:hover::before { opacity: 1; }
+
+    .report-row-left { flex: 1; min-width: 0; }
+    .report-address {
+      font-family: 'Syne', sans-serif; font-size: 15px; font-weight: 700;
+      color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+      margin-bottom: 4px;
+    }
+    .report-meta { display: flex; align-items: center; gap: 12px; font-size: 12px; color: var(--text-muted); }
+    .report-date {}
+    .report-badge {
+      padding: 2px 8px; border-radius: 10px; font-size: 11px; font-weight: 600;
+    }
+    .badge-paid { background: rgba(20,184,166,0.12); color: var(--teal); border: 1px solid rgba(20,184,166,0.25); }
+    .badge-free { background: rgba(255,255,255,0.04); color: var(--text-muted); border: 1px solid var(--border); }
+
+    .report-row-right { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
+    .open-btn {
+      font-family: 'Syne', sans-serif; font-size: 12px; font-weight: 700;
+      padding: 8px 16px; border-radius: 8px; border: none; cursor: pointer;
+      background: var(--teal-dim); color: var(--teal); transition: all 0.2s;
+      display: flex; align-items: center; gap: 6px;
+    }
+    .open-btn:hover { background: var(--teal); color: #0b0f18; }
+
+    .copy-btn {
+      width: 34px; height: 34px; border-radius: 8px; border: 1px solid var(--border);
+      background: transparent; color: var(--text-muted); cursor: pointer; transition: all 0.2s;
+      display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+    }
+    .copy-btn:hover { border-color: var(--border-focus); color: var(--teal); }
+
+    /* Empty state */
+    .empty-state { text-align: center; padding: 64px 24px; }
+    .empty-icon { font-size: 48px; margin-bottom: 16px; opacity: 0.4; }
+    .empty-title { font-family: 'Syne', sans-serif; font-size: 18px; font-weight: 700; margin-bottom: 8px; }
+    .empty-sub { font-size: 14px; color: var(--text-muted); margin-bottom: 24px; }
+    .empty-cta {
+      display: inline-block; font-family: 'Syne', sans-serif; font-size: 14px; font-weight: 700;
+      padding: 12px 28px; background: var(--teal); color: #0b0f18; border-radius: 10px;
+      text-decoration: none; transition: all 0.2s;
+    }
+    .empty-cta:hover { background: #0d9488; transform: translateY(-1px); }
+
+    /* No search results */
+    .no-results { text-align: center; padding: 40px 24px; color: var(--text-muted); font-size: 14px; }
+
+    /* Loading skeleton */
+    .skeleton { background: var(--card-bg); border: 1px solid var(--border); border-radius: 12px; padding: 18px 20px; }
+    .skeleton-line { background: var(--surface); border-radius: 4px; animation: shimmer 1.4s infinite; }
+    @keyframes shimmer { 0%, 100% { opacity: 0.4; } 50% { opacity: 0.8; } }
+
+    /* Toast */
+    .toast {
+      position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(80px);
+      background: var(--card-bg); border: 1px solid var(--border); border-radius: 10px;
+      padding: 12px 20px; font-size: 13px; color: var(--text); z-index: 999;
+      transition: transform 0.3s ease; white-space: nowrap;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+    }
+    .toast.show { transform: translateX(-50%) translateY(0); }
+
+    @media (max-width: 600px) {
+      nav { padding: 16px 20px; }
+      .page { padding: 32px 16px 60px; }
+      .copy-btn { display: none; }
+      .report-address { font-size: 14px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="bg-mesh"></div>
+  <div class="bg-grid"></div>
+
+  <nav>
+    <a class="nav-logo" href="/">LOT7</a>
+    <div class="nav-right">
+      <span class="nav-email" id="navEmail"></span>
+      <a href="/upload" class="nav-btn nav-btn-primary">+ New Report</a>
+      <button class="nav-btn nav-btn-ghost" onclick="logout()">Log out</button>
+    </div>
+  </nav>
+
+  <div class="page">
+    <!-- Subscription banner -->
+    <div id="subBanner" class="sub-banner inactive" style="display:none;">
+      <div class="sub-banner-left">
+        <div class="sub-dot"></div>
+        <div>
+          <div class="sub-label" id="subLabel">Loading...</div>
+          <div class="sub-detail" id="subDetail"></div>
+        </div>
+      </div>
+      <div id="subAction"></div>
+    </div>
+
+    <!-- Page header -->
+    <div class="page-header">
+      <h1 class="page-title">My Reports</h1>
+      <p class="page-sub" id="pageSubtitle">Loading your reports...</p>
+    </div>
+
+    <!-- Search -->
+    <div class="search-wrap" id="searchWrap" style="display:none;">
+      <svg class="search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input class="search-input" id="searchInput" type="text" placeholder="Search by address..." oninput="filterReports()">
+    </div>
+    <div class="result-count" id="resultCount"></div>
+
+    <!-- Report list -->
+    <div id="reportList" class="report-list">
+      <!-- Skeleton loading state -->
+      <div class="skeleton"><div class="skeleton-line" style="height:16px;width:55%;margin-bottom:10px;"></div><div class="skeleton-line" style="height:12px;width:30%;"></div></div>
+      <div class="skeleton"><div class="skeleton-line" style="height:16px;width:70%;margin-bottom:10px;"></div><div class="skeleton-line" style="height:12px;width:25%;"></div></div>
+      <div class="skeleton"><div class="skeleton-line" style="height:16px;width:45%;margin-bottom:10px;"></div><div class="skeleton-line" style="height:12px;width:35%;"></div></div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <script>
+    let allReports = [];
+    let currentUser = null;
+
+    async function init() {
+      // Auth check — redirect to login if not authenticated
+      try {
+        const res = await fetch('/api/auth/me', { credentials: 'include' });
+        const data = await res.json();
+        if (!data.authenticated) {
+          window.location.href = '/login?next=/account';
+          return;
+        }
+        currentUser = data.user;
+      } catch (e) {
+        window.location.href = '/login?next=/account';
+        return;
+      }
+
+      document.getElementById('navEmail').textContent = currentUser.email;
+      renderSubBanner(currentUser);
+
+      // Load reports
+      try {
+        const res = await fetch('/api/my-reports', { credentials: 'include' });
+        allReports = await res.json();
+        renderReports(allReports);
+
+        const count = allReports.length;
+        document.getElementById('pageSubtitle').textContent =
+          count === 0 ? 'No reports yet' :
+          count === 1 ? '1 report on file' :
+          `${count} reports on file`;
+
+        if (count > 0) {
+          document.getElementById('searchWrap').style.display = 'block';
+          document.getElementById('resultCount').textContent = `Showing ${count} of ${count}`;
+        }
+      } catch (e) {
+        document.getElementById('reportList').innerHTML =
+          '<div class="no-results">Could not load reports. Please refresh.</div>';
+      }
+    }
+
+    function renderSubBanner(user) {
+      const banner = document.getElementById('subBanner');
+      const label = document.getElementById('subLabel');
+      const detail = document.getElementById('subDetail');
+      const action = document.getElementById('subAction');
+      banner.style.display = 'flex';
+
+      const status = user.subscription_status;
+
+      if (status === 'active' || status === 'trialing') {
+        banner.className = 'sub-banner active';
+        label.textContent = status === 'trialing' ? 'Trial — Active' : 'Monthly Plan — Active';
+        detail.textContent = 'Unlimited reports included';
+        action.innerHTML = `<button class="sub-action sub-action-ghost" onclick="manageSubscription()">Manage billing</button>`;
+      } else if (status === 'past_due') {
+        banner.className = 'sub-banner warning';
+        label.textContent = 'Payment failed — action needed';
+        detail.textContent = 'Update your billing to keep access';
+        action.innerHTML = `<button class="sub-action sub-action-teal" onclick="manageSubscription()">Update billing →</button>`;
+      } else {
+        banner.className = 'sub-banner inactive';
+        label.textContent = 'No active subscription';
+        detail.textContent = 'Subscribe for unlimited reports at $99/mo';
+        action.innerHTML = `<button class="sub-action sub-action-teal" onclick="subscribe()">Subscribe →</button>`;
+      }
+    }
+
+    function renderReports(reports) {
+      const list = document.getElementById('reportList');
+      if (reports.length === 0) {
+        list.innerHTML = `
+          <div class="empty-state">
+            <div class="empty-icon">📋</div>
+            <div class="empty-title">No reports yet</div>
+            <div class="empty-sub">Upload your first inspection report to get started</div>
+            <a href="/upload" class="empty-cta">Upload a report →</a>
+          </div>`;
+        return;
+      }
+      list.innerHTML = reports.map(r => reportRow(r)).join('');
+    }
+
+    function reportRow(r) {
+      const address = r.address || 'Unknown address';
+      const date = formatDate(r.createdAt);
+      const isPaid = r.is_paid || currentUser.has_active_subscription;
+      const reportUrl = `/dashboard?report_id=${r.id}${isPaid ? '&paid=true' : ''}`;
+
+      return `
+        <a class="report-row" href="${reportUrl}">
+          <div class="report-row-left">
+            <div class="report-address">${escapeHtml(address)}</div>
+            <div class="report-meta">
+              <span class="report-date">${date}</span>
+              <span class="report-badge ${isPaid ? 'badge-paid' : 'badge-free'}">${isPaid ? 'Unlocked' : 'Teaser only'}</span>
+            </div>
+          </div>
+          <div class="report-row-right">
+            <button class="copy-btn" onclick="copyLink(event, '${r.id}', ${isPaid})" title="Copy share link">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+            </button>
+            <div class="open-btn">
+              Open
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+            </div>
+          </div>
+        </a>`;
+    }
+
+    function filterReports() {
+      const q = document.getElementById('searchInput').value.trim().toLowerCase();
+      const filtered = q
+        ? allReports.filter(r => (r.address || '').toLowerCase().includes(q))
+        : allReports;
+
+      const count = document.getElementById('resultCount');
+      if (filtered.length === 0) {
+        document.getElementById('reportList').innerHTML =
+          `<div class="no-results">No reports match "<strong>${escapeHtml(q)}</strong>"</div>`;
+        count.textContent = '0 results';
+      } else {
+        renderReports(filtered);
+        count.textContent = q
+          ? `${filtered.length} of ${allReports.length} reports`
+          : `Showing ${filtered.length} of ${allReports.length}`;
+      }
+    }
+
+    function formatDate(iso) {
+      if (!iso) return '';
+      const d = new Date(iso);
+      const now = new Date();
+      const diffDays = Math.floor((now - d) / 86400000);
+      if (diffDays === 0) return 'Today';
+      if (diffDays === 1) return 'Yesterday';
+      if (diffDays < 7) return `${diffDays} days ago`;
+      return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    }
+
+    function copyLink(e, reportId, isPaid) {
+      e.preventDefault();
+      e.stopPropagation();
+      const url = `${window.location.origin}/dashboard?report_id=${reportId}${isPaid ? '&paid=true' : ''}`;
+      navigator.clipboard.writeText(url).then(() => showToast('Link copied to clipboard'));
+    }
+
+    function showToast(msg) {
+      const t = document.getElementById('toast');
+      t.textContent = msg;
+      t.classList.add('show');
+      setTimeout(() => t.classList.remove('show'), 2500);
+    }
+
+    async function logout() {
+      await fetch('/api/auth/logout', { method: 'POST', credentials: 'include' });
+      window.location.href = '/';
+    }
+
+    async function manageSubscription() {
+      try {
+        const res = await fetch('/api/customer-portal', { method: 'POST', credentials: 'include' });
+        const data = await res.json();
+        if (data.portal_url) window.location.href = data.portal_url;
+      } catch (e) { alert('Could not open billing portal. Please try again.'); }
+    }
+
+    async function subscribe() {
+      try {
+        const res = await fetch('/api/create-subscription-checkout', { method: 'POST', credentials: 'include' });
+        const data = await res.json();
+        if (data.checkout_url) window.location.href = data.checkout_url;
+      } catch (e) { alert('Could not start checkout. Please try again.'); }
+    }
+
+    function escapeHtml(text) {
+      const d = document.createElement('div');
+      d.textContent = text || '';
+      return d.innerHTML;
+    }
+
+    init();
+  </script>
+</body>
+</html>

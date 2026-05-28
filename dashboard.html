@@ -1179,7 +1179,7 @@
     <div id="app"></div>
 
     <script>
-        const API_URL = 'https://inspection-ai-backend-det9.onrender.com';
+        const API_URL = '';
 
         let state = {
             screen: 'upload',
@@ -1200,7 +1200,11 @@
             showConfirmModal: false,
             chatVisible: true,
             isPaid: false,
-            showPaywall: false
+            showPaywall: false,
+            showAuthModal: false,
+            authModalTab: 'login',
+            pendingCheckoutPlan: 'one_time',
+            currentUser: null,
         };
         // Load report from URL on page load
         const urlParams = new URLSearchParams(window.location.search);
@@ -1210,7 +1214,20 @@
         if (urlReportId) {
             state.screen = 'dashboard';
             state.reportId = urlReportId;
-            fetch(`${API_URL}/api/analysis/${urlReportId}`)
+
+            // Run auth check and analysis fetch together so render fires once with full state
+            const authCheck = fetch(`${API_URL}/api/auth/me`, { credentials: 'include' })
+                .then(r => r.json())
+                .then(data => {
+                    if (data.authenticated) {
+                        state.currentUser = data.user;
+                        // Active subscriber → full access
+                        if (data.user.has_active_subscription) state.isPaid = true;
+                    }
+                })
+                .catch(() => {});
+
+            const analysisLoad = fetch(`${API_URL}/api/analysis/${urlReportId}`)
                 .then(r => r.json())
                 .then(data => {
                     state.analysis = data;
@@ -1219,8 +1236,22 @@
                     state.shareToken = data._meta.share_token;
                     state.customerName = data._meta.customer_name;
                     state.customerEmail = data._meta.customer_email;
+                })
+                .catch(() => {});
+
+            // Wait for both before rendering so isPaid is correct on first paint
+            Promise.all([authCheck, analysisLoad]).then(() => {
+                // One-time buyer returning without ?paid=true: check server if they own this report and already paid
+                if (!state.isPaid && state.currentUser) {
+                    fetch(`${API_URL}/api/report-access/${urlReportId}`, { credentials: 'include' })
+                        .then(r => r.json())
+                        .then(d => { if (d.can_access) state.isPaid = true; })
+                        .catch(() => {})
+                        .finally(() => render());
+                } else {
                     render();
-                });
+                }
+            });
         }
 
         
@@ -1286,7 +1317,10 @@
                         <div>
                             <div class="dashboard-header-title">LOT7</div>
                         </div>
-                        <button onclick="resetApp()">↻ New Report</button>
+                        <div style="display:flex;gap:10px;align-items:center;">
+                            ${state.currentUser ? `<a href="/account" style="color:var(--accent-teal);font-size:13px;text-decoration:none;padding:8px 12px;border:1px solid var(--accent-teal);border-radius:8px;">My Reports</a>` : ''}
+                            <button onclick="resetApp()">↻ New Report</button>
+                        </div>
                     </div>
 
                     <div class="dashboard-content">
@@ -1481,7 +1515,11 @@
                                                     <span style="background:var(--card-bg);border:1px solid var(--border-color);border-radius:20px;padding:5px 12px;font-size:12px;color:var(--text-secondary);">✓ Unlimited AI chat</span>
                                                 </div>
                                             </div>
-                                            <button id="paywallBtn" onclick="startCheckout()" style="background:var(--accent-teal);color:#0a0f1a;border:none;border-radius:8px;padding:12px 28px;font-size:14px;font-weight:700;cursor:pointer;margin-top:4px;">Unlock Full Report — $29!</button>
+                                            <div style="display:flex;gap:12px;flex-wrap:wrap;justify-content:center;margin-top:4px;">
+                                                <button id="paywallBtn" onclick="startCheckout('one_time')" style="background:var(--accent-teal);color:#0a0f1a;border:none;border-radius:8px;padding:12px 24px;font-size:14px;font-weight:700;cursor:pointer;">Unlock This Report — $29</button>
+                                                <button onclick="startCheckout('monthly')" style="background:transparent;color:var(--accent-teal);border:1px solid var(--accent-teal);border-radius:8px;padding:12px 24px;font-size:14px;font-weight:600;cursor:pointer;">Monthly Plan — $99/mo</button>
+                                            </div>
+                                            <p style="font-size:11px;color:var(--text-secondary);margin-top:10px;">Monthly plan includes unlimited reports + full history</p>
                                         </div>
                                     </div>
                                 `;
@@ -1521,6 +1559,36 @@
                                 Unlock for $29 →
                             </button>
                             <button onclick="state.showPaywall=false;render();" style="background:transparent;border:none;color:var(--text-secondary);font-size:13px;cursor:pointer;">Maybe later</button>
+                        </div>
+                    </div>
+                ` : ''}
+                ${state.showAuthModal ? `
+                    <div class="modal-overlay" onclick="if(event.target===this){state.showAuthModal=false;render();}">
+                        <div class="modal" onclick="event.stopPropagation()" style="max-width:400px;">
+                            <div style="text-align:center;margin-bottom:20px;">
+                                <div style="font-size:22px;font-weight:800;background:linear-gradient(135deg,#14b8a6,#d946a6);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;">LOT7</div>
+                                <div style="display:flex;gap:0;margin-top:16px;border:1px solid var(--border-color);border-radius:8px;overflow:hidden;">
+                                    <button onclick="state.authModalTab='login';render();" style="flex:1;padding:10px;border:none;cursor:pointer;font-weight:600;font-size:13px;transition:all 0.2s;${state.authModalTab==='login' ? 'background:var(--accent-teal);color:#0a0f1a;' : 'background:transparent;color:var(--text-secondary);'}">Log In</button>
+                                    <button onclick="state.authModalTab='signup';render();" style="flex:1;padding:10px;border:none;cursor:pointer;font-weight:600;font-size:13px;transition:all 0.2s;${state.authModalTab==='signup' ? 'background:var(--accent-teal);color:#0a0f1a;' : 'background:transparent;color:var(--text-secondary);'}">Sign Up</button>
+                                </div>
+                            </div>
+                            <div id="authError" style="display:none;background:rgba(248,113,113,0.1);border:1px solid #f87171;border-radius:6px;color:#f87171;font-size:12px;padding:8px 12px;margin-bottom:12px;"></div>
+                            <div class="modal-field">
+                                <label>Email</label>
+                                <input type="email" id="authEmail" placeholder="you@example.com" autocomplete="email">
+                            </div>
+                            <div class="modal-field">
+                                <label>Password</label>
+                                <input type="password" id="authPassword" placeholder="${state.authModalTab === 'signup' ? 'At least 8 characters' : '••••••••'}" autocomplete="${state.authModalTab === 'signup' ? 'new-password' : 'current-password'}"
+                                    onkeypress="if(event.key==='Enter')submitAuthModal('${state.authModalTab}')">
+                            </div>
+                            <button onclick="submitAuthModal('${state.authModalTab}')"
+                                style="width:100%;background:var(--accent-teal);color:#0a0f1a;border:none;border-radius:8px;padding:12px;font-weight:700;font-size:14px;cursor:pointer;margin-top:4px;">
+                                ${state.authModalTab === 'signup' ? 'Create Account & Continue' : 'Log In & Continue'}
+                            </button>
+                            <p style="text-align:center;font-size:11px;color:var(--text-secondary);margin-top:12px;">
+                                ${state.authModalTab === 'signup' ? 'Already have an account? <a href="#" onclick="state.authModalTab=\'login\';render();return false;" style="color:var(--accent-teal);">Log in</a>' : 'No account? <a href="#" onclick="state.authModalTab=\'signup\';render();return false;" style="color:var(--accent-teal);">Sign up free</a>'}
+                            </p>
                         </div>
                     </div>
                 ` : ''}
@@ -1807,16 +1875,80 @@
             }
         }
 
-        async function startCheckout() {
+        async function startCheckout(planType) {
+            // planType: 'one_time' (default) or 'monthly'
+            planType = planType || 'one_time';
+
+            // Check if logged in
+            let authed = false;
+            try {
+                const meRes = await fetch(`${API_URL}/api/auth/me`, { credentials: 'include' });
+                const meData = await meRes.json();
+                authed = meData.authenticated === true;
+                if (authed) state.currentUser = meData.user;
+            } catch(e) { authed = false; }
+
+            if (!authed) {
+                // Show inline auth modal, then proceed to checkout after login
+                state.pendingCheckoutPlan = planType;
+                state.showAuthModal = true;
+                state.authModalTab = 'login';
+                render();
+                return;
+            }
+
+            await _doCheckout(planType);
+        }
+
+        async function _doCheckout(planType) {
             const btn = document.getElementById('paywallBtn');
             if (btn) { btn.textContent = 'Redirecting...'; btn.style.opacity = '0.7'; btn.style.pointerEvents = 'none'; }
             try {
-                const res = await fetch(`${API_URL}/api/create-checkout/${state.reportId}`, { method: 'POST' });
-                const data = await res.json();
+                let url, res, data;
+                if (planType === 'monthly') {
+                    res = await fetch(`${API_URL}/api/create-subscription-checkout`, {
+                        method: 'POST', credentials: 'include'
+                    });
+                } else {
+                    res = await fetch(`${API_URL}/api/create-checkout/${state.reportId}`, {
+                        method: 'POST', credentials: 'include'
+                    });
+                }
+                data = await res.json();
                 if (data.checkout_url) { window.location.href = data.checkout_url; }
-                else { alert('Could not start checkout. Please try again.'); }
+                else { alert('Could not start checkout. Please try again.'); if (btn) { btn.textContent = planType === 'monthly' ? 'Monthly — $99/mo' : 'Unlock Full Report — $29'; btn.style.opacity = ''; btn.style.pointerEvents = ''; } }
             } catch(e) {
                 alert('Error: ' + e.message);
+            }
+        }
+
+        async function submitAuthModal(mode) {
+            const email = document.getElementById('authEmail').value.trim();
+            const password = document.getElementById('authPassword').value;
+            const errEl = document.getElementById('authError');
+            errEl.style.display = 'none';
+
+            if (!email || !password) { errEl.textContent = 'Email and password are required'; errEl.style.display = 'block'; return; }
+            if (mode === 'signup' && password.length < 8) { errEl.textContent = 'Password must be at least 8 characters'; errEl.style.display = 'block'; return; }
+
+            const endpoint = mode === 'signup' ? '/api/auth/register' : '/api/auth/login';
+            try {
+                const res = await fetch(`${API_URL}${endpoint}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include',
+                    body: JSON.stringify({ email, password })
+                });
+                const data = await res.json();
+                if (!res.ok) { errEl.textContent = data.error || 'Something went wrong'; errEl.style.display = 'block'; return; }
+                state.currentUser = data.user;
+                state.showAuthModal = false;
+                render();
+                // Continue to checkout
+                await _doCheckout(state.pendingCheckoutPlan || 'one_time');
+            } catch(e) {
+                errEl.textContent = 'Network error — please try again';
+                errEl.style.display = 'block';
             }
         }
 
@@ -1832,7 +1964,7 @@
         }
 
         function resetApp() {
-            state = { screen: 'upload', customerName: '', customerEmail: '', customerPhone: '', uploading: false, reportId: null, summary: null, address: null, messages: [], loading: false, pendingQuote: null, warrantyId: null, warrantyBuilderName: null, warrantyType: null, warrantyLoaded: false, showConfirmModal: false, quoteSending: false, chatVisible: true, shareToken: null, isPaid: false, showPaywall: false };
+            state = { screen: 'upload', customerName: '', customerEmail: '', customerPhone: '', uploading: false, reportId: null, summary: null, address: null, messages: [], loading: false, pendingQuote: null, warrantyId: null, warrantyBuilderName: null, warrantyType: null, warrantyLoaded: false, showConfirmModal: false, quoteSending: false, chatVisible: true, shareToken: null, isPaid: false, showPaywall: false, showAuthModal: false, authModalTab: 'login', pendingCheckoutPlan: 'one_time', currentUser: null };
             render();
         }
 

@@ -1,8 +1,30 @@
 from flask_sqlalchemy import SQLAlchemy
+from flask_login import UserMixin
 from datetime import datetime
 import uuid
 
 db = SQLAlchemy()
+
+
+class User(UserMixin, db.Model):
+    __tablename__ = 'User'
+
+    id = db.Column(db.String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    email = db.Column(db.String(255), unique=True, nullable=False, index=True)
+    password_hash = db.Column(db.String(255), nullable=False)
+    stripe_customer_id = db.Column(db.String(100), unique=True, nullable=True)
+    subscription_id = db.Column(db.String(100), unique=True, nullable=True)
+    # active | trialing | past_due | canceled | inactive
+    subscription_status = db.Column(db.String(20), default='inactive', nullable=False)
+    subscription_end = db.Column(db.DateTime, nullable=True)
+    createdAt = db.Column(db.DateTime, default=datetime.utcnow)
+
+    reports = db.relationship('InspectionReport', backref='user', lazy=True)
+
+    @property
+    def has_active_subscription(self):
+        return self.subscription_status in ('active', 'trialing')
+
 
 class InspectionReport(db.Model):
     __tablename__ = 'InspectionReport'
@@ -21,6 +43,7 @@ class InspectionReport(db.Model):
     extractedText = db.Column(db.Text)
     summary = db.Column(db.Text)
     analysis_json = db.Column(db.Text, nullable=True)
+    user_id = db.Column(db.String(36), db.ForeignKey('User.id'), nullable=True, index=True)
     is_paid = db.Column(db.Boolean, default=False)
     shareToken = db.Column(db.String(100), unique=True)
     isShared = db.Column(db.Boolean, default=True)

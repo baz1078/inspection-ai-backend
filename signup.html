@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sign Up — Lot7</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Figtree:wght@700;800&family=Syne:wght@400;600;700;800&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;1,9..40,300&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --dark-bg: #0b0f18; --card-bg: #141928; --surface: #1c2338;
+      --teal: #14b8a6; --teal-dim: rgba(20,184,166,0.12); --teal-glow: rgba(20,184,166,0.25);
+      --pink: #d946a6; --text: #f0f4ff; --text-muted: #6b7a99; --text-sub: #9aa3b8;
+      --border: rgba(255,255,255,0.07); --border-focus: rgba(20,184,166,0.5);
+      --error: #f87171; --error-dim: rgba(248,113,113,0.1);
+      --success: #34d399; --success-dim: rgba(52,211,153,0.1);
+    }
+    body { font-family:'DM Sans',sans-serif; background:var(--dark-bg); color:var(--text); min-height:100vh; display:flex; flex-direction:column; align-items:center; justify-content:center; overflow:hidden; position:relative; }
+    .bg-mesh { position:fixed; inset:0; pointer-events:none; z-index:0; overflow:hidden; }
+    .bg-mesh::before { content:''; position:absolute; width:700px; height:700px; top:-200px; left:-200px; background:radial-gradient(circle,rgba(20,184,166,0.08) 0%,transparent 65%); animation:drift1 18s ease-in-out infinite alternate; }
+    .bg-mesh::after { content:''; position:absolute; width:600px; height:600px; bottom:-150px; right:-100px; background:radial-gradient(circle,rgba(217,70,166,0.07) 0%,transparent 65%); animation:drift2 22s ease-in-out infinite alternate; }
+    @keyframes drift1 { from{transform:translate(0,0)} to{transform:translate(60px,40px)} }
+    @keyframes drift2 { from{transform:translate(0,0)} to{transform:translate(-50px,-30px)} }
+    .bg-grid { position:fixed; inset:0; z-index:0; background-image:linear-gradient(rgba(255,255,255,0.015) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,0.015) 1px,transparent 1px); background-size:48px 48px; }
+    .page { position:relative; z-index:1; width:100%; max-width:420px; padding:24px 20px; }
+    .logo { font-family:'Figtree',sans-serif; font-size:26px; font-weight:800; background:linear-gradient(135deg,var(--teal),var(--pink)); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; margin-bottom:24px; text-align:center; }
+    .card { background:var(--card-bg); border:1px solid var(--border); border-radius:20px; padding:36px 32px 32px; position:relative; overflow:hidden; }
+    .card::before { content:''; position:absolute; top:0; left:0; right:0; height:1px; background:linear-gradient(90deg,transparent,var(--teal-glow),transparent); }
+    .card-eyebrow { font-family:'Syne',sans-serif; font-size:11px; font-weight:600; letter-spacing:2px; text-transform:uppercase; color:var(--teal); margin-bottom:10px; }
+    .card-title { font-family:'Syne',sans-serif; font-size:22px; font-weight:700; color:var(--text); margin-bottom:4px; line-height:1.25; }
+    .card-subtitle { font-size:13px; color:var(--text-muted); font-weight:300; margin-bottom:24px; }
+    .field { margin-bottom:16px; }
+    label { display:block; font-size:11.5px; font-weight:500; letter-spacing:0.5px; color:var(--text-sub); margin-bottom:6px; text-transform:uppercase; }
+    input[type="email"], input[type="password"] { width:100%; padding:11px 14px; background:var(--surface); border:1px solid var(--border); border-radius:10px; color:var(--text); font-family:'DM Sans',sans-serif; font-size:14px; transition:border-color .2s,box-shadow .2s; outline:none; }
+    input::placeholder { color:var(--text-muted); font-size:13px; }
+    input:focus { border-color:var(--border-focus); box-shadow:0 0 0 3px var(--teal-dim); }
+    .hint { font-size:11.5px; color:var(--text-muted); margin-top:-10px; margin-bottom:16px; }
+    .alert { border-radius:10px; font-size:13px; padding:10px 14px; margin-bottom:16px; display:none; }
+    .alert.error { background:var(--error-dim); border:1px solid var(--error); color:var(--error); }
+    .alert.success { background:var(--success-dim); border:1px solid var(--success); color:var(--success); }
+    .btn { width:100%; padding:13px; background:linear-gradient(135deg,var(--teal) 0%,#0d9488 100%); border:none; border-radius:12px; color:#fff; font-family:'Syne',sans-serif; font-size:15px; font-weight:700; letter-spacing:.3px; cursor:pointer; transition:all .2s; margin-top:4px; }
+    .btn:hover { transform:translateY(-1px); box-shadow:0 8px 24px rgba(20,184,166,0.35); }
+    .btn:active { transform:translateY(0); }
+    .btn:disabled { opacity:.5; cursor:not-allowed; transform:none; box-shadow:none; }
+    .footer-link { text-align:center; margin-top:20px; font-size:13px; color:var(--text-muted); }
+    .footer-link a { color:var(--teal); text-decoration:none; font-weight:500; }
+    .footer-link a:hover { text-decoration:underline; }
+    @media(max-width:480px) { .card{padding:28px 20px} .page{padding:16px} }
+  </style>
+</head>
+<body>
+  <div class="bg-mesh"></div>
+  <div class="bg-grid"></div>
+  <main class="page">
+    <div class="logo">LOT7</div>
+    <div class="card">
+      <div class="card-eyebrow">Get started</div>
+      <div class="card-title">Create your account</div>
+      <div class="card-subtitle">Turn home inspection PDFs into visual dashboards</div>
+
+      <div class="alert error" id="error-msg"></div>
+      <div class="alert success" id="success-msg"></div>
+
+      <form id="signup-form">
+        <div class="field">
+          <label>Email</label>
+          <input type="email" id="email" name="email" placeholder="you@example.com" required autocomplete="email">
+        </div>
+        <div class="field">
+          <label>Password</label>
+          <input type="password" id="password" name="password" placeholder="At least 8 characters" required autocomplete="new-password">
+          <p class="hint">Minimum 8 characters</p>
+        </div>
+        <div class="field">
+          <label>Confirm password</label>
+          <input type="password" id="password2" name="password2" placeholder="••••••••" required autocomplete="new-password">
+        </div>
+        <button type="submit" class="btn" id="submit-btn">Create account</button>
+      </form>
+    </div>
+
+    <div class="footer-link">
+      Already have an account? <a href="/login">Log in</a>
+    </div>
+  </main>
+
+  <script>
+    document.getElementById('signup-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const btn = document.getElementById('submit-btn');
+      const errBox = document.getElementById('error-msg');
+      const okBox = document.getElementById('success-msg');
+      errBox.style.display = 'none';
+      okBox.style.display = 'none';
+
+      const email = document.getElementById('email').value.trim();
+      const password = document.getElementById('password').value;
+      const password2 = document.getElementById('password2').value;
+
+      if (password !== password2) {
+        errBox.textContent = 'Passwords do not match';
+        errBox.style.display = 'block';
+        return;
+      }
+
+      btn.disabled = true;
+      btn.textContent = 'Creating account…';
+
+      try {
+        const res = await fetch('/api/auth/register', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({ email, password }),
+        });
+        const data = await res.json();
+        if (!res.ok) {
+          errBox.textContent = data.error || 'Registration failed';
+          errBox.style.display = 'block';
+          btn.disabled = false;
+          btn.textContent = 'Create account';
+          return;
+        }
+        window.location.href = '/dashboard';
+      } catch (err) {
+        errBox.textContent = 'Network error — please try again';
+        errBox.style.display = 'block';
+        btn.disabled = false;
+        btn.textContent = 'Create account';
+      }
+    });
+  </script>
+</body>
+</html>
