@@ -69,6 +69,131 @@ def report_by_token(token):
         return "Report not found", 404
     return redirect(f'/dashboard?report_id={report.id}&paid=true')
 
+@app.route('/admin')
+def admin_page():
+    with open('admin.html', 'r', encoding='utf-8') as f:
+        return f.read()
+
+# ============================================================================
+# ADMIN API
+# ============================================================================
+
+ADMIN_EMAILS = {'baz1078@gmail.com'}
+
+def admin_required(f):
+    from functools import wraps
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        if not current_user.is_authenticated or current_user.email not in ADMIN_EMAILS:
+            return jsonify({'error': 'Unauthorized'}), 403
+        return f(*args, **kwargs)
+    return decorated
+
+@app.route('/api/admin/users', methods=['GET'])
+@login_required
+@admin_required
+def admin_users():
+    search = request.args.get('search', '').strip().lower()
+    users = User.query.order_by(User.createdAt.desc()).all()
+    result = []
+    for u in users:
+        if search and search not in u.email.lower():
+            continue
+        report_count = InspectionReport.query.filter_by(user_id=u.id).count()
+        paid_count = InspectionReport.query.filter_by(user_id=u.id, is_paid=True).count()
+        result.append({
+            'id': u.id,
+            'email': u.email,
+            'createdAt': u.createdAt.isoformat(),
+            'subscription_status': u.subscription_status,
+            'has_active_subscription': u.has_active_subscription,
+            'stripe_customer_id': u.stripe_customer_id,
+            'subscription_id': u.subscription_id,
+            'report_count': report_count,
+            'paid_count': paid_count,
+        })
+    return jsonify(result)
+
+@app.route('/api/admin/reports', methods=['GET'])
+@login_required
+@admin_required
+def admin_reports():
+    search = request.args.get('search', '').strip().lower()
+    reports = InspectionReport.query.order_by(InspectionReport.createdAt.desc()).limit(200).all()
+    result = []
+    for r in reports:
+        addr = (r.address or '').lower()
+        email = (r.customerEmail or '').lower()
+        if search and search not in addr and search not in email:
+            continue
+        result.append({
+            'id': r.id,
+            'address': r.address,
+            'customerEmail': r.customerEmail,
+            'customerName': r.customerName,
+            'createdAt': r.createdAt.isoformat(),
+            'is_paid': r.is_paid,
+            'user_id': r.user_id,
+            'shareToken': r.shareToken,
+        })
+    return jsonify(result)
+
+@app.route('/api/admin/mark-paid/<report_id>', methods=['POST'])
+@login_required
+@admin_required
+def admin_mark_paid(report_id):
+    report = InspectionReport.query.get(report_id)
+    if not report:
+        return jsonify({'error': 'Report not found'}), 404
+    report.is_paid = True
+    db.session.commit()
+    return jsonify({'success': True})
+
+@app.route('/api/admin/set-subscription/<user_id>', methods=['POST'])
+@login_required
+@admin_required
+def admin_set_subscription(user_id):
+    data = request.get_json()
+    status = data.get('status', 'inactive')
+    user = User.query.get(user_id)
+    if not user:
+        return jsonify({'error': 'User not found'}), 404
+    user.subscription_status = status
+    db.session.commit()
+    return jsonify({'success': True})
+
+@app.route('/api/admin/link-report/<report_id>', methods=['POST'])
+@login_required
+@admin_required
+def admin_link_report(report_id):
+    data = request.get_json()
+    user_id = data.get('user_id')
+    report = InspectionReport.query.get(report_id)
+    if not report:
+        return jsonify({'error': 'Report not found'}), 404
+    if user_id:
+        user = User.query.get(user_id)
+        if not user:
+            return jsonify({'error': 'User not found'}), 404
+    report.user_id = user_id
+    db.session.commit()
+    return jsonify({'success': True})
+
+@app.route('/api/admin/delete-user/<user_id>', methods=['POST'])
+@login_required
+@admin_required
+def admin_delete_user(user_id):
+    if current_user.id == user_id:
+        return jsonify({'error': 'Cannot delete your own account'}), 400
+    user = User.query.get(user_id)
+    if not user:
+        return jsonify({'error': 'User not found'}), 404
+    # Unlink their reports rather than deleting them
+    InspectionReport.query.filter_by(user_id=user_id).update({'user_id': None})
+    db.session.delete(user)
+    db.session.commit()
+    return jsonify({'success': True})
+
 # Auth config
 app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'change-this-in-production-please')
 
