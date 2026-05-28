@@ -1544,21 +1544,28 @@
 
                 ${state.showPaywall ? `
                     <div class="modal-overlay" onclick="if(event.target===this){state.showPaywall=false;render();}">
-                        <div class="modal-box" style="max-width:380px;text-align:center;">
+                        <div class="modal-box" style="max-width:400px;text-align:center;">
                             <div style="font-size:32px;margin-bottom:8px;">🔒</div>
-                            <h2 style="margin:0 0 6px;font-family:'Syne',sans-serif;font-size:20px;color:var(--text-primary);">Unlock Buyer Pro</h2>
-                            <p style="color:var(--text-secondary);font-size:14px;margin:0 0 20px;">One-time $29 payment for this report.</p>
+                            <h2 style="margin:0 0 6px;font-family:'Syne',sans-serif;font-size:20px;color:var(--text-primary);">Unlock Full Report</h2>
+                            <p style="color:var(--text-secondary);font-size:14px;margin:0 0 16px;">Get the complete breakdown, PDFs, and unlimited AI chat.</p>
                             <ul style="text-align:left;color:var(--text-secondary);font-size:13px;margin:0 0 20px;padding-left:18px;line-height:1.8;">
                                 <li>📋 Contractor Punchlist PDF</li>
                                 <li>📄 Full Overview Report PDF</li>
                                 <li>🔗 Shareable report link</li>
                                 <li>💬 Unlimited AI chat questions</li>
                             </ul>
-                            <button id="paywallBtn" onclick="startCheckout()"
-                               style="display:block;width:100%;background:var(--accent-teal);color:#fff;padding:12px;border-radius:8px;font-weight:700;font-size:15px;border:none;cursor:pointer;margin-bottom:10px;">
-                                Unlock for $29 →
-                            </button>
-                            <button onclick="state.showPaywall=false;render();" style="background:transparent;border:none;color:var(--text-secondary);font-size:13px;cursor:pointer;">Maybe later</button>
+                            <div style="display:flex;flex-direction:column;gap:10px;">
+                                <button id="paywallBtn" onclick="startCheckout('one_time')"
+                                   style="width:100%;background:var(--accent-teal);color:#0a0f1a;padding:13px;border-radius:8px;font-weight:700;font-size:15px;border:none;cursor:pointer;">
+                                    Unlock This Report — $29
+                                </button>
+                                <button onclick="startCheckout('monthly')"
+                                   style="width:100%;background:transparent;color:var(--accent-teal);border:1px solid var(--accent-teal);padding:13px;border-radius:8px;font-weight:600;font-size:14px;cursor:pointer;">
+                                    Monthly Plan — $99/mo
+                                </button>
+                                <p style="font-size:11px;color:var(--text-secondary);margin:0;">Monthly includes unlimited reports + full history</p>
+                            </div>
+                            <button onclick="state.showPaywall=false;render();" style="background:transparent;border:none;color:var(--text-secondary);font-size:13px;cursor:pointer;margin-top:14px;">Maybe later</button>
                         </div>
                     </div>
                 ` : ''}

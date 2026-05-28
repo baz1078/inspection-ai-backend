@@ -57,7 +57,7 @@ Create a clear, organized summary of warranty coverage for {builder_name} ({warr
 Be concise and factual. Only include what's actually in the document."""
     
     message = client.messages.create(
-        model="claude-sonnet-4-5-20250929",
+        model="claude-sonnet-4-6",
         max_tokens=800,
         system=system_prompt,
         messages=[{
@@ -138,7 +138,7 @@ Customer Question about coverage: {question}"""
         self.conversation_history.append({"role": "user", "content": context_message})
         
         response = self.client.messages.create(
-            model="claude-sonnet-4-5-20250929",
+            model="claude-sonnet-4-6",
             max_tokens=800,
             system=system_prompt,
             messages=self.conversation_history

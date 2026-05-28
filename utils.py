@@ -45,7 +45,7 @@ RULES:
 - Start with a one-sentence overview of the property and inspection date"""
 
     message = client.messages.create(
-        model="claude-sonnet-4-5-20250929",
+        model="claude-sonnet-4-6",
         max_tokens=1000,
         temperature=0,
         system=system_prompt,
@@ -227,7 +227,7 @@ CLASSIFICATION RULES:
         try:
             print(f"Step 1 attempt with max_tokens={max_tok}...")
             step1_msg = client.messages.create(
-                model="claude-sonnet-4-5-20250929",
+                model="claude-sonnet-4-6",
                 max_tokens=max_tok,
                 temperature=0,
                 system=step1_prompt,
@@ -339,7 +339,7 @@ ATTENTION ITEMS - Should be corrected:
 Do NOT include issues unrelated to {issue_type}."""
     
     message = client.messages.create(
-        model="claude-sonnet-4-5-20250929",
+        model="claude-sonnet-4-6",
         max_tokens=600,
         system=system_prompt,
         messages=[{
@@ -666,7 +666,7 @@ Customer Question: {question}"""
         self.conversation_history.append({"role": "user", "content": context_message})
         
         response = self.client.messages.create(
-            model="claude-sonnet-4-5-20250929",
+            model="claude-sonnet-4-6",
             max_tokens=800,
             temperature=0,
             system=system_prompt,
