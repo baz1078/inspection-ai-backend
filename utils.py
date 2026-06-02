@@ -57,19 +57,165 @@ RULES:
 
 def generate_structured_analysis(extracted_text):
     """
-    Single-step intelligent analysis:
-    AI reads the entire report, understands the property in full context —
-    location, geography, inspector language, severity signals, construction type —
-    and returns classified findings with pricing in one pass.
-    Lookup table provides anchors for common items; AI prices everything else
-    from deep contextual understanding of the report.
+    Two-pass analysis:
+    Pass 1 — Pure extraction. Reads the full report, finds the inspector's severity
+              system, and classifies every finding exactly as the inspector did.
+              No cost estimates, no re-ranking, no AI judgment on severity.
+    Pass 2 — Enrichment. Receives Pass 1's classified findings and adds cost
+              estimates, timelines, DIY flags, and budget totals. Cannot reclassify
+              severity because it never sees the raw report text.
     """
-    from cost_lookup import COST_TABLE, get_cost, format_cost_range
+    from cost_lookup import COST_TABLE
 
     client = create_ai_client()
+    import re
 
-    # Build lookup anchor — common items with known regional ranges
-    # Passed to AI as reference, not as a constraint
+    def clean_raw(raw):
+        raw = raw.replace("\x00", "").strip()
+        if raw.startswith("```"):
+            raw = raw.split("\n", 1)[1]
+        if raw.endswith("```"):
+            raw = raw.rsplit("```", 1)[0]
+        return raw.strip()
+
+    def attempt_parse(raw):
+        cleaned = re.sub(r',\s*([}\]])', r'\1', raw)
+        return json.loads(cleaned)
+
+    # -------------------------------------------------------------------------
+    # PASS 1 — EXTRACTION
+    # Job: read the report, find the severity system, classify every finding.
+    # Must NOT produce cost estimates or re-rank anything.
+    # -------------------------------------------------------------------------
+
+    pass1_system = """You are a home inspection report reader. Your only job is to extract findings exactly as the inspector documented them — nothing more.
+
+STEP 1 — FIND THE SEVERITY SYSTEM
+Before reading any findings, scan the entire report for a legend, key, severity scale, or icon guide. These usually appear in the first few pages but can appear anywhere. Common formats:
+- Filled/open symbols (● = Immediate, ○ = Attention, – = Notable)
+- Colour-coded labels (Red = Safety Hazard, Yellow = Repair Needed, etc.)
+- Text labels (Immediate Attention, Attention, Satisfactory, Service Advised, Maintenance, Monitor)
+- Numbered scales (1 = Immediate, 2 = Attention, 3 = Informational)
+
+If you find a legend: record it exactly and use it as the authoritative severity system for this report.
+If you find NO legend: use the inspector's note language as the severity signal (see fallback rules below).
+
+STEP 2 — EXTRACT EVERY FINDING
+Go through the entire report section by section. For every documented finding or observation:
+- Copy the finding description verbatim or very closely paraphrased — do not summarise away detail
+- Record the inspector's severity classification for that finding using their own system
+- Record which section of the report it appeared in (Roof, Electrical, Plumbing, HVAC, etc.)
+- Do NOT skip satisfactory/passing items — they go in the checklist
+
+SEVERITY MAPPING — map inspector's classification to one of three buckets:
+  IMMEDIATE — inspector flagged as: Immediate Attention, Safety Hazard, Service Advised, Deficient, Not Functioning, Active Leak, Urgent, red/filled symbol, or any language indicating action required now
+  ATTENTION — inspector flagged as: Attention, Maintenance, Monitor, Repair Recommended, Plan and Budget, Recommended, yellow/open symbol, or any language indicating future action
+  SATISFACTORY — inspector noted as functioning, adequate, serviceable, good condition, or no deficiency noted
+
+FALLBACK (no legend found):
+  IMMEDIATE: "safety concern", "recommend immediate", "not functioning", "active leak", "structural concern", "fire hazard", "electrical hazard"
+  ATTENTION: "recommend", "monitor", "maintenance", "plan and budget", "end of life", "aging"
+  SATISFACTORY: everything else that is a positive or neutral observation
+
+CRITICAL RULES:
+- You are a reader, not a judge. If the inspector marked something as Immediate, it is Immediate — even if the fix sounds trivial to you.
+- Do NOT upgrade or downgrade any finding's severity based on your own assessment.
+- Do NOT add findings that are not in the report.
+- Do NOT produce any cost estimates.
+- If the inspector noted zero Immediate items, urgent_items must be an empty array []. Do not invent urgent items.
+
+Return ONLY a valid JSON object. No markdown, no backticks:
+
+{
+  "severity_system_found": true or false,
+  "severity_system_description": "Brief description of the legend or 'None found — using note language'",
+  "currency": "USD" or "CAD",
+  "location": "City, Province/State — extract from report",
+  "address": "Full property address — search entire report: cover page, header, footer, subject property line, mid-report. Never return null.",
+  "condition_label": "The inspector's own overall condition label if stated, or null",
+  "urgent_items": [
+    {
+      "name": "Short descriptive name",
+      "finding": "Inspector's finding verbatim or close paraphrase",
+      "section": "Report section (Roof, Electrical, Plumbing, HVAC, Exterior, Interior, Structure, Garage, Attic, Bathroom, Kitchen)",
+      "inspector_severity_label": "The exact word/symbol the inspector used"
+    }
+  ],
+  "maintenance_items": [
+    {
+      "name": "Short descriptive name",
+      "finding": "Inspector's finding verbatim or close paraphrase",
+      "section": "Report section",
+      "inspector_severity_label": "The exact word/symbol the inspector used"
+    }
+  ],
+  "category_items": [
+    {
+      "name": "Short descriptive name",
+      "finding": "Inspector's finding verbatim or close paraphrase",
+      "section": "Report section",
+      "inspector_severity_label": "The exact word/symbol the inspector used",
+      "category": "Roof, Exterior, Garage, Attic, Interior, Kitchen, Laundry, Bathroom, Mechanical, or Structure"
+    }
+  ],
+  "checklist": [
+    {"passed": true, "text": "System or component in good condition — e.g. Electrical panel 200A, serviceable"},
+    {"passed": true, "notable": true, "text": "Item not inspected or limited scope — e.g. AC not tested due to low ambient temperature"}
+  ]
+}
+
+PLACEMENT RULES:
+- urgent_items: everything the inspector classified as IMMEDIATE. Empty array [] if none.
+- maintenance_items: everything the inspector classified as ATTENTION.
+- category_items: all remaining documented observations not already in urgent or maintenance. Every finding must appear somewhere.
+- checklist: 6-10 items covering major systems. passed:true = good/satisfactory. notable:true = not inspected or limited scope. Do not repeat items already above."""
+
+    pass1_findings = None
+    last_err = None
+    for max_tok in [6000, 12000]:
+        try:
+            print(f"Pass 1 (extraction) attempt with max_tokens={max_tok}...")
+            msg = client.messages.create(
+                model="claude-sonnet-4-6",
+                max_tokens=max_tok,
+                temperature=0,
+                system=pass1_system,
+                messages=[{"role": "user", "content": extracted_text}]
+            )
+            raw = clean_raw(msg.content[0].text)
+            pass1_findings = attempt_parse(raw)
+            print(f"Pass 1 succeeded. Severity system found: {pass1_findings.get('severity_system_found')}. Description: {pass1_findings.get('severity_system_description')}")
+            print(f"  Urgent: {len(pass1_findings.get('urgent_items', []))}  Maintenance: {len(pass1_findings.get('maintenance_items', []))}  Category: {len(pass1_findings.get('category_items', []))}")
+            break
+        except Exception as e:
+            last_err = e
+            retry_msg = 'Retrying with more tokens...' if max_tok < 12000 else 'All retries exhausted.'
+            print(f"Pass 1 failed at max_tokens={max_tok}: {last_err}. {retry_msg}")
+
+    if pass1_findings is None:
+        print("Pass 1 failed entirely — using minimal fallback.")
+        fallback = {
+            "condition": "Needs Attention",
+            "currency": "USD",
+            "location": "Unknown",
+            "address": "Address not found",
+            "urgent_items": [],
+            "maintenance_items": [],
+            "category_items": [],
+            "checklist": [],
+            "budget_now": "~$1,500",
+            "budget_5yr": "~$1,500",
+            "_parse_error": str(last_err)
+        }
+        return json.dumps(fallback)
+
+    # -------------------------------------------------------------------------
+    # PASS 2 — ENRICHMENT
+    # Job: take Pass 1's classified findings and add costs, timelines, DIY flags.
+    # Input is the structured findings — NOT the raw report text.
+    # Severity classification is locked. This pass cannot change it.
+    # -------------------------------------------------------------------------
+
     lookup_anchor = json.dumps({
         k: {
             "display": v["display"],
@@ -82,88 +228,66 @@ def generate_structured_analysis(extracted_text):
         for k, v in COST_TABLE.items()
     })
 
-    step1_prompt = f"""You are a senior home inspection analyst and regional contractor cost estimator with deep knowledge of residential repair pricing across North America.
+    currency = pass1_findings.get("currency", "USD")
+    location = pass1_findings.get("location", "Unknown")
 
-Before you do anything else: read this entire inspection report from beginning to end without skipping any section. Treat it like a human expert reviewing a colleague's work — absorb every finding, every note, every header, every address field, every detail on every page. Nothing in this report is irrelevant. As you begin reading, scan specifically for any legend, key, severity scale, or iconography guide — these often appear on the first few pages and define how the inspector classifies severity (e.g. filled dot = Immediate Attention, open dot = Attention, dashes = Notable; or colour-coded labels; or note text conventions). If you find one, internalize it completely and treat it as the authoritative severity system for this report. It overrides your own judgment about how serious something sounds. Only after you have a complete picture of the entire report — including its severity system — should you begin building your response.
+    pass2_system = f"""You are a regional contractor cost estimator with deep knowledge of residential repair pricing across North America.
 
-Your job is then to provide clear, useful information so a buyer or realtor can understand what actually needs attention. Classify findings based on the inspector's own severity system first. Price what was documented at the correct repair scope — but never downgrade a severity classification because the fix sounds simple.
+You will receive a structured list of home inspection findings that have already been classified by severity. Your job is to add cost estimates, trade information, timelines, and DIY eligibility to each item. You cannot and must not change the severity classification of any item — that was determined by the inspector and is locked.
 
-For cost estimates: use the reference pricing table as your anchor. For anything not in the table, apply real-world knowledge of what that repair actually costs in that region — do not guess, do not use generic ranges, and do not be an alarmist. A loose toilet seat is not a plumbing emergency. A small crack in drywall is not structural failure. Price what was documented, not the worst-case scenario.
+PROPERTY CONTEXT:
+- Location: {location}
+- Currency: {currency}
 
-REFERENCE PRICING TABLE (use as anchors for common items — adjust based on report context):
+REGIONAL PRICING RULES:
+- Alberta/Calgary: trades run 25-40% above US midwest. Apply CAD pricing.
+- Phoenix/Southwest: HVAC costs are premium.
+- Rural markets: add mobilization costs. Urban markets: minimum service calls are higher.
+- Use the currency specified above for all estimates.
+
+REFERENCE PRICING TABLE (use as anchors — adjust based on location and actual scope):
 {lookup_anchor}
 
-YOUR JOB:
-Read this inspection report completely. Before outputting anything, build a full understanding of:
+COST RULES:
+- Round all costs to nearest $50
+- Maximum range width: low × 4 (if low is $200, high cannot exceed $800)
+- Tighter ranges are always better when scope is clear
+- Price the actual documented scope — not the worst case
+- "Toilet unstable" = reset and resecure (plumber service call), not replacement
+- "Vegetation contacting siding" = landscaper trim, not excavation
+- "Loose window crank" = hardware replacement, not window replacement
+- "Gutter debris" = cleaning, not replacement
+- Only escalate scope if the finding explicitly states severity (e.g. "full replacement required", "structural damage")
 
-1. PROPERTY CONTEXT — Extract from the report itself only. Do not assume anything not documented:
-   - Location and geography (city, region, climate zone)
-   - Construction type (stucco, vinyl siding, brick, EIFS, wood frame etc.) — only what inspector documented
-   - Any renovation or condition notes the inspector made ("recently renovated", "original plumbing", "new roof installed 2022") — if not mentioned, do not assume
-   - Inspector's overall tone and severity signals throughout the report
+DIY ELIGIBILITY:
+- Eligible: tightening loose hardware, replacing caulk, HVAC filter swap, outlet covers, minor trim, touch-up paint
+- NOT eligible: electrical panels, gas lines, structural, active leaks, mold, specialty trades
+- When diy_eligible is true: write one practical sentence in cost_note explaining exactly how ("Tighten the supply line bolt under the toilet tank with a wrench — 5 min fix.")
+- Always include professional cost even for DIY-eligible items
 
-2. REGIONAL PRICING — Apply location intelligence:
-   - Alberta/Calgary: trades run 25-40% above US midwest. Labour minimums are higher. Apply CAD pricing.
-   - Phoenix/Southwest: HVAC costs are premium. Pest control scope differs (scorpions, snakes = pest control call, not structural).
-   - Rural markets: add mobilization. Urban markets: competitive but minimum service calls are higher.
-   - Use USD for US locations, CAD for Canadian locations.
+TIMELINE RULES:
+- urgent_items always get timeline: "Immediate"
+- maintenance_items: "1-3 years" for near-term, "3-5 years" for longer-horizon items
+- category_items: no timeline field needed
 
-3. READING INSPECTOR SEVERITY — Respect the report's native severity system:
-   PRIORITY ORDER — follow the highest applicable level:
+CONDITION SUMMARY:
+Based on the volume and severity of urgent items, determine one overall condition label:
+- "Immediate Action Required" — if there are any urgent_items
+- "Needs Attention" — if there are maintenance_items but no urgent_items
+- "Satisfactory" — if both urgent and maintenance are empty
 
-   a) REPORT HAS A LEGEND OR SEVERITY KEY (found during initial scan above):
-      USE IT. The inspector's assigned severity label is authoritative and must be honoured.
-      A toilet flagged as "Immediate Attention" by the inspector goes in urgent_items — regardless
-      of whether tightening a bolt sounds minor to you. Do not substitute your own judgment
-      for the inspector's documented classification.
-
-   b) REPORT USES NOTE TEXT AS SEVERITY SIGNALS (common in Inspectagram and similar formats):
-      - "Service Advised" in the notes → Immediate → urgent_items
-      - "Maintenance" in the notes → Attention → maintenance_items
-      - "Monitor" / "for your information" → Attention → maintenance_items
-      - "Recommended" / "plan and budget" → Attention → maintenance_items
-
-   c) REPORT HAS NO SEVERITY SYSTEM — apply your own judgment using these signals:
-      - "Recommend evaluation by structural engineer" / "safety concern" / "insurance may not cover" → Immediate
-      - "Deficient" / "not functioning" / "active leak" → Immediate
-      - "Recommended maintenance" / "plan and budget" → Attention
-      - "Monitor" / "for your information" → Attention
-
-   In all cases: do NOT downgrade an item's severity because the physical fix sounds simple.
-   Classify at the inspector's level; price at the correct repair scope.
-
-4. SCOPE PRECISION — Price what was actually documented, not the worst case:
-   - "Toilet unstable/very loose" = reset and resecure, not full replacement. Plumber minimum service call.
-   - "Vegetation contacting south elevation" = landscaper trim, not excavation.
-   - "Loose window crank" = hardware replacement, not window replacement.
-   - "Gutter debris" = cleaning service, not gutter replacement.
-   - Only escalate scope if inspector language explicitly indicates severity (e.g. "structural damage", "full replacement required").
-
-5. DIY ELIGIBILITY — Flag items a reasonably handy homeowner can address safely:
-   - Eligible: tightening loose hardware, replacing caulk/sealant, HVAC filter swap, basic trim reattachment, minor touch-up painting, installing outlet covers
-   - Not eligible: anything involving electrical panels, gas lines, structural elements, active water leaks, mold, or specialty trades
-   - When diy_eligible is true: write a single practical sentence in cost_note explaining how ("Use a wrench to tighten the supply line bolt under the toilet tank — 5 minute fix.")
-   - Always include professional cost even for DIY-eligible items.
-
-6. COST FORMATTING RULES:
-   - Round all costs to nearest $50
-   - Maximum range width: low x 4 (if low is $200, high cannot exceed $800)
-   - Tighter ranges are always better when scope is clear
-   - Never use a generic fallback range — every cost must be tied to the specific scope described
-   - Use the reference pricing table as anchors; adjust up or down based on location and what inspector actually documented about this property
-
-Return ONLY a valid JSON object in this exact structure. No markdown, no backticks:
+Return ONLY a valid JSON object. No markdown, no backticks. The structure must exactly match what the dashboard expects:
 
 {{
   "condition": "Satisfactory" or "Needs Attention" or "Immediate Action Required",
-  "currency": "USD" or "CAD",
-  "location": "City, Province/State",
-  "address": "The subject property address. Search the ENTIRE report text — it may appear anywhere: cover page, header, footer, subject property line, inspection details section, or mid-report. Look for any pattern containing a street number, street name, city, and province/state or zip/postal code. If you find a partial address return what you have. NEVER return null under any circumstances — every inspection report is for a specific property and that address exists somewhere in this text.",
+  "currency": "{currency}",
+  "location": "{location}",
+  "address": "{pass1_findings.get('address', '')}",
   "urgent_items": [
     {{
       "name": "Short display name",
       "cost": "$X - $Y",
-      "cost_note": "One sentence explaining scope and why this cost",
+      "cost_note": "One sentence explaining scope and cost basis",
       "trade": "Trade type",
       "timeline": "Immediate",
       "diy_eligible": false,
@@ -184,7 +308,7 @@ Return ONLY a valid JSON object in this exact structure. No markdown, no backtic
   "category_items": [
     {{
       "name": "Short display name",
-      "category": "REQUIRED — must be exactly one of: Roof, Exterior, Garage, Attic, Interior, Kitchen, Laundry, Bathroom, Mechanical, Structure — never null, never omitted, never a different value",
+      "category": "REQUIRED — exactly one of: Roof, Exterior, Garage, Attic, Interior, Kitchen, Laundry, Bathroom, Mechanical, Structure",
       "cost": "$X - $Y",
       "cost_note": "One sentence explaining scope",
       "trade": "Trade type",
@@ -194,91 +318,71 @@ Return ONLY a valid JSON object in this exact structure. No markdown, no backtic
   ],
   "checklist": [
     {{"passed": true, "text": "Major system in good condition — e.g. Electrical panel 200A, adequate"}},
-    {{"passed": true, "notable": true, "text": "Item not inspected or limited scope — e.g. AC not tested due to temperature"}}
+    {{"passed": true, "notable": true, "text": "Item not inspected or limited scope"}}
   ]
-}}
+}}"""
 
-CLASSIFICATION RULES:
-- urgent_items: Items the inspector flagged as Immediate Attention (via legend, icon, note text such as "Service Advised", or explicit severity label), plus safety hazards, systems not functioning, active leaks, structural concerns, and fire/life safety issues. Always respect the inspector's native severity classification — do not downgrade based on how simple the fix sounds.
-- maintenance_items: Items inspector flagged for future planning, routine maintenance, end-of-life monitoring, or note text such as "Maintenance".
-- category_items: All other documented findings and observations not already in urgent or maintenance. Every documented finding must appear somewhere — do not omit. CRITICAL: every category_items entry MUST include the "category" field — it is never optional, never null. A missing "category" field makes that item completely invisible to the user. Choose the closest match from: Roof, Exterior, Garage, Attic, Interior, Kitchen, Laundry, Bathroom, Mechanical, Structure.
-- checklist: 6-10 items summarizing major system status. passed:true = good condition. notable:true = limited scope or not tested. Do not repeat items already classified above.
-- Do NOT duplicate items across sections.
-- Do NOT add speculative items not documented in the report.
-- Return ONLY the JSON object."""
+    # Build the Pass 2 user message from Pass 1 output — raw PDF text is NOT sent
+    pass2_input = json.dumps({
+        "urgent_items": pass1_findings.get("urgent_items", []),
+        "maintenance_items": pass1_findings.get("maintenance_items", []),
+        "category_items": pass1_findings.get("category_items", []),
+        "checklist": pass1_findings.get("checklist", []),
+        "severity_system_found": pass1_findings.get("severity_system_found"),
+        "severity_system_description": pass1_findings.get("severity_system_description"),
+        "condition_label": pass1_findings.get("condition_label"),
+    }, indent=2)
 
-    import re
-
-    def clean_raw(raw):
-        raw = raw.replace("\x00", "").strip()
-        if raw.startswith("```"):
-            raw = raw.split("\n", 1)[1]
-        if raw.endswith("```"):
-            raw = raw.rsplit("```", 1)[0]
-        return raw.strip()
-
-    def attempt_parse(raw):
-        cleaned = re.sub(r',\s*([}\]])', r'\1', raw)
-        return json.loads(cleaned)
-
-    findings = None
+    enriched = None
     last_err = None
-    for max_tok in [8000, 16000]:
+    for max_tok in [6000, 12000]:
         try:
-            print(f"Step 1 attempt with max_tokens={max_tok}...")
-            step1_msg = client.messages.create(
+            print(f"Pass 2 (enrichment) attempt with max_tokens={max_tok}...")
+            msg = client.messages.create(
                 model="claude-sonnet-4-6",
                 max_tokens=max_tok,
                 temperature=0,
-                system=step1_prompt,
-                messages=[{"role": "user", "content": extracted_text}]
+                system=pass2_system,
+                messages=[{"role": "user", "content": f"Add cost estimates to these classified findings:\n\n{pass2_input}"}]
             )
-            raw1 = clean_raw(step1_msg.content[0].text)
-            findings = attempt_parse(raw1)
-            print(f"Step 1 succeeded at max_tokens={max_tok}.")
+            raw = clean_raw(msg.content[0].text)
+            enriched = attempt_parse(raw)
+            print(f"Pass 2 succeeded.")
+            print(f"  Urgent: {len(enriched.get('urgent_items', []))}  Maintenance: {len(enriched.get('maintenance_items', []))}  Category: {len(enriched.get('category_items', []))}")
             break
         except Exception as e:
             last_err = e
-            retry_msg = 'Retrying with more tokens...' if max_tok < 16000 else 'All retries exhausted.'
-            print(f"Step 1 failed at max_tokens={max_tok}: {last_err}. {retry_msg}")
+            retry_msg = 'Retrying with more tokens...' if max_tok < 12000 else 'All retries exhausted.'
+            print(f"Pass 2 failed at max_tokens={max_tok}: {last_err}. {retry_msg}")
 
-    if findings is None:
-        print(f"Using minimal fallback after all retries failed.")
-        findings = {
-            "condition": "Maintenance",
-            "currency": "USD",
-            "location": "Unknown",
-            "address": "Address not found",
-            "urgent_items": [],
-            "maintenance_items": [],
-            "checklist": [],
-            "_parse_error": str(last_err)
+    if enriched is None:
+        print("Pass 2 failed — returning Pass 1 findings without cost data.")
+        # Still return usable data — just without costs
+        enriched = {
+            "condition": "Needs Attention" if pass1_findings.get("urgent_items") else "Satisfactory",
+            "currency": currency,
+            "location": location,
+            "address": pass1_findings.get("address", ""),
+            "urgent_items": [{"name": i["name"], "cost": "TBD", "cost_note": i.get("finding", ""), "trade": "", "timeline": "Immediate", "diy_eligible": False, "category_key": None} for i in pass1_findings.get("urgent_items", [])],
+            "maintenance_items": [{"name": i["name"], "cost": "TBD", "cost_note": i.get("finding", ""), "trade": "", "timeline": "1-3 years", "diy_eligible": False, "category_key": None} for i in pass1_findings.get("maintenance_items", [])],
+            "category_items": [{"name": i["name"], "category": i.get("section", "Interior"), "cost": "TBD", "cost_note": i.get("finding", ""), "trade": "", "diy_eligible": False, "category_key": None} for i in pass1_findings.get("category_items", [])],
+            "checklist": pass1_findings.get("checklist", []),
+            "_pass2_error": str(last_err)
         }
-        return json.dumps(findings)
 
-    currency = findings.get("currency", "USD")
-
-    # Log pricing source breakdown
+    # Ensure cost_source field exists for dashboard compatibility
     all_items = (
-        findings.get("urgent_items", []) +
-        findings.get("maintenance_items", []) +
-        findings.get("category_items", [])
+        enriched.get("urgent_items", []) +
+        enriched.get("maintenance_items", []) +
+        enriched.get("category_items", [])
     )
-    print(f"Total items classified: {len(all_items)}")
-    print(f"  Urgent: {len(findings.get('urgent_items', []))}")
-    print(f"  Maintenance: {len(findings.get('maintenance_items', []))}")
-    print(f"  Category: {len(findings.get('category_items', []))}")
-    diy_count = sum(1 for i in all_items if i.get("diy_eligible"))
-    print(f"  DIY eligible: {diy_count}")
-
-    # Ensure cost_source field exists for compatibility
     for item in all_items:
         if not item.get("cost_source"):
             item["cost_source"] = "ai_contextual"
 
     # Calculate budget totals
     def parse_cost_low(cost_str):
-        if not cost_str:
+        if not cost_str or cost_str == "TBD":
             return 0
         try:
             parts = cost_str.replace("$", "").replace(",", "").split("-")
@@ -287,7 +391,7 @@ CLASSIFICATION RULES:
             return 0
 
     def parse_cost_high(cost_str):
-        if not cost_str:
+        if not cost_str or cost_str == "TBD":
             return 0
         try:
             parts = cost_str.replace("$", "").replace(",", "").split("-")
@@ -295,19 +399,23 @@ CLASSIFICATION RULES:
         except Exception:
             return 0
 
-    now_low = sum(parse_cost_low(i.get("cost")) for i in findings.get("urgent_items", []))
-    now_high = sum(parse_cost_high(i.get("cost")) for i in findings.get("urgent_items", []))
-    yr5_low = sum(parse_cost_low(i.get("cost")) for i in findings.get("maintenance_items", []))
-    yr5_high = sum(parse_cost_high(i.get("cost")) for i in findings.get("maintenance_items", []))
+    now_low = sum(parse_cost_low(i.get("cost")) for i in enriched.get("urgent_items", []))
+    now_high = sum(parse_cost_high(i.get("cost")) for i in enriched.get("urgent_items", []))
+    yr5_low = sum(parse_cost_low(i.get("cost")) for i in enriched.get("maintenance_items", []))
+    yr5_high = sum(parse_cost_high(i.get("cost")) for i in enriched.get("maintenance_items", []))
 
     now_mid = (now_low + now_high) // 2
     yr5_mid = (yr5_low + yr5_high) // 2
 
     sym = "$"
-    findings["budget_now"] = f"~{sym}{now_mid:,}" if now_mid else f"~{sym}1,500"
-    findings["budget_5yr"] = f"~{sym}{yr5_mid:,}" if yr5_mid else f"~{sym}1,500"
+    enriched["budget_now"] = f"~{sym}{now_mid:,}" if now_mid else f"~{sym}0"
+    enriched["budget_5yr"] = f"~{sym}{yr5_mid:,}" if yr5_mid else f"~{sym}0"
 
-    return json.dumps(findings)
+    diy_count = sum(1 for i in all_items if i.get("diy_eligible"))
+    print(f"  DIY eligible: {diy_count}")
+    print(f"  Budget now: {enriched['budget_now']}  5yr: {enriched['budget_5yr']}")
+
+    return json.dumps(enriched)
 
 
 def generate_punchlist(answer_text, issue_type, question):
