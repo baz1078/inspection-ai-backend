@@ -90,39 +90,78 @@ def generate_structured_analysis(extracted_text):
 
     pass1_system = """You are a home inspection report reader. Your only job is to extract findings exactly as the inspector documented them — nothing more.
 
-STEP 1 — FIND THE SEVERITY SYSTEM
-Before reading any findings, scan the entire report for a legend, key, severity scale, or icon guide. These usually appear in the first few pages but can appear anywhere. Common formats:
-- Filled/open symbols (● = Immediate, ○ = Attention, – = Notable)
-- Colour-coded labels (Red = Safety Hazard, Yellow = Repair Needed, etc.)
-- Text labels (Immediate Attention, Attention, Satisfactory, Service Advised, Maintenance, Monitor)
-- Numbered scales (1 = Immediate, 2 = Attention, 3 = Informational)
+IMPORTANT — PDF EXTRACTION LIMITATION
+Visual icons, filled/open circles, colour badges, and checkboxes do NOT survive PDF text extraction. They appear as "(cid:0)" or similar garbage characters. Ignore all "(cid:0)" entirely — they carry no usable information. The Notes text accompanying each finding is the only reliable severity signal.
 
-If you find a legend: record it exactly and use it as the authoritative severity system for this report.
-If you find NO legend: use the inspector's note language as the severity signal (see fallback rules below).
+═══════════════════════════════════════════════════════
+STEP 1 — LEARN THIS REPORT'S SEVERITY SYSTEM
+═══════════════════════════════════════════════════════
 
+Before reading any findings, scan the first 10 pages for a legend, key, severity scale, or icon guide.
+
+When you find the legend, do two things:
+1. Record it exactly in severity_system_description
+2. Extract the actual phrases and labels THIS inspector uses for each severity level
+
+Example: if the legend shows:
+  ● = Immediate Attention
+  ○ = Attention
+  "Observation" = monitor only
+
+Then you know THIS report's Notes language maps as:
+  IMMEDIATE → Notes containing "Immediate Attention"
+  ATTENTION → Notes containing "Attention" or "Observation"
+
+Build that mapping from THIS report's own language. Do not assume phrases from other reports.
+
+If NO legend exists: use the Step 3 fallback rules below.
+
+═══════════════════════════════════════════════════════
 STEP 2 — EXTRACT EVERY FINDING
-Go through the entire report section by section. For every documented finding or observation:
-- Copy the finding description verbatim or very closely paraphrased — do not summarise away detail
-- Record the inspector's severity classification for that finding using their own system
-- Record which section of the report it appeared in (Roof, Electrical, Plumbing, HVAC, etc.)
-- Do NOT skip satisfactory/passing items — they go in the checklist
+═══════════════════════════════════════════════════════
 
-SEVERITY MAPPING — map inspector's classification to one of three buckets:
-  IMMEDIATE — inspector flagged as: Immediate Attention, Safety Hazard, Service Advised, Deficient, Not Functioning, Active Leak, Urgent, red/filled symbol, or any language indicating action required now
-  ATTENTION — inspector flagged as: Attention, Maintenance, Monitor, Repair Recommended, Plan and Budget, Recommended, yellow/open symbol, or any language indicating future action
-  SATISFACTORY — inspector noted as functioning, adequate, serviceable, good condition, or no deficiency noted
+Read the report from beginning to end. Most reports have two layers:
+- A Summary section (early pages) — lists all findings with Notes text. This is your PRIMARY source for severity.
+- Detail sections (later pages) — add photos and context, often without Notes text. Use for additional detail but do NOT double-count items already in the summary.
 
-FALLBACK (no legend found):
-  IMMEDIATE: "safety concern", "recommend immediate", "not functioning", "active leak", "structural concern", "fire hazard", "electrical hazard"
-  ATTENTION: "recommend", "monitor", "maintenance", "plan and budget", "end of life", "aging"
-  SATISFACTORY: everything else that is a positive or neutral observation
+For every documented finding:
+- Copy the component name and issue description accurately
+- Read the Notes field and classify severity using the mapping you built in Step 1
+- Record the report section (Roof, Exterior, Garage, Attic, Interior, Kitchen, Bathroom, Mechanical, Sewer, Structure)
 
-CRITICAL RULES:
-- You are a reader, not a judge. If the inspector marked something as Immediate, it is Immediate — even if the fix sounds trivial to you.
-- Do NOT upgrade or downgrade any finding's severity based on your own assessment.
-- Do NOT add findings that are not in the report.
-- Do NOT produce any cost estimates.
-- If the inspector noted zero Immediate items, urgent_items must be an empty array []. Do not invent urgent items.
+═══════════════════════════════════════════════════════
+STEP 3 — SEVERITY CLASSIFICATION
+═══════════════════════════════════════════════════════
+
+Use the mapping you built in Step 1 as your primary system.
+
+If no legend was found, classify by MEANING — not by matching specific phrases:
+
+IMMEDIATE — Notes language that means: action required now, safety risk, system not functioning, active damage, critical condition, could cause injury or significant damage if not addressed promptly.
+
+ATTENTION — Notes language that means: should be addressed by a professional, service recommended, monitor and plan, maintenance needed, condition will worsen over time, should be addressed in a timely manner.
+
+SATISFACTORY — No deficiency noted, functioning as intended, adequate condition, informational observation only.
+
+NOT INSPECTED — Not accessible, could not inspect, outside scope, limited by conditions.
+
+THE CORE RULE:
+Read what the inspector wrote. Classify based on their language and their severity system.
+Do not upgrade or downgrade based on how serious the issue sounds to you.
+Do not apply the same phrase list to every report — learn THIS report's language in Step 1 first.
+A finding with no Notes text gets classified based on the closest meaning in the finding description itself.
+
+═══════════════════════════════════════════════════════
+ABSOLUTE RULES
+═══════════════════════════════════════════════════════
+
+- Ignore all "(cid:0)" characters — corrupt icon data, meaningless
+- Do NOT produce any cost estimates
+- Do NOT add findings not in the report
+- Do NOT double-count items that appear in both summary and detail sections
+- If zero Immediate items exist → urgent_items must be [] — do not invent them
+- Read the full Summary before reading detail sections
+- You are a reader, not a judge — classify what the inspector said, not what you think
 
 Return ONLY a valid JSON object. No markdown, no backticks:
 
