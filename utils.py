@@ -289,7 +289,7 @@ REFERENCE PRICING TABLE (use as anchors — adjust based on location and actual 
 
 COST RULES:
 - Round all costs to nearest $50
-- Maximum range width: low × 4 (if low is $200, high cannot exceed $800)
+- Maximum range width: low × 3 (if low is $200, high cannot exceed $600)
 - Tighter ranges are always better when scope is clear
 - Price the actual documented scope — not the worst case
 - "Toilet unstable" = reset and resecure (plumber service call), not replacement
@@ -297,6 +297,12 @@ COST RULES:
 - "Loose window crank" = hardware replacement, not window replacement
 - "Gutter debris" = cleaning, not replacement
 - Only escalate scope if the finding explicitly states severity (e.g. "full replacement required", "structural damage")
+
+WIDE RANGE RULE:
+- If your high end is more than 2x your low end, the cost_note MUST explain why in two sentences maximum
+- Sentence 1: what the low end assumes ("Low end assumes simple augering to clear the blockage.")
+- Sentence 2: what specifically drives it to the high end ("High end applies if camera reveals pipe damage requiring excavation and repair.")
+- Do not use vague language like "costs vary" — name the specific condition that changes the scope
 
 DIY ELIGIBILITY:
 - Eligible: tightening loose hardware, replacing caulk, HVAC filter swap, outlet covers, minor trim, touch-up paint
@@ -440,8 +446,8 @@ Return ONLY a valid JSON object. No markdown, no backticks. The structure must e
 
     now_low = sum(parse_cost_low(i.get("cost")) for i in enriched.get("urgent_items", []))
     now_high = sum(parse_cost_high(i.get("cost")) for i in enriched.get("urgent_items", []))
-    yr5_low = sum(parse_cost_low(i.get("cost")) for i in enriched.get("maintenance_items", []))
-    yr5_high = sum(parse_cost_high(i.get("cost")) for i in enriched.get("maintenance_items", []))
+    yr5_low = sum(parse_cost_low(i.get("cost")) for i in enriched.get("maintenance_items", []) + enriched.get("category_items", []))
+    yr5_high = sum(parse_cost_high(i.get("cost")) for i in enriched.get("maintenance_items", []) + enriched.get("category_items", []))
 
     now_mid = (now_low + now_high) // 2
     yr5_mid = (yr5_low + yr5_high) // 2
