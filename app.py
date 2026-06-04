@@ -1783,7 +1783,9 @@ def blog_post_page(slug):
         return 'Post not found', 404
     with open(path, encoding='utf-8') as f:
         meta, body = _parse_frontmatter(f.read())
-    html_body = _md.markdown(body, extensions=['tables', 'fenced_code'])
+    # Strip leading H1 from body — the template already renders the title as a heading
+    body_no_h1 = re.sub(r'^#\s+.+\n?', '', body, count=1, flags=re.MULTILINE).lstrip()
+    html_body = _md.markdown(body_no_h1, extensions=['tables', 'fenced_code'])
     with open('blog_post_template.html', encoding='utf-8') as f:
         tpl = f.read()
     schema = meta.get('schema', '').strip()
