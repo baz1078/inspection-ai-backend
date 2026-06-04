@@ -1716,6 +1716,89 @@ def internal_error(error):
     return jsonify({'error': 'Internal server error'}), 500
 
 # ============================================================================
+# BLOG
+# ============================================================================
+import markdown as _md
+
+_BLOG_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'blog')
+
+
+def _parse_frontmatter(text):
+    """Parse ---key: value--- frontmatter from a markdown string."""
+    if not text.startswith('---'):
+        return {}, text
+    parts = text.split('---', 2)
+    if len(parts) < 3:
+        return {}, text
+    meta = {}
+    for line in parts[1].strip().splitlines():
+        if ':' in line:
+            k, _, v = line.partition(':')
+            meta[k.strip()] = v.strip()
+    return meta, parts[2].strip()
+
+
+@app.route('/blog')
+def blog_index_page():
+    posts = []
+    if os.path.isdir(_BLOG_DIR):
+        for fname in sorted(os.listdir(_BLOG_DIR), reverse=True):
+            if not fname.endswith('.md'):
+                continue
+            path = os.path.join(_BLOG_DIR, fname)
+            with open(path, encoding='utf-8') as f:
+                meta, body = _parse_frontmatter(f.read())
+            slug = meta.get('slug', fname[:-3])
+            words = body.split()
+            excerpt = meta.get('excerpt', ' '.join(words[:28]) + ('…' if len(words) > 28 else ''))
+            posts.append({
+                'slug': slug,
+                'title': meta.get('title', slug.replace('-', ' ').title()),
+                'date': meta.get('date', ''),
+                'excerpt': excerpt,
+            })
+    with open('blog_index_template.html', encoding='utf-8') as f:
+        tpl = f.read()
+    if posts:
+        cards = ''.join(
+            f'<a href="/blog/{p["slug"]}" class="post-card">'
+            f'<div class="post-date">{p["date"]}</div>'
+            f'<h2>{p["title"]}</h2>'
+            f'<p>{p["excerpt"]}</p>'
+            f'<span class="read-more">Read more →</span>'
+            f'</a>'
+            for p in posts
+        )
+    else:
+        cards = '<p class="no-posts">No posts yet — check back soon.</p>'
+    return tpl.replace('{{POSTS}}', cards)
+
+
+@app.route('/blog/<slug>')
+def blog_post_page(slug):
+    # Sanitise slug — letters, digits, hyphens only
+    slug = re.sub(r'[^a-z0-9-]', '', slug.lower())
+    path = os.path.join(_BLOG_DIR, f'{slug}.md')
+    if not os.path.isfile(path):
+        return 'Post not found', 404
+    with open(path, encoding='utf-8') as f:
+        meta, body = _parse_frontmatter(f.read())
+    html_body = _md.markdown(body, extensions=['tables', 'fenced_code'])
+    with open('blog_post_template.html', encoding='utf-8') as f:
+        tpl = f.read()
+    schema = meta.get('schema', '').strip()
+    schema_block = f'<script type="application/ld+json">{schema}</script>' if schema else ''
+    return (tpl
+            .replace('{{META_TITLE}}', meta.get('meta_title', meta.get('title', 'Lot7.ai')))
+            .replace('{{META_DESCRIPTION}}', meta.get('meta_description', ''))
+            .replace('{{SLUG}}', slug)
+            .replace('{{TITLE}}', meta.get('title', ''))
+            .replace('{{DATE}}', meta.get('date', ''))
+            .replace('{{CONTENT}}', html_body)
+            .replace('{{SCHEMA}}', schema_block))
+
+
+# ============================================================================
 # INITIALIZATION
 # ============================================================================
 
