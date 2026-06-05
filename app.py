@@ -1738,6 +1738,56 @@ def _parse_frontmatter(text):
     return meta, parts[2].strip()
 
 
+@app.route('/robots.txt')
+def robots_txt():
+    lines = [
+        "User-agent: *",
+        "Allow: /",
+        "Disallow: /api/",
+        "Disallow: /admin",
+        "",
+        "Sitemap: https://lot7.ai/sitemap.xml",
+    ]
+    return "\n".join(lines), 200, {"Content-Type": "text/plain"}
+
+
+@app.route('/sitemap.xml')
+def sitemap_xml():
+    static_pages = [
+        ("https://lot7.ai/",      "weekly", "1.0"),
+        ("https://lot7.ai/blog",  "daily",  "0.9"),
+    ]
+    urls = ""
+    for loc, freq, pri in static_pages:
+        urls += f"""  <url>
+    <loc>{loc}</loc>
+    <changefreq>{freq}</changefreq>
+    <priority>{pri}</priority>
+  </url>\n"""
+
+    if os.path.isdir(_BLOG_DIR):
+        for fname in sorted(os.listdir(_BLOG_DIR), reverse=True):
+            if not fname.endswith('.md'):
+                continue
+            path = os.path.join(_BLOG_DIR, fname)
+            with open(path, encoding='utf-8') as f:
+                meta, _ = _parse_frontmatter(f.read())
+            slug = meta.get('slug', fname[:-3])
+            lastmod = meta.get('date', '')
+            loc = f"https://lot7.ai/blog/{slug}"
+            urls += f"""  <url>
+    <loc>{loc}</loc>
+    {"<lastmod>" + lastmod + "</lastmod>" if lastmod else ""}
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>\n"""
+
+    xml = f"""<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+{urls}</urlset>"""
+    return xml, 200, {"Content-Type": "application/xml"}
+
+
 @app.route('/blog')
 def blog_index_page():
     posts = []

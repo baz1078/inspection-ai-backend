@@ -1,0 +1,50 @@
+name: Weekly SEO Autopublish
+
+on:
+  schedule:
+    # Every Monday at 9:00 AM UTC (4am Chicago time)
+    - cron: '0 9 * * 1'
+  workflow_dispatch:
+    # Also allows manual trigger from GitHub Actions UI
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout lot7 repo
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Checkout SEO crew
+        uses: actions/checkout@v4
+        with:
+          repository: baz1078/seo-crew
+          path: seo_crew_repo
+          token: ${{ secrets.SEO_CREW_PAT }}
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install SEO crew dependencies
+        run: pip install anthropic python-dotenv
+
+      - name: Run autopublish
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: |
+          cd seo_crew_repo
+          python autopublish.py
+
+      - name: Commit and push new blog post
+        run: |
+          git config user.name "SEO Crew Bot"
+          git config user.email "bot@lot7.ai"
+          git add blog/
+          git diff --staged --quiet || git commit -m "auto: weekly SEO post [$(date +%Y-%m-%d)]"
+          git push
