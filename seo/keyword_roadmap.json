@@ -1,0 +1,129 @@
+{
+  "brand": "lot7",
+  "note": "Ordered by priority \u2014 inspector-tool keywords convert faster, buyer-education keywords drive more volume. Mix both.",
+  "keywords": [
+    {
+      "keyword": "how to read a home inspection report",
+      "page_type": "blog",
+      "intent": "buyer-education",
+      "published": true
+    },
+    {
+      "keyword": "what to do after a home inspection",
+      "page_type": "blog",
+      "intent": "buyer-education",
+      "published": false
+    },
+    {
+      "keyword": "home inspection report explained",
+      "page_type": "blog",
+      "intent": "buyer-education",
+      "published": false
+    },
+    {
+      "keyword": "red flags on home inspection report",
+      "page_type": "blog",
+      "intent": "buyer-education",
+      "published": false
+    },
+    {
+      "keyword": "how to negotiate after home inspection",
+      "page_type": "blog",
+      "intent": "buyer-education",
+      "published": false
+    },
+    {
+      "keyword": "home inspection repair cost estimates",
+      "page_type": "blog",
+      "intent": "buyer-education",
+      "published": false
+    },
+    {
+      "keyword": "home inspection contingency",
+      "page_type": "blog",
+      "intent": "buyer-education",
+      "published": false
+    },
+    {
+      "keyword": "major vs minor home inspection issues",
+      "page_type": "blog",
+      "intent": "buyer-education",
+      "published": false
+    },
+    {
+      "keyword": "what does home inspection include",
+      "page_type": "blog",
+      "intent": "buyer-education",
+      "published": false
+    },
+    {
+      "keyword": "home inspection cost breakdown",
+      "page_type": "blog",
+      "intent": "buyer-education",
+      "published": false
+    },
+    {
+      "keyword": "inspection report dashboard",
+      "page_type": "landing",
+      "intent": "tool-seeker",
+      "published": false
+    },
+    {
+      "keyword": "home inspection cost estimator",
+      "page_type": "landing",
+      "intent": "tool-seeker",
+      "published": false
+    },
+    {
+      "keyword": "visual home inspection report",
+      "page_type": "landing",
+      "intent": "tool-seeker",
+      "published": false
+    },
+    {
+      "keyword": "inspection report app for buyers",
+      "page_type": "landing",
+      "intent": "tool-seeker",
+      "published": false
+    },
+    {
+      "keyword": "best home inspection software 2026",
+      "page_type": "blog",
+      "intent": "tool-seeker",
+      "published": false
+    },
+    {
+      "keyword": "home inspection report template",
+      "page_type": "blog",
+      "intent": "tool-seeker",
+      "published": false
+    },
+    {
+      "keyword": "digital home inspection reports",
+      "page_type": "blog",
+      "intent": "tool-seeker",
+      "published": false
+    },
+    {
+      "keyword": "home inspection software for buyers",
+      "page_type": "landing",
+      "intent": "tool-seeker",
+      "published": false
+    },
+    {
+      "keyword": "home inspection checklist for buyers",
+      "page_type": "blog",
+      "intent": "buyer-education",
+      "published": false
+    },
+    {
+      "keyword": "should i waive home inspection contingency",
+      "page_type": "blog",
+      "intent": "buyer-education",
+      "published": false
+    }
+  ],
+  "already_published": [
+    "home inspection report software"
+  ]
+}
