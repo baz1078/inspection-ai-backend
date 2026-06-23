@@ -19,6 +19,66 @@ def extract_text_from_pdf(pdf_path):
         raise Exception(f"Error extracting PDF text: {str(e)}")
 
 
+def fetch_report_text_from_url(url, timeout=20):
+    """Fetch a hosted inspection report web page and return its visible text.
+
+    Format-agnostic — works for any platform that serves the report as an HTML
+    page (Inspectagram, Spectora, HomeGauge, etc.). Stdlib only, no new deps.
+    The returned text is fed into the same analysis pipeline as PDF text.
+    """
+    import re
+    import urllib.request
+    from html.parser import HTMLParser
+    from urllib.parse import urlparse
+
+    parsed = urlparse(url)
+    if parsed.scheme not in ('http', 'https'):
+        raise ValueError("Link must start with http:// or https://")
+
+    req = urllib.request.Request(url, headers={
+        'User-Agent': 'Mozilla/5.0 (compatible; Lot7Bot/1.0)',
+        'Accept': 'text/html,application/xhtml+xml',
+    })
+    with urllib.request.urlopen(req, timeout=timeout) as resp:
+        charset = resp.headers.get_content_charset() or 'utf-8'
+        html = resp.read().decode(charset, errors='replace')
+
+    class _Extractor(HTMLParser):
+        _SKIP = {'script', 'style', 'head', 'noscript', 'svg'}
+        _BLOCK = {'p', 'div', 'br', 'li', 'tr', 'h1', 'h2', 'h3', 'h4', 'h5',
+                  'h6', 'section', 'article', 'td', 'th', 'header', 'footer'}
+
+        def __init__(self):
+            super().__init__()
+            self.parts = []
+            self._skip_depth = 0
+
+        def handle_starttag(self, tag, attrs):
+            if tag in self._SKIP:
+                self._skip_depth += 1
+            elif tag in self._BLOCK:
+                self.parts.append('\n')
+
+        def handle_endtag(self, tag):
+            if tag in self._SKIP and self._skip_depth > 0:
+                self._skip_depth -= 1
+            elif tag in self._BLOCK:
+                self.parts.append('\n')
+
+        def handle_data(self, data):
+            if self._skip_depth == 0:
+                t = data.strip()
+                if t:
+                    self.parts.append(t + ' ')
+
+    p = _Extractor()
+    p.feed(html)
+    text = ''.join(p.parts)
+    text = re.sub(r'\n[ \t]*(\n[ \t]*)+', '\n\n', text)
+    text = re.sub(r'[ \t]{2,}', ' ', text)
+    return text.strip()
+
+
 def create_ai_client():
     """Create Anthropic client"""
     api_key = os.getenv('ANTHROPIC_API_KEY')

@@ -130,6 +130,14 @@
           <span class="file-selected-name" id="fileName"></span>
           <span class="file-remove" id="fileRemove">&times;</span>
         </div>
+        <div id="urlBlock" style="margin-top:16px;">
+          <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;color:#94a3b8;font-size:13px;">
+            <span style="flex:1;height:1px;background:rgba(255,255,255,0.1);"></span>or paste your report link<span style="flex:1;height:1px;background:rgba(255,255,255,0.1);"></span>
+          </div>
+          <input type="url" id="reportUrl" placeholder="https://… your inspection report link"
+            style="width:100%;padding:13px 14px;border:1px solid rgba(255,255,255,0.12);border-radius:10px;background:rgba(255,255,255,0.03);color:inherit;font-size:14px;box-sizing:border-box;">
+          <div style="font-size:11.5px;color:#94a3b8;margin-top:6px;">Works with Inspectagram, Spectora, HomeGauge &amp; other web reports — no PDF to download.</div>
+        </div>
         <div class="processing" id="processingState">
           <div class="processing-ring"></div>
           <div class="processing-text">Analysing your report&hellip;</div>
@@ -170,8 +178,9 @@
     fileRemove.addEventListener('click',clearFile);
     function selectFile(file){selectedFile=file;fileName.textContent=file.name;dropZone.style.display='none';fileSelected.classList.add('visible');updateSubmitState()}
     function clearFile(){selectedFile=null;fileInput.value='';dropZone.style.display='';fileSelected.classList.remove('visible');updateSubmitState()}
-    function updateSubmitState(){const hasName=document.getElementById('customerName').value.trim().length>0;submitBtn.disabled=!(selectedFile&&hasName)}
+    function updateSubmitState(){const hasName=document.getElementById('customerName').value.trim().length>0;const url=document.getElementById('reportUrl').value.trim();submitBtn.disabled=!((selectedFile||url.length>8)&&hasName)}
     document.getElementById('customerName').addEventListener('input',updateSubmitState);
+    document.getElementById('reportUrl').addEventListener('input',updateSubmitState);
     const steps=['Reading inspection data\u2026','Identifying flagged issues\u2026','Calculating cost estimates\u2026','Building your dashboard\u2026'];
     const facts=[
       'Did you know? The average home inspection takes 2\u20134 hours and covers over 1,600 components.',
@@ -200,17 +209,23 @@
     }
     uploadForm.addEventListener('submit',async(e)=>{
       e.preventDefault();
-      if(!selectedFile)return;
+      const reportUrl=document.getElementById('reportUrl').value.trim();
+      if(!selectedFile && !reportUrl)return;
       submitBtn.style.display='none';
       processingState.classList.add('visible');
       const stepInterval=animateSteps();
 
       const formData=new FormData();
-      formData.append('file',selectedFile);
       formData.append('customer_name',document.getElementById('customerName').value);
       formData.append('customer_email',document.getElementById('customerEmail').value);
       formData.append('customer_phone',document.getElementById('customerPhone').value);
-      formData.append('address', selectedFile.name);
+      if(selectedFile){
+        formData.append('file',selectedFile);
+        formData.append('address', selectedFile.name);
+      } else {
+        formData.append('report_url', reportUrl);
+        formData.append('address', 'Inspection Report');
+      }
 
       let reportId=null;
       try {
@@ -223,7 +238,7 @@
         processingState.classList.remove('visible');
         submitBtn.style.display='';
         submitBtn.disabled=false;
-        alert('Upload failed. Please try again.');
+        alert(err.message||'Upload failed. Please try again.');
         return;
       }
 

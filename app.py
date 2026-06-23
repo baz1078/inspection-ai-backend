@@ -6,6 +6,7 @@ from werkzeug.utils import secure_filename
 from models import db, User, InspectionReport, Conversation, Question, Contractor, Lead, Analytics, WarrantyDocument, ReportWarranty, WarrantyQuery
 from utils import (
     extract_text_from_pdf,
+    fetch_report_text_from_url,
     generate_summary_from_report,
     generate_structured_analysis,
     InspectionReportQA,
@@ -899,17 +900,31 @@ def generate_pdf(report_id):
 @app.route('/api/upload', methods=['POST'])
 def upload_report():
     try:
-        if 'file' not in request.files:
-            return jsonify({'error': 'No file provided'}), 400
+        report_url = (request.form.get('report_url') or '').strip()
+        file = request.files.get('file')
 
-        file = request.files['file']
-        if file.filename == '':
-            return jsonify({'error': 'No file selected'}), 400
-
-        # Save file and extract text (fast — no AI yet)
-        filepath = save_uploaded_file(file, app.config['UPLOAD_FOLDER'])
-        print("Extracting text from PDF...")
-        extracted_text = extract_text_from_pdf(filepath).replace('\x00', '')
+        if report_url:
+            # URL path — fetch & extract text from a hosted report page (any platform)
+            print(f"Fetching report from URL: {report_url}")
+            try:
+                extracted_text = fetch_report_text_from_url(report_url).replace('\x00', '')
+            except Exception as e:
+                return jsonify({'error': f'Could not read report from that link: {e}'}), 400
+            if len(extracted_text.strip()) < 200:
+                return jsonify({'error': 'That link did not return readable report text. Make sure it is a public report link.'}), 400
+            source_filename = (secure_filename(report_url.split('?')[0].rstrip('/').split('/')[-1]) or 'report') + '.url'
+            source_path = report_url
+            source_size = len(extracted_text)
+        else:
+            if not file or file.filename == '':
+                return jsonify({'error': 'No file or report link provided'}), 400
+            # Save file and extract text (fast — no AI yet)
+            filepath = save_uploaded_file(file, app.config['UPLOAD_FOLDER'])
+            print("Extracting text from PDF...")
+            extracted_text = extract_text_from_pdf(filepath).replace('\x00', '')
+            source_filename = secure_filename(file.filename)
+            source_path = filepath
+            source_size = os.path.getsize(filepath)
 
         # Create DB record immediately with no summary/analysis yet
         # Link to logged-in user if present, otherwise anonymous
@@ -923,9 +938,9 @@ def upload_report():
             inspectorName=request.form.get('inspector_name', 'Inspector'),
             inspectionDate=datetime.utcnow(),
             reportType=request.form.get('report_type', 'home_inspection'),
-            originalFilename=secure_filename(file.filename),
-            filePath=filepath,
-            fileSize=os.path.getsize(filepath),
+            originalFilename=source_filename,
+            filePath=source_path,
+            fileSize=source_size,
             extractedText=extracted_text,
             summary='Analysis in progress...',
             analysis_json=None,
