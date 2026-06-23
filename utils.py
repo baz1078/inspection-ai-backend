@@ -56,6 +56,13 @@ def fetch_report_text_from_url(url, timeout=20):
         def handle_starttag(self, tag, attrs):
             if tag in self._SKIP:
                 self._skip_depth += 1
+            elif tag == 'img' and self._skip_depth == 0:
+                # Severity is often conveyed by an icon's alt text
+                # (e.g. "immediate attention icon") rather than body text.
+                # Emit it inline so the analysis can read the severity tier.
+                alt = dict(attrs).get('alt')
+                if alt and alt.strip():
+                    self.parts.append(' [' + alt.strip() + '] ')
             elif tag in self._BLOCK:
                 self.parts.append('\n')
 
@@ -275,7 +282,7 @@ PLACEMENT RULES:
         try:
             print(f"Pass 1 (extraction) attempt with max_tokens={max_tok}...")
             msg = client.messages.create(
-                model="claude-haiku-4-5-20251001",
+                model="claude-sonnet-4-6",
                 max_tokens=max_tok,
                 temperature=0,
                 system=pass1_system,
