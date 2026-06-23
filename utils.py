@@ -271,11 +271,11 @@ PLACEMENT RULES:
 
     pass1_findings = None
     last_err = None
-    for max_tok in [6000, 12000]:
+    for max_tok in [20000, 20000]:  # high ceiling: big reports succeed on 1st try; 2nd attempt is a transient-error retry, not token escalation
         try:
             print(f"Pass 1 (extraction) attempt with max_tokens={max_tok}...")
             msg = client.messages.create(
-                model="claude-sonnet-4-6",
+                model="claude-haiku-4-5-20251001",
                 max_tokens=max_tok,
                 temperature=0,
                 system=pass1_system,
@@ -440,7 +440,7 @@ Return ONLY a valid JSON object. No markdown, no backticks. The structure must e
 
     enriched = None
     last_err = None
-    for max_tok in [6000, 12000]:
+    for max_tok in [20000, 20000]:  # high ceiling: big reports succeed on 1st try; 2nd attempt is a transient-error retry, not token escalation
         try:
             print(f"Pass 2 (enrichment) attempt with max_tokens={max_tok}...")
             msg = client.messages.create(
