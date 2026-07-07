@@ -17,6 +17,8 @@ class User(UserMixin, db.Model):
     # active | trialing | past_due | canceled | inactive
     subscription_status = db.Column(db.String(20), default='inactive', nullable=False)
     subscription_end = db.Column(db.DateTime, nullable=True)
+    # buyer | realtor — self-declared at signup, gates access to the realtor report
+    role = db.Column(db.String(20), default='buyer', nullable=False)
     createdAt = db.Column(db.DateTime, default=datetime.utcnow)
 
     reports = db.relationship('InspectionReport', backref='user', lazy=True)

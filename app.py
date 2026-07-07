@@ -9,6 +9,7 @@ from utils import (
     fetch_report_text_from_url,
     generate_summary_from_report,
     generate_structured_analysis,
+    generate_realtor_issues_report,
     InspectionReportQA,
     save_uploaded_file,
     generate_punchlist,
@@ -61,6 +62,14 @@ def signup_page():
 @app.route('/account')
 def account_page():
     with open('account.html', 'r', encoding='utf-8') as f:
+        return f.read()
+
+@app.route('/realtor-report')
+@login_required
+def realtor_report_page():
+    if current_user.role != 'realtor' and current_user.email not in ADMIN_EMAILS:
+        return redirect('/dashboard')
+    with open('realtor-report.html', 'r', encoding='utf-8') as f:
         return f.read()
 
 @app.route('/report/<token>')
@@ -975,6 +984,31 @@ def upload_report():
         print(f"Upload error: {e}")
         return jsonify({'error': str(e)}), 500
 
+@app.route('/api/realtor-report', methods=['POST'])
+@login_required
+def generate_realtor_report():
+    if current_user.role != 'realtor' and current_user.email not in ADMIN_EMAILS:
+        return jsonify({'error': 'Realtor access required'}), 403
+
+    data = request.get_json() or {}
+    report_url = (data.get('report_url') or '').strip()
+    if not report_url:
+        return jsonify({'error': 'report_url is required'}), 400
+
+    try:
+        text = fetch_report_text_from_url(report_url, include_anchors=True, summary_only=True)
+    except Exception as e:
+        return jsonify({'error': f'Could not read report from that link: {e}'}), 400
+    if len(text.strip()) < 200:
+        return jsonify({'error': 'That link did not return readable report text. Make sure it is a public report link.'}), 400
+
+    try:
+        result = json.loads(generate_realtor_issues_report(text, report_url=report_url))
+    except Exception as e:
+        return jsonify({'error': f'Analysis failed: {e}'}), 500
+
+    return jsonify(result)
+
 @app.route('/api/status/<report_id>', methods=['GET'])
 def get_upload_status(report_id):
     """Poll this endpoint to track background analysis progress."""
@@ -1478,6 +1512,9 @@ def register():
     data = request.get_json()
     email = (data.get('email') or '').strip().lower()
     password = data.get('password') or ''
+    role = (data.get('role') or 'buyer').strip().lower()
+    if role not in ('buyer', 'realtor'):
+        role = 'buyer'
 
     if not email or not password:
         return jsonify({'error': 'Email and password are required'}), 400
@@ -1487,7 +1524,7 @@ def register():
         return jsonify({'error': 'An account with that email already exists'}), 409
 
     password_hash = bcrypt.generate_password_hash(password).decode('utf-8')
-    user = User(email=email, password_hash=password_hash)
+    user = User(email=email, password_hash=password_hash, role=role)
 
     # Create Stripe customer immediately so we have a customer ID to attach subscriptions to
     try:
@@ -1509,7 +1546,7 @@ def register():
     login_user(user, remember=True)
     return jsonify({
         'success': True,
-        'user': {'id': user.id, 'email': user.email, 'subscription_status': user.subscription_status},
+        'user': {'id': user.id, 'email': user.email, 'role': user.role, 'subscription_status': user.subscription_status},
         'linked_reports': len(orphan_reports),
     }), 201
 
@@ -1530,8 +1567,10 @@ def login():
         'user': {
             'id': user.id,
             'email': user.email,
+            'role': user.role,
             'subscription_status': user.subscription_status,
             'has_active_subscription': user.has_active_subscription,
+            'can_view_realtor_report': user.role == 'realtor' or user.email in ADMIN_EMAILS,
         }
     })
 
@@ -1547,14 +1586,15 @@ def logout():
 def me():
     if not current_user.is_authenticated:
         return jsonify({'authenticated': False}), 401
-    ADMIN_EMAILS = {'baz1078@gmail.com'}
     return jsonify({
         'authenticated': True,
         'user': {
             'id': current_user.id,
             'email': current_user.email,
+            'role': current_user.role,
             'subscription_status': current_user.subscription_status,
             'has_active_subscription': current_user.has_active_subscription or current_user.email in ADMIN_EMAILS,
+            'can_view_realtor_report': current_user.role == 'realtor' or current_user.email in ADMIN_EMAILS,
         }
     })
 
@@ -1651,7 +1691,11 @@ def create_checkout(report_id):
             customer=customer_id,
             payment_method_types=['card'],
             line_items=[{
-                'price': 'price_1T76JzBBFtZ2bcRJvOkXbYiJ',
+                'price_data': {
+                    'currency': 'usd',
+                    'unit_amount': 799,  # $7.99
+                    'product_data': {'name': 'Lot7 Inspection Report'},
+                },
                 'quantity': 1,
             }],
             mode='payment',
@@ -1881,6 +1925,17 @@ with app.app_context():
                 conn.execute(text('ALTER TABLE "InspectionReport" ADD COLUMN user_id VARCHAR(36) REFERENCES "User"(id)'))
                 conn.commit()
             print("Migration: added user_id column to InspectionReport")
+    except Exception as e:
+        print(f"Migration note: {e}")
+    # Safe migration: add role column to existing User table if absent
+    try:
+        inspector = sa_inspect(db.engine)
+        cols = [c['name'] for c in inspector.get_columns('User')]
+        if 'role' not in cols:
+            with db.engine.connect() as conn:
+                conn.execute(text("ALTER TABLE \"User\" ADD COLUMN role VARCHAR(20) NOT NULL DEFAULT 'buyer'"))
+                conn.commit()
+            print("Migration: added role column to User")
     except Exception as e:
         print(f"Migration note: {e}")
     print("Database tables verified/created")

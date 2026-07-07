@@ -1268,6 +1268,11 @@
         function renderUploadScreen() {
             return `
                 <div class="upload-screen">
+                    ${state.currentUser && state.currentUser.can_view_realtor_report ? `
+                        <div style="text-align:right;max-width:600px;margin:0 auto 12px;">
+                            <a href="/realtor-report" style="color:var(--accent-teal);font-size:13px;text-decoration:none;padding:8px 12px;border:1px solid var(--accent-teal);border-radius:8px;">Realtor Report</a>
+                        </div>
+                    ` : ''}
                     <div class="upload-container">
                         <h2>📋 Upload Your Inspection Report</h2>
                         <p>Enter your information and upload your PDF to get started</p>
@@ -1318,6 +1323,7 @@
                             <div class="dashboard-header-title">LOT7</div>
                         </div>
                         <div style="display:flex;gap:10px;align-items:center;">
+                            ${state.currentUser && state.currentUser.can_view_realtor_report ? `<a href="/realtor-report" style="color:var(--accent-teal);font-size:13px;text-decoration:none;padding:8px 12px;border:1px solid var(--accent-teal);border-radius:8px;">Realtor Report</a>` : ''}
                             ${state.currentUser ? `<a href="/account" style="color:var(--accent-teal);font-size:13px;text-decoration:none;padding:8px 12px;border:1px solid var(--accent-teal);border-radius:8px;">My Reports</a>` : ''}
                             <button onclick="resetApp()">↻ New Report</button>
                         </div>
@@ -1516,7 +1522,7 @@
                                                 </div>
                                             </div>
                                             <div style="display:flex;gap:12px;flex-wrap:wrap;justify-content:center;margin-top:4px;">
-                                                <button id="paywallBtn" onclick="startCheckout('one_time')" style="background:var(--accent-teal);color:#0a0f1a;border:none;border-radius:8px;padding:12px 24px;font-size:14px;font-weight:700;cursor:pointer;">Unlock This Report — $29</button>
+                                                <button id="paywallBtn" onclick="startCheckout('one_time')" style="background:var(--accent-teal);color:#0a0f1a;border:none;border-radius:8px;padding:12px 24px;font-size:14px;font-weight:700;cursor:pointer;">Unlock This Report — $7.99</button>
                                                 <button onclick="startCheckout('monthly')" style="background:transparent;color:var(--accent-teal);border:1px solid var(--accent-teal);border-radius:8px;padding:12px 24px;font-size:14px;font-weight:600;cursor:pointer;">Monthly Plan — $99/mo</button>
                                             </div>
                                             <p style="font-size:11px;color:var(--text-secondary);margin-top:10px;">Monthly plan includes unlimited reports + full history</p>
@@ -1557,7 +1563,7 @@
                             <div style="display:flex;flex-direction:column;gap:10px;">
                                 <button id="paywallBtn" onclick="startCheckout('one_time')"
                                    style="width:100%;background:var(--accent-teal);color:#0a0f1a;padding:13px;border-radius:8px;font-weight:700;font-size:15px;border:none;cursor:pointer;">
-                                    Unlock This Report — $29
+                                    Unlock This Report — $7.99
                                 </button>
                                 <button onclick="startCheckout('monthly')"
                                    style="width:100%;background:transparent;color:var(--accent-teal);border:1px solid var(--accent-teal);padding:13px;border-radius:8px;font-weight:600;font-size:14px;cursor:pointer;">
@@ -1923,7 +1929,7 @@
                 }
                 data = await res.json();
                 if (data.checkout_url) { window.location.href = data.checkout_url; }
-                else { alert('Could not start checkout. Please try again.'); if (btn) { btn.textContent = planType === 'monthly' ? 'Monthly — $99/mo' : 'Unlock Full Report — $29'; btn.style.opacity = ''; btn.style.pointerEvents = ''; } }
+                else { alert('Could not start checkout. Please try again.'); if (btn) { btn.textContent = planType === 'monthly' ? 'Monthly — $99/mo' : 'Unlock Full Report — $7.99'; btn.style.opacity = ''; btn.style.pointerEvents = ''; } }
             } catch(e) {
                 alert('Error: ' + e.message);
             }

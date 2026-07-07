@@ -802,41 +802,6 @@
     }
 
     /* ── PRICING TOGGLE ── */
-    .pricing-toggle {
-      display: flex;
-      justify-content: center;
-      gap: 4px;
-      margin-top: 40px;
-      background: var(--dark-2);
-      border: 1px solid var(--border);
-      border-radius: 10px;
-      padding: 4px;
-      width: fit-content;
-      margin-left: auto;
-      margin-right: auto;
-    }
-
-    .toggle-btn {
-      background: transparent;
-      border: none;
-      color: var(--text-dimmer);
-      font-family: 'Inter', sans-serif;
-      font-size: 14px;
-      font-weight: 400;
-      padding: 10px 24px;
-      border-radius: 7px;
-      cursor: pointer;
-      transition: all 0.2s;
-    }
-
-    .toggle-btn:hover { color: var(--text-dim); }
-
-    .toggle-btn.active {
-      background: var(--teal);
-      color: var(--dark);
-      font-weight: 500;
-    }
-
     .pricing-grid-2 {
       grid-template-columns: repeat(2, 1fr);
       max-width: 720px;
@@ -1179,13 +1144,6 @@
     <div class="section-label reveal">Pricing</div>
     <h2 class="section-title reveal" style="max-width:100%">Start free. Scale when you're ready.</h2>
 
-    <!-- Toggle -->
-    <div class="pricing-toggle reveal">
-      <button class="toggle-btn active" onclick="showPricing('buyer')">I'm a Buyer</button>
-      <button class="toggle-btn" onclick="showPricing('realtor')">I'm a Realtor</button>
-      <button class="toggle-btn" onclick="showPricing('inspector')">I'm an Inspector</button>
-    </div>
-
     <!-- BUYER -->
     <div class="pricing-panel" id="pricing-buyer">
       <div class="pricing-grid pricing-grid-2">
@@ -1205,7 +1163,7 @@
         <div class="pricing-card featured reveal">
           <div class="pricing-badge">Most popular</div>
           <div class="pricing-tier">Buyer Pro</div>
-          <div class="pricing-price">$29 <span>/ report</span></div>
+          <div class="pricing-price">$7.99 <span>/ report</span></div>
           <div class="pricing-desc">Everything you need to negotiate with full confidence.</div>
           <ul class="pricing-features">
             <li>Everything in free</li>
@@ -1219,76 +1177,6 @@
       </div>
     </div>
 
-    <!-- REALTOR -->
-    <div class="pricing-panel" id="pricing-realtor" style="display:none">
-      <div class="pricing-grid" style="grid-template-columns:1fr;max-width:440px;margin:48px auto 0;">
-        <div class="pricing-card featured reveal" style="position:relative;">
-          <div class="pricing-badge">For realtors</div>
-          <div class="pricing-tier">Realtor</div>
-          <div class="pricing-price">$199 <span>/ mo</span></div>
-          <div class="pricing-desc">Offer Lot7 to every client under your brand. Keep deals alive, close faster.</div>
-          <ul class="pricing-features">
-            <li>Unlimited client reports</li>
-            <li>Your branded subdomain</li>
-            <li>Clients get full Buyer Pro experience</li>
-            <li>Contractor marketplace</li>
-            <li>Lead tracking dashboard</li>
-            <li>Shareable branded report links</li>
-          </ul>
-          <a href="/upload" class="pricing-btn pricing-btn-primary" target="_blank">Get started →</a>
-        </div>
-      </div>
-    </div>
-
-    <!-- INSPECTOR -->
-    <div class="pricing-panel" id="pricing-inspector" style="display:none">
-      <div class="pricing-roi reveal">💡 Sign up 8 contractors at $200/mo = $1,600. Your platform pays for itself — and then some.</div>
-      <div class="pricing-grid">
-        <div class="pricing-card reveal">
-          <div class="pricing-tier">Starter</div>
-          <div class="pricing-price">$799 <span>/ mo</span></div>
-          <div class="pricing-desc">For solo inspectors building a contractor network.</div>
-          <ul class="pricing-features">
-            <li>Up to 8 contractors listed</li>
-            <li>Branded subdomain</li>
-            <li>Unlimited client reports</li>
-            <li>Lead tracking dashboard</li>
-            <li>Analytics & revenue reporting</li>
-            <li>Direct contractor email leads</li>
-          </ul>
-          <a href="mailto:baz@assureinspections.com" class="pricing-btn pricing-btn-ghost">Get started →</a>
-        </div>
-        <div class="pricing-card featured reveal">
-          <div class="pricing-badge">Best value</div>
-          <div class="pricing-tier">Growth</div>
-          <div class="pricing-price">$999 <span>/ mo</span></div>
-          <div class="pricing-desc">Scale your network and maximize referral revenue.</div>
-          <ul class="pricing-features">
-            <li>Up to 20 contractors listed</li>
-            <li>Everything in Starter</li>
-            <li>Multiple inspector accounts</li>
-            <li>Advanced analytics & trends</li>
-            <li>Priority support</li>
-            <li>Exportable lead reports</li>
-          </ul>
-          <a href="/upload" class="pricing-btn pricing-btn-primary" target="_blank">Get started →</a>
-        </div>
-        <div class="pricing-card reveal">
-          <div class="pricing-tier">Agency</div>
-          <div class="pricing-price">$1,299 <span>/ mo</span></div>
-          <div class="pricing-desc">Full white-label. Multiple markets. Zero Lot7 branding.</div>
-          <ul class="pricing-features">
-            <li>Unlimited contractors</li>
-            <li>Everything in Growth</li>
-            <li>Fully white-labeled</li>
-            <li>Custom state SOP configuration</li>
-            <li>Multi-location support</li>
-            <li>Dedicated onboarding</li>
-          </ul>
-          <a href="mailto:baz@assureinspections.com" class="pricing-btn pricing-btn-ghost">Contact us</a>
-        </div>
-      </div>
-    </div>
   </section>
 
 
@@ -1328,14 +1216,6 @@
   </footer>
 
   <script>
-    // Pricing toggle
-    function showPricing(audience) {
-      document.querySelectorAll('.pricing-panel').forEach(p => p.style.display = 'none');
-      document.querySelectorAll('.toggle-btn').forEach(b => b.classList.remove('active'));
-      document.getElementById('pricing-' + audience).style.display = 'block';
-      event.target.classList.add('active');
-    }
-
     // Scroll reveal
     const reveals = document.querySelectorAll('.reveal');
     const observer = new IntersectionObserver((entries) => {

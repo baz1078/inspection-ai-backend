@@ -473,12 +473,33 @@ COST_TABLE = {
     # -------------------------------------------------------------------------
     # GARAGE
     # -------------------------------------------------------------------------
-    "GARAGE_DOOR": {
-        "display": "Garage door repair or replacement",
-        "usd_low": 200, "usd_high": 2000,
-        "cad_low": 250, "cad_high": 2500,
+    "GARAGE_DOOR_MINOR_ADJUST": {
+        "display": "Garage door minor adjustment (sensor alignment, weatherstripping, auto-reverse switch)",
+        "usd_low": 75, "usd_high": 200,
+        "cad_low": 100, "cad_high": 275,
         "trade": "Garage Door Specialist",
-        "note": "Springs/cables at low end; full replacement at high end"
+        "note": "Sensor realignment, weatherstrip swap, or safety-reverse adjustment — no parts replacement"
+    },
+    "GARAGE_DOOR_SPRING_CABLE": {
+        "display": "Garage door spring or cable repair",
+        "usd_low": 150, "usd_high": 350,
+        "cad_low": 200, "cad_high": 450,
+        "trade": "Garage Door Specialist",
+        "note": "Broken spring or cable replacement"
+    },
+    "GARAGE_DOOR_PANEL_REPAIR": {
+        "display": "Garage door panel or section repair",
+        "usd_low": 300, "usd_high": 800,
+        "cad_low": 400, "cad_high": 1000,
+        "trade": "Garage Door Specialist",
+        "note": "Damaged panel/section replacement, not full door"
+    },
+    "GARAGE_DOOR_FULL_REPLACE": {
+        "display": "Full garage door replacement",
+        "usd_low": 800, "usd_high": 2200,
+        "cad_low": 1000, "cad_high": 2800,
+        "trade": "Garage Door Specialist",
+        "note": "Full door and track replacement"
     },
     "GARAGE_OPENER": {
         "display": "Garage door opener replacement",
@@ -599,6 +620,8 @@ _EXTENDED = {
     # APPLIANCES
     "APPL_DRYER_VENT": {"display": "Dryer vent cleaning or rerouting","usd_low": 100,"usd_high": 400,"cad_low": 150,"cad_high": 500,"trade": "HVAC Technician / Handyman","note": "Cleaning at low end; rerouting to exterior higher"},
     "APPL_RANGE_HOOD_VENT": {"display": "Range hood vent correction","usd_low": 150,"usd_high": 600,"cad_low": 200,"cad_high": 750,"trade": "General Contractor / HVAC Technician","note": "Proper exterior termination required"},
+    "APPL_MICROWAVE_REPAIR": {"display": "Built-in microwave repair or replacement","usd_low": 150,"usd_high": 500,"cad_low": 200,"cad_high": 650,"trade": "Appliance Technician","note": "Repair at low end; replacement unit at high end"},
+    "ATTIC_HATCH_WEATHERSTRIP": {"display": "Attic hatch weatherstripping / seal","usd_low": 75,"usd_high": 200,"cad_low": 100,"cad_high": 275,"trade": "Handyman / Insulation Contractor","note": "Foam gasket or weatherstrip kit, not a hatch replacement"},
 
     # INTERIOR
     "INT_WALL_CRACK": {"display": "Drywall / wall crack repair","usd_low": 150,"usd_high": 800,"cad_low": 200,"cad_high": 1000,"trade": "Drywall Contractor / Handyman","note": "Patch, tape and finish; settlement cracks may recur"},

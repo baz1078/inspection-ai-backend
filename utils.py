@@ -19,12 +19,31 @@ def extract_text_from_pdf(pdf_path):
         raise Exception(f"Error extracting PDF text: {str(e)}")
 
 
-def fetch_report_text_from_url(url, timeout=20):
+def fetch_report_text_from_url(url, timeout=20, include_anchors=False, summary_only=False):
     """Fetch a hosted inspection report web page and return its visible text.
 
     Format-agnostic — works for any platform that serves the report as an HTML
     page (Inspectagram, Spectora, HomeGauge, etc.). Stdlib only, no new deps.
     The returned text is fed into the same analysis pipeline as PDF text.
+
+    include_anchors=True also emits any element `id` attribute inline as
+    "[ANCHOR:<id>]" so a downstream prompt can tag each finding with the
+    nearest anchor and the caller can build a deep link ({url}#{id}) back to
+    that exact spot in the source report. Off by default so existing callers
+    (the two-pass buyer pipeline) see byte-identical output to before.
+    NOTE: this assumes the platform marks page/section boundaries with an
+    `id` attribute — verify against a real report URL before relying on it;
+    Inspectagram confirmed to use #page-XX anchors as of 2026-06-29.
+
+    summary_only=True crops the raw HTML down to the Summary section
+    (Inspectagram-specific: the block(s) tagged class="page full summary")
+    BEFORE parsing, instead of relying on the prompt to ignore Detail
+    sections. Cuts input tokens with no quality loss for extraction
+    prompts that only read the summary anyway — Detail-section text was
+    never used, just billed. Falls back to the full document (with a
+    printed warning) if no summary block is found, so callers never
+    silently get an empty report. Inspectagram-specific; other platforms
+    fall back to the full page.
     """
     import re
     import urllib.request
@@ -43,6 +62,21 @@ def fetch_report_text_from_url(url, timeout=20):
         charset = resp.headers.get_content_charset() or 'utf-8'
         html = resp.read().decode(charset, errors='replace')
 
+    if summary_only:
+        start = html.find('class="page full summary"')
+        if start == -1:
+            print("fetch_report_text_from_url: summary_only=True but no "
+                  "'page full summary' block found — falling back to the full document.")
+        else:
+            nxt = html.find('class="page full ', start + 10)
+            while nxt != -1 and 'summary' in html[nxt:nxt + 45]:
+                nxt = html.find('class="page full ', nxt + 10)
+            # Crop only the END boundary (after Detail pages) — keep everything
+            # from the start of the document. The cover/disclaimer pages before
+            # the summary block are where the property address lives; starting
+            # the slice at `start` was dropping that and leaving address unfound.
+            html = html[0: nxt if nxt != -1 else len(html)]
+
     class _Extractor(HTMLParser):
         _SKIP = {'script', 'style', 'head', 'noscript', 'svg'}
         _BLOCK = {'p', 'div', 'br', 'li', 'tr', 'h1', 'h2', 'h3', 'h4', 'h5',
@@ -54,17 +88,25 @@ def fetch_report_text_from_url(url, timeout=20):
             self._skip_depth = 0
 
         def handle_starttag(self, tag, attrs):
+            attrs_d = dict(attrs)
             if tag in self._SKIP:
                 self._skip_depth += 1
             elif tag == 'img' and self._skip_depth == 0:
                 # Severity is often conveyed by an icon's alt text
                 # (e.g. "immediate attention icon") rather than body text.
                 # Emit it inline so the analysis can read the severity tier.
-                alt = dict(attrs).get('alt')
+                alt = attrs_d.get('alt')
                 if alt and alt.strip():
                     self.parts.append(' [' + alt.strip() + '] ')
             elif tag in self._BLOCK:
                 self.parts.append('\n')
+
+            if include_anchors and self._skip_depth == 0:
+                # data-page-anchor is per-finding (precise); id="page-N" only
+                # marks the containing page (coarser). Prefer the precise one.
+                anchor_id = attrs_d.get('data-page-anchor') or attrs_d.get('id')
+                if anchor_id and anchor_id.strip():
+                    self.parts.append(' [ANCHOR:' + anchor_id.strip() + '] ')
 
         def handle_endtag(self, tag):
             if tag in self._SKIP and self._skip_depth > 0:
@@ -482,17 +524,6 @@ Return ONLY a valid JSON object. No markdown, no backticks. The structure must e
             "_pass2_error": str(last_err)
         }
 
-    # Ensure cost_source field exists for dashboard compatibility
-    all_items = (
-        enriched.get("urgent_items", []) +
-        enriched.get("maintenance_items", []) +
-        enriched.get("category_items", [])
-    )
-    for item in all_items:
-        if not item.get("cost_source"):
-            item["cost_source"] = "ai_contextual"
-
-    # Calculate budget totals
     def parse_cost_low(cost_str):
         if not cost_str or cost_str == "TBD":
             return 0
@@ -511,6 +542,25 @@ Return ONLY a valid JSON object. No markdown, no backticks. The structure must e
         except Exception:
             return 0
 
+    # Ensure cost_source field exists for dashboard compatibility
+    all_items = (
+        enriched.get("urgent_items", []) +
+        enriched.get("maintenance_items", []) +
+        enriched.get("category_items", [])
+    )
+    for item in all_items:
+        if not item.get("cost_source"):
+            item["cost_source"] = "ai_contextual"
+
+    # Enforce the 3x range cap in code — the prompt asks for this but the
+    # model doesn't reliably follow it (known issue, see product backlog #1).
+    for item in all_items:
+        low = parse_cost_low(item.get("cost"))
+        high = parse_cost_high(item.get("cost"))
+        if low > 0 and high > low * 3:
+            item["cost"] = f"${low:,} - ${low * 3:,}"
+
+    # Calculate budget totals
     now_low = sum(parse_cost_low(i.get("cost")) for i in enriched.get("urgent_items", []))
     now_high = sum(parse_cost_high(i.get("cost")) for i in enriched.get("urgent_items", []))
     yr5_low = sum(parse_cost_low(i.get("cost")) for i in enriched.get("maintenance_items", []) + enriched.get("category_items", []))
@@ -528,6 +578,231 @@ Return ONLY a valid JSON object. No markdown, no backticks. The structure must e
     print(f"  Budget now: {enriched['budget_now']}  5yr: {enriched['budget_5yr']}")
 
     return json.dumps(enriched)
+
+
+def generate_realtor_issues_report(report_text, report_url=None):
+    """
+    Two-pass, issues-only pipeline for the realtor tier — cheaper than the
+    full buyer pipeline (generate_structured_analysis), but still two calls:
+
+    Pass 1 — extraction. Reads ONLY the Summary section (ignores Detail
+      pages entirely), pulls out only flagged issues (no satisfactory/
+      checklist items), tags each with a category_key (a *hint*, not final)
+      and the nearest [ANCHOR:xxx] marker for the deep link back to the
+      source report.
+
+    Pass 2 — judgment-based pricing. A pure category_key -> COST_TABLE
+      lookup was tried first (cheaper, one call total) but proved unsafe:
+      it has no way to catch a Garage finding pricing itself off a Roof
+      category, or a "hatch cover" finding pricing itself as a whole-attic
+      job, because it blindly trusts whatever key Pass 1 picked. Pass 2
+      mirrors the buyer pipeline's proven cost-reasoning prompt, scoped to
+      just the small extracted item list (not the full report), so it's
+      still much cheaper than the buyer pipeline while keeping real
+      scope judgment instead of a coincidental table match.
+
+    report_text must have been fetched with include_anchors=True for deep
+    links to populate; otherwise anchor/deep_link will be null.
+    """
+    from cost_lookup import COST_TABLE
+
+    client = create_ai_client()
+    import re
+
+    def clean_raw(raw):
+        raw = raw.replace("\x00", "").strip()
+        if raw.startswith("```"):
+            raw = raw.split("\n", 1)[1]
+        if raw.endswith("```"):
+            raw = raw.rsplit("```", 1)[0]
+        return raw.strip()
+
+    def attempt_parse(raw):
+        cleaned = re.sub(r',\s*([}\]])', r'\1', raw)
+        return json.loads(cleaned)
+
+    category_keys = {k: v["display"] for k, v in COST_TABLE.items()}
+
+    system_prompt = f"""You are a home inspection report reader producing a short issues-only brief for a realtor — not the buyer.
+
+SCOPE — READ ONLY THE SUMMARY SECTION:
+Most reports have a Summary section (early pages, lists every finding) and Detail sections (later pages, photos/context for the same findings). Use ONLY the Summary section. Ignore Detail sections completely — do not read them, do not pull findings from them.
+
+WHAT TO EXTRACT:
+Only findings the inspector flagged as an issue (their "Immediate Attention" / "Attention" tiers, however THIS report labels them — learn the report's own severity language from its legend if present). Do NOT include satisfactory/good-condition items, do NOT produce a checklist. Realtors only want the punch list of issues.
+
+ANCHOR TAGGING:
+The text contains markers like "[ANCHOR:page-25]" inserted at element boundaries. For each finding, record the nearest "[ANCHOR:...]" marker that appears BEFORE it in the text, as the "anchor" field (just the id, e.g. "page-25"). If no anchor precedes it, use null. Never invent an anchor.
+
+CATEGORY_KEY TAGGING:
+For each finding, choose the closest matching key from this reference list (or null if nothing fits reasonably — do not force a bad match):
+{json.dumps(category_keys)}
+
+ABSOLUTE RULES:
+- Ignore "(cid:0)" and "[... icon]" bracket markers except to read severity from icon alt text (e.g. "[immediate attention icon]")
+- Do NOT produce cost estimates or cost text — that's filled in afterward from category_key
+- Do NOT add findings not in the Summary section
+- If zero issues exist, return empty arrays — do not invent any
+
+Return ONLY a valid JSON object. No markdown, no backticks:
+
+{{
+  "currency": "USD" or "CAD",
+  "address": "Full property address",
+  "urgent_items": [
+    {{"name": "Short name", "finding": "Inspector's finding, verbatim or close paraphrase", "section": "Roof/Electrical/Plumbing/etc", "category_key": "KEY_FROM_LIST_or_null", "anchor": "page-25 or null"}}
+  ],
+  "attention_items": [
+    {{"name": "Short name", "finding": "Inspector's finding, verbatim or close paraphrase", "section": "Roof/Electrical/Plumbing/etc", "category_key": "KEY_FROM_LIST_or_null", "anchor": "page-25 or null"}}
+  ]
+}}"""
+
+    result = None
+    last_err = None
+    for max_tok in [12000, 12000]:  # ceiling doesn't affect cost (billed on actual tokens used, not the cap) —
+                                     # 4000 was wrong: a report with more issues than our test case truncates
+                                     # mid-JSON, fails to parse, and retries at the SAME cap, doubling cost/time
+                                     # for nothing. High ceiling here mirrors the buyer pipeline's Pass 1/2 fix.
+        try:
+            print(f"Realtor issues-only pass attempt with max_tokens={max_tok}...")
+            msg = client.messages.create(
+                model="claude-sonnet-4-6",
+                max_tokens=max_tok,
+                temperature=0,
+                system=system_prompt,
+                messages=[{"role": "user", "content": report_text}]
+            )
+            raw = clean_raw(msg.content[0].text)
+            result = attempt_parse(raw)
+            print(f"Realtor issues-only pass succeeded. Urgent: {len(result.get('urgent_items', []))}  Attention: {len(result.get('attention_items', []))}")
+            print(f"  Tokens — input: {msg.usage.input_tokens}  output: {msg.usage.output_tokens}")
+            break
+        except Exception as e:
+            last_err = e
+            print(f"Realtor issues-only pass failed at max_tokens={max_tok}: {last_err}.")
+
+    if result is None:
+        return json.dumps({
+            "currency": "USD", "address": "Address not found",
+            "urgent_items": [], "attention_items": [], "_parse_error": str(last_err)
+        })
+
+    currency = result.get("currency", "USD")
+    urgent = result.get("urgent_items", [])
+    attention = result.get("attention_items", [])
+
+    # Attach deep links now (free, no AI needed)
+    for i in urgent + attention:
+        anchor = i.get("anchor")
+        i["deep_link"] = f"{report_url}#{anchor}" if (report_url and anchor) else None
+
+    # Assign stable ids so Pass 2's response can be merged back exactly,
+    # regardless of ordering.
+    for idx, item in enumerate(urgent):
+        item["_id"] = f"u{idx}"
+    for idx, item in enumerate(attention):
+        item["_id"] = f"a{idx}"
+
+    # -------------------------------------------------------------------------
+    # PASS 2 — JUDGMENT-BASED PRICING (not a blind table lookup)
+    # A pure category_key -> COST_TABLE lookup has no way to catch a garage
+    # finding matching a roof category, or a "hatch cover" finding matching a
+    # whole-attic-insulation category — it just trusts whatever key Pass 1
+    # picked. This mirrors the buyer pipeline's proven Pass 2: an LLM reasons
+    # about each item's actual described scope, using the lookup table only
+    # as a reference anchor it can override.
+    # -------------------------------------------------------------------------
+    lookup_anchor = json.dumps({
+        k: {"display": v["display"], "usd_low": v["usd_low"], "usd_high": v["usd_high"],
+            "cad_low": v["cad_low"], "cad_high": v["cad_high"], "trade": v["trade"]}
+        for k, v in COST_TABLE.items()
+    })
+
+    pass2_system = f"""You are a regional contractor cost estimator pricing a short list of home inspection findings for a realtor brief.
+
+PROPERTY CONTEXT — Currency: {currency}
+
+REFERENCE PRICING TABLE (use as anchors — adjust based on actual scope; a "category_hint" on an item is a SUGGESTION from a prior pass, not a fact — override it if the item's own section/finding describes different scope, trade, or severity than the hint implies):
+{lookup_anchor}
+
+COST RULES:
+- Round all costs to nearest $50
+- Maximum range width: low × 3 (if low is $200, high cannot exceed $600)
+- Price the actual documented scope — not the worst case, and not just whatever the category_hint's number happens to be
+- A "hatch cover" or localized fix is NOT the same scope as a whole-system job (e.g. "attic hatch missing weatherstripping" is a small trim/seal fix, not full attic insulation)
+- Match the item's own "section" to a plausible trade — do not price a Garage item using a Roof-trade category just because the wording overlaps (e.g. "decking")
+- If genuinely nothing fits, use null for cost/trade rather than forcing a bad match
+
+WIDE RANGE RULE: if high end is more than 2x low end, cost_note must explain why in one sentence.
+
+Return ONLY a valid JSON object. No markdown, no backticks:
+
+{{
+  "items": [
+    {{"id": "u0", "cost": "$X - $Y" or null, "trade": "Trade type" or null, "cost_note": "One short sentence"}}
+  ]
+}}"""
+
+    pricing_input = json.dumps({
+        "items": [
+            {"id": i["_id"], "name": i.get("name"), "finding": i.get("finding"),
+             "section": i.get("section"), "category_hint": i.get("category_key")}
+            for i in urgent + attention
+        ]
+    })
+
+    priced_by_id = {}
+    last_err2 = None
+    for max_tok in [8000, 8000]:
+        try:
+            print(f"Realtor pricing pass attempt with max_tokens={max_tok}...")
+            msg2 = client.messages.create(
+                model="claude-sonnet-4-6",
+                max_tokens=max_tok,
+                temperature=0,
+                system=pass2_system,
+                messages=[{"role": "user", "content": f"Price these findings:\n\n{pricing_input}"}]
+            )
+            raw2 = clean_raw(msg2.content[0].text)
+            priced = attempt_parse(raw2)
+            priced_by_id = {p["id"]: p for p in priced.get("items", [])}
+            print(f"Realtor pricing pass succeeded. Priced {len(priced_by_id)}/{len(urgent) + len(attention)} items.")
+            print(f"  Tokens — input: {msg2.usage.input_tokens}  output: {msg2.usage.output_tokens}")
+            break
+        except Exception as e:
+            last_err2 = e
+            print(f"Realtor pricing pass failed at max_tokens={max_tok}: {last_err2}.")
+
+    def apply_price(item):
+        p = priced_by_id.get(item["_id"])
+        if not p:
+            item["cost"] = "TBD"
+            item["trade"] = ""
+            item["cost_note"] = ""
+        else:
+            cost = p.get("cost")
+            # Same 3x cap enforced in generate_structured_analysis — a
+            # Python-side safety net since the model doesn't always follow it.
+            if cost:
+                try:
+                    lo_s, hi_s = cost.replace("$", "").replace(",", "").split(" - ")
+                    lo, hi = float(lo_s), float(hi_s)
+                    if hi > lo * 3:
+                        cost = f"${lo:,.0f} - ${lo * 3:,.0f}"
+                except Exception:
+                    pass
+            item["cost"] = cost or "TBD"
+            item["trade"] = p.get("trade") or ""
+            item["cost_note"] = p.get("cost_note") or ""
+        item.pop("_id", None)
+        return item
+
+    result["urgent_items"] = [apply_price(i) for i in urgent]
+    result["attention_items"] = [apply_price(i) for i in attention]
+    if priced_by_id == {} and last_err2:
+        result["_pricing_error"] = str(last_err2)
+
+    return json.dumps(result)
 
 
 def generate_punchlist(answer_text, issue_type, question):
