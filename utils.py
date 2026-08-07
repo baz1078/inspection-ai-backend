@@ -580,6 +580,309 @@ Return ONLY a valid JSON object. No markdown, no backticks. The structure must e
     return json.dumps(enriched)
 
 
+def price_findings_with_ai(items, currency="USD"):
+    """
+    Judgment-based pricing for a list of findings — the ONE cost engine
+    shared by the realtor report and the Inspectagram cost-estimate API,
+    so every surface prices off the same reasoning rather than a blind
+    category_key -> COST_TABLE lookup. A pure lookup was tried first and
+    proved unsafe (see generate_realtor_issues_report's Pass 2 note): it
+    has no way to catch a finding whose wording coincidentally overlaps
+    an unrelated category. This mirrors that same Pass 2 prompt, but
+    generalized so callers don't need a Pass-1-assigned category_key.
+
+    items: [{"id": str, "name": str|None, "finding": str, "section": str|None,
+             "category_hint": str|None}]
+    Returns: {id: {"cost": "$X - $Y"|None, "trade": str|None,
+                   "cost_note": str, "confidence": "matched"|"estimated"}}
+    """
+    from cost_lookup import COST_TABLE
+    import re
+
+    if not items:
+        return {}
+
+    client = create_ai_client()
+
+    def clean_raw(raw):
+        raw = raw.replace("\x00", "").strip()
+        if raw.startswith("```"):
+            raw = raw.split("\n", 1)[1]
+        if raw.endswith("```"):
+            raw = raw.rsplit("```", 1)[0]
+        return raw.strip()
+
+    def attempt_parse(raw):
+        cleaned = re.sub(r',\s*([}\]])', r'\1', raw)
+        return json.loads(cleaned)
+
+    lookup_anchor = json.dumps({
+        k: {"display": v["display"], "usd_low": v["usd_low"], "usd_high": v["usd_high"],
+            "cad_low": v["cad_low"], "cad_high": v["cad_high"], "trade": v["trade"]}
+        for k, v in COST_TABLE.items()
+    })
+
+    system_prompt = f"""You are a regional contractor cost estimator pricing a short list of home inspection findings.
+
+PROPERTY CONTEXT — Currency: {currency}
+
+REFERENCE PRICING TABLE (use as anchors — adjust based on actual scope; a "category_hint" on an item is a SUGGESTION, not a fact — override it if the item's own section/finding describes different scope, trade, or severity than the hint implies):
+{lookup_anchor}
+
+COST RULES:
+- Round all costs to nearest $50
+- Maximum range width: low x 3 (if low is $200, high cannot exceed $600)
+- Price the actual documented scope — not the worst case, and not just whatever the category_hint's number happens to be
+- A localized fix is NOT the same scope as a whole-system job (e.g. "attic hatch missing weatherstripping" is a small trim/seal fix, not full attic insulation)
+- Match the item's own "section" to a plausible trade — do not price using an unrelated category just because the wording overlaps
+- If genuinely nothing fits, use null for cost/trade rather than forcing a bad match
+
+CONFIDENCE:
+- "matched" — the item's scope closely matches one of the reference table categories and your price is essentially that category's range
+- "estimated" — you had to reason beyond the table (no close category, or you adjusted materially from the closest one)
+
+WIDE RANGE RULE: if high end is more than 2x low end, cost_note must explain why in one sentence.
+
+Return ONLY a valid JSON object. No markdown, no backticks:
+
+{{
+  "items": [
+    {{"id": "0", "cost": "$X - $Y" or null, "trade": "Trade type" or null, "cost_note": "One short sentence", "confidence": "matched" or "estimated"}}
+  ]
+}}"""
+
+    pricing_input = json.dumps({
+        "items": [
+            {"id": i["id"], "name": i.get("name") or (i.get("finding") or "")[:60],
+             "finding": i.get("finding"), "section": i.get("section"),
+             "category_hint": i.get("category_hint")}
+            for i in items
+        ]
+    })
+
+    priced_by_id = {}
+    last_err = None
+    for max_tok in [8000, 8000]:
+        try:
+            print(f"Cost pricing pass attempt with max_tokens={max_tok}...")
+            msg = client.messages.create(
+                model="claude-sonnet-4-6",
+                max_tokens=max_tok,
+                temperature=0,
+                system=system_prompt,
+                messages=[{"role": "user", "content": f"Price these findings:\n\n{pricing_input}"}]
+            )
+            raw = clean_raw(msg.content[0].text)
+            priced = attempt_parse(raw)
+            priced_by_id = {str(p["id"]): p for p in priced.get("items", [])}
+            print(f"Cost pricing pass succeeded. Priced {len(priced_by_id)}/{len(items)} items.")
+            break
+        except Exception as e:
+            last_err = e
+            print(f"Cost pricing pass failed at max_tokens={max_tok}: {last_err}.")
+
+    # Same 3x cap enforced elsewhere — a Python-side safety net since the
+    # model doesn't always follow it.
+    for p in priced_by_id.values():
+        cost = p.get("cost")
+        if cost:
+            try:
+                lo_s, hi_s = cost.replace("$", "").replace(",", "").split(" - ")
+                lo, hi = float(lo_s), float(hi_s)
+                if hi > lo * 3:
+                    p["cost"] = f"${lo:,.0f} - ${lo * 3:,.0f}"
+            except Exception:
+                pass
+
+    return priced_by_id
+
+
+def extract_appliance_profile(report_text):
+    """
+    Text-only extraction of appliance/system ages — the data foundation for
+    the home-assistant "living profile" (see backlog: Lot7 as a proactive
+    home assistant). No Vision/photo processing here.
+
+    Real Inspectagram reports write a manufacture year into a caption
+    whenever an inspector successfully photographs a system's data plate —
+    e.g. "AC ... Most likely Manufactured in 2012". That caption is already
+    in the report's scraped text, so this is a cheap targeted extraction on
+    top of data we already have, not a new scrape.
+
+    Verified against 4 real reports (July 27, 2026) before building this:
+    2 of 4 had zero usable data — the inspector marked the item "Not
+    Accessible"/"Not Inspected", or the report style only pointed at "See
+    Insurance Section" with no year. That's not a text-extraction gap, it's
+    the inspector never having captured it — Vision-based photo OCR
+    wouldn't recover those either, since there's nothing to OCR. This
+    function correctly returns nothing for those cases rather than
+    guessing a year.
+
+    Only sends the AI the ~450-char windows around each "Data Plate"
+    mention, not the full report — keeps this cheap regardless of report
+    length, since Data Plate mentions are sparse (a handful per report).
+
+    Returns: [{"appliance": str, "manufactured_year": int|None,
+               "status": "captured"|"not_accessible"|"unclear"}]
+    Only "captured" entries have a non-null manufactured_year.
+    """
+    import re
+
+    windows = []
+    for m in re.finditer(r'Data Plate', report_text, re.I):
+        start = max(0, m.start() - 250)
+        end = min(len(report_text), m.start() + 200)
+        windows.append(report_text[start:end])
+
+    if not windows:
+        return []
+
+    client = create_ai_client()
+
+    def clean_raw(raw):
+        raw = raw.replace("\x00", "").strip()
+        if raw.startswith("```"):
+            raw = raw.split("\n", 1)[1]
+        if raw.endswith("```"):
+            raw = raw.rsplit("```", 1)[0]
+        return raw.strip()
+
+    snippet_block = "\n\n---\n\n".join(f"[{i}]\n{w}" for i, w in enumerate(windows))
+
+    system_prompt = """You are extracting appliance/system ages from home inspection report snippets. Each snippet is a window of text surrounding a "Data Plate" mention.
+
+For each snippet, identify:
+- Which appliance/system it refers to (e.g. "Furnace", "Water Heater", "Dishwasher", "AC Unit", "Microwave", "Dryer", "Stove/Oven") — use the nearest preceding heading or label in the snippet.
+- Whether a manufacture year is actually stated (e.g. "Most likely Manufactured in 2012", "manufactured in 2017") — extract just the 4-digit year.
+
+ABSOLUTE RULE: boilerplate text like "This usually contains model & serial #. It also contains the birth date & other important info." describes what a data plate GENERALLY shows — it is template text, not a value. Do NOT treat it as data. Only extract a year if one is explicitly written in THIS snippet.
+
+If the snippet says "Not Accessible", "Not Inspected", or only generically points to "See Insurance Section" with no year stated, return manufactured_year: null and status: "not_accessible". If a data plate is mentioned but neither a year nor a clear not-accessible marker is present, use status: "unclear".
+
+Return ONLY valid JSON, no markdown, no backticks:
+
+{
+  "items": [
+    {"snippet_index": 0, "appliance": "Furnace", "manufactured_year": 2012, "status": "captured"}
+  ]
+}"""
+
+    try:
+        msg = client.messages.create(
+            model="claude-sonnet-4-6",
+            max_tokens=2000,
+            temperature=0,
+            system=system_prompt,
+            messages=[{"role": "user", "content": snippet_block}]
+        )
+        raw = clean_raw(msg.content[0].text)
+        parsed = json.loads(raw)
+        items = parsed.get("items", [])
+    except Exception as e:
+        print(f"extract_appliance_profile failed: {e}")
+        return []
+
+    # Dedupe by appliance name — the same system can have multiple "Data
+    # Plate" mentions (e.g. once in the chapter detail, once in a summary
+    # rollup). Prefer a "captured" entry with a year over "not_accessible"/
+    # "unclear" for the same appliance.
+    by_appliance = {}
+    for it in items:
+        name = (it.get("appliance") or "").strip()
+        if not name:
+            continue
+        status = it.get("status")
+        year = it.get("manufactured_year")
+        existing = by_appliance.get(name)
+        if not existing or (status == "captured" and existing.get("status") != "captured"):
+            by_appliance[name] = {"appliance": name, "manufactured_year": year, "status": status}
+
+    return list(by_appliance.values())
+
+
+def generate_care_events(appliance_profile, current_date=None):
+    """
+    Turns a home's appliance profile (output of extract_appliance_profile)
+    into scheduled CareEvent rows — the one AI call in the whole home-
+    assistant pipeline. Everything downstream (the daily dispatcher) is a
+    plain DB query with zero AI cost, per the trigger-engine design.
+
+    Only appliances with status == "captured" (a real known year) are
+    considered — no reminder gets scheduled off a guess. Claude applies its
+    own knowledge of typical appliance lifespans/service intervals rather
+    than a hardcoded lifespan table, and decides per-appliance whether the
+    age actually warrants a nudge (a 6-year-old dishwasher doesn't need one
+    just because we know its age).
+
+    appliance_profile: [{"appliance": str, "manufactured_year": int, "status": str}]
+    current_date: datetime.date, defaults to today (injectable for testing)
+
+    Returns: [{"appliance": str, "event_type": "age_based"|"seasonal"|"time_based"|"weather_triggered",
+               "due_in_days": int, "recurring_interval_days": int|None, "message": str}]
+    due_in_days is relative to current_date — the caller computes the actual
+    due_date (kept in Python, not trusted to the model's date arithmetic).
+    """
+    import datetime as dt
+
+    today = current_date or dt.date.today()
+    captured = [a for a in appliance_profile if a.get("status") == "captured" and a.get("manufactured_year")]
+    if not captured:
+        return []
+
+    client = create_ai_client()
+
+    def clean_raw(raw):
+        raw = raw.replace("\x00", "").strip()
+        if raw.startswith("```"):
+            raw = raw.split("\n", 1)[1]
+        if raw.endswith("```"):
+            raw = raw.rsplit("```", 1)[0]
+        return raw.strip()
+
+    ages = [
+        {"appliance": a["appliance"], "manufactured_year": a["manufactured_year"],
+         "age_years": today.year - a["manufactured_year"]}
+        for a in captured
+    ]
+
+    system_prompt = f"""You are a home-maintenance advisor deciding which appliances/systems in a home are due for a maintenance nudge, based on their age.
+
+TODAY'S DATE: {today.isoformat()}
+
+For each appliance below, decide if its age actually warrants a reminder — use your own knowledge of typical appliance/system lifespans and service intervals. Do NOT create an event for every appliance just because we know its age; skip ones that are still young/low-risk for their type (e.g. a 5-year-old dishwasher usually doesn't need a proactive nudge).
+
+For appliances that DO warrant one:
+- event_type: "age_based" (the age itself triggers it, e.g. "this furnace is old enough to need annual service") or "seasonal" (age plus time of year, e.g. AC tune-up makes most sense in spring)
+- due_in_days: how many days from today this nudge should fire (0 = now, ~90 = a few months out for a seasonal one timed to the right season)
+- recurring_interval_days: if this is an ongoing yearly/seasonal check, the interval to repeat it (e.g. 365); null for a one-time nudge (e.g. "this is old, consider replacement soon")
+- message: the actual nudge text a homeowner would receive by email. Plain, warm, specific to the appliance and its age — not generic. Mention the age. One or two sentences. Do not mention cost estimates (a separate system handles pricing).
+
+Return ONLY valid JSON, no markdown, no backticks:
+
+{{
+  "events": [
+    {{"appliance": "AC Unit", "event_type": "seasonal", "due_in_days": 60, "recurring_interval_days": 365, "message": "..."}}
+  ]
+}}
+
+Appliances with no age-based need for a nudge right now should simply be omitted from "events" — do not include a null/skip entry for them."""
+
+    try:
+        msg = client.messages.create(
+            model="claude-sonnet-4-6",
+            max_tokens=2000,
+            temperature=0,
+            system=system_prompt,
+            messages=[{"role": "user", "content": json.dumps({"appliances": ages})}]
+        )
+        raw = clean_raw(msg.content[0].text)
+        parsed = json.loads(raw)
+        return parsed.get("events", [])
+    except Exception as e:
+        print(f"generate_care_events failed: {e}")
+        return []
+
+
 def generate_realtor_issues_report(report_text, report_url=None):
     """
     Two-pass, issues-only pipeline for the realtor tier — cheaper than the
@@ -703,75 +1006,15 @@ Return ONLY a valid JSON object. No markdown, no backticks:
     for idx, item in enumerate(attention):
         item["_id"] = f"a{idx}"
 
-    # -------------------------------------------------------------------------
-    # PASS 2 — JUDGMENT-BASED PRICING (not a blind table lookup)
-    # A pure category_key -> COST_TABLE lookup has no way to catch a garage
-    # finding matching a roof category, or a "hatch cover" finding matching a
-    # whole-attic-insulation category — it just trusts whatever key Pass 1
-    # picked. This mirrors the buyer pipeline's proven Pass 2: an LLM reasons
-    # about each item's actual described scope, using the lookup table only
-    # as a reference anchor it can override.
-    # -------------------------------------------------------------------------
-    lookup_anchor = json.dumps({
-        k: {"display": v["display"], "usd_low": v["usd_low"], "usd_high": v["usd_high"],
-            "cad_low": v["cad_low"], "cad_high": v["cad_high"], "trade": v["trade"]}
-        for k, v in COST_TABLE.items()
-    })
-
-    pass2_system = f"""You are a regional contractor cost estimator pricing a short list of home inspection findings for a realtor brief.
-
-PROPERTY CONTEXT — Currency: {currency}
-
-REFERENCE PRICING TABLE (use as anchors — adjust based on actual scope; a "category_hint" on an item is a SUGGESTION from a prior pass, not a fact — override it if the item's own section/finding describes different scope, trade, or severity than the hint implies):
-{lookup_anchor}
-
-COST RULES:
-- Round all costs to nearest $50
-- Maximum range width: low × 3 (if low is $200, high cannot exceed $600)
-- Price the actual documented scope — not the worst case, and not just whatever the category_hint's number happens to be
-- A "hatch cover" or localized fix is NOT the same scope as a whole-system job (e.g. "attic hatch missing weatherstripping" is a small trim/seal fix, not full attic insulation)
-- Match the item's own "section" to a plausible trade — do not price a Garage item using a Roof-trade category just because the wording overlaps (e.g. "decking")
-- If genuinely nothing fits, use null for cost/trade rather than forcing a bad match
-
-WIDE RANGE RULE: if high end is more than 2x low end, cost_note must explain why in one sentence.
-
-Return ONLY a valid JSON object. No markdown, no backticks:
-
-{{
-  "items": [
-    {{"id": "u0", "cost": "$X - $Y" or null, "trade": "Trade type" or null, "cost_note": "One short sentence"}}
-  ]
-}}"""
-
-    pricing_input = json.dumps({
-        "items": [
-            {"id": i["_id"], "name": i.get("name"), "finding": i.get("finding"),
-             "section": i.get("section"), "category_hint": i.get("category_key")}
-            for i in urgent + attention
-        ]
-    })
-
-    priced_by_id = {}
-    last_err2 = None
-    for max_tok in [8000, 8000]:
-        try:
-            print(f"Realtor pricing pass attempt with max_tokens={max_tok}...")
-            msg2 = client.messages.create(
-                model="claude-sonnet-4-6",
-                max_tokens=max_tok,
-                temperature=0,
-                system=pass2_system,
-                messages=[{"role": "user", "content": f"Price these findings:\n\n{pricing_input}"}]
-            )
-            raw2 = clean_raw(msg2.content[0].text)
-            priced = attempt_parse(raw2)
-            priced_by_id = {p["id"]: p for p in priced.get("items", [])}
-            print(f"Realtor pricing pass succeeded. Priced {len(priced_by_id)}/{len(urgent) + len(attention)} items.")
-            print(f"  Tokens — input: {msg2.usage.input_tokens}  output: {msg2.usage.output_tokens}")
-            break
-        except Exception as e:
-            last_err2 = e
-            print(f"Realtor pricing pass failed at max_tokens={max_tok}: {last_err2}.")
+    # PASS 2 — judgment-based pricing, shared with the IG cost-estimate API
+    # and the buyer dashboard so every surface prices off the same reasoning.
+    # See price_findings_with_ai for why this isn't a blind table lookup.
+    priced_by_id = price_findings_with_ai(
+        [{"id": i["_id"], "name": i.get("name"), "finding": i.get("finding"),
+          "section": i.get("section"), "category_hint": i.get("category_key")}
+         for i in urgent + attention],
+        currency=currency
+    )
 
     def apply_price(item):
         p = priced_by_id.get(item["_id"])
@@ -780,18 +1023,7 @@ Return ONLY a valid JSON object. No markdown, no backticks:
             item["trade"] = ""
             item["cost_note"] = ""
         else:
-            cost = p.get("cost")
-            # Same 3x cap enforced in generate_structured_analysis — a
-            # Python-side safety net since the model doesn't always follow it.
-            if cost:
-                try:
-                    lo_s, hi_s = cost.replace("$", "").replace(",", "").split(" - ")
-                    lo, hi = float(lo_s), float(hi_s)
-                    if hi > lo * 3:
-                        cost = f"${lo:,.0f} - ${lo * 3:,.0f}"
-                except Exception:
-                    pass
-            item["cost"] = cost or "TBD"
+            item["cost"] = p.get("cost") or "TBD"
             item["trade"] = p.get("trade") or ""
             item["cost_note"] = p.get("cost_note") or ""
         item.pop("_id", None)
@@ -799,8 +1031,8 @@ Return ONLY a valid JSON object. No markdown, no backticks:
 
     result["urgent_items"] = [apply_price(i) for i in urgent]
     result["attention_items"] = [apply_price(i) for i in attention]
-    if priced_by_id == {} and last_err2:
-        result["_pricing_error"] = str(last_err2)
+    if not priced_by_id and (urgent or attention):
+        result["_pricing_error"] = "pricing pass returned no results"
 
     return json.dumps(result)
 
@@ -946,9 +1178,68 @@ https://lot7.ai
         
         print(f"Email successfully sent to {contractor_email}")
         return True
-        
+
     except Exception as e:
         print(f"Error sending email: {str(e)}")
+        raise
+
+
+def send_care_event_email(recipient_email, appliance, message):
+    """
+    Send a single home-maintenance nudge (a CareEvent's message). Called only
+    by the daily dispatcher (send_care_reminders.py) — never does its own AI
+    call, just sends text a prior AI pass already composed.
+    """
+    try:
+        mail_server = os.getenv('MAIL_SERVER', 'smtp.gmail.com')
+        mail_port = int(os.getenv('MAIL_PORT', 587))
+        mail_username = os.getenv('MAIL_USERNAME')
+        mail_password = os.getenv('MAIL_PASSWORD')
+        mail_from = os.getenv('MAIL_DEFAULT_SENDER', mail_username)
+
+        if not mail_username or not mail_password:
+            raise ValueError("Email credentials not configured. Set MAIL_USERNAME and MAIL_PASSWORD in environment.")
+
+        msg = MIMEMultipart('alternative')
+        msg['From'] = mail_from
+        msg['To'] = recipient_email
+        msg['Subject'] = f'Home reminder: {appliance}'
+
+        text = f"""{message}
+
+--
+Lot7 AI Home Assistant
+https://lot7.ai
+"""
+        html = f"""
+<html>
+<body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
+    <div style="max-width: 600px; margin: 0 auto; padding: 20px;">
+        <p>{message}</p>
+        <p style="margin-top: 40px; color: #6b7280; font-size: 12px;">
+            <strong>Lot7 AI Home Assistant</strong><br>
+            https://lot7.ai
+        </p>
+    </div>
+</body>
+</html>
+"""
+        part1 = MIMEText(text, 'plain')
+        part2 = MIMEText(html, 'html')
+        msg.attach(part1)
+        msg.attach(part2)
+
+        server = smtplib.SMTP(mail_server, mail_port)
+        server.starttls()
+        server.login(mail_username, mail_password)
+        server.send_message(msg)
+        server.quit()
+
+        print(f"Care event email sent to {recipient_email}: {appliance}")
+        return True
+
+    except Exception as e:
+        print(f"Error sending care event email: {str(e)}")
         raise
 
 

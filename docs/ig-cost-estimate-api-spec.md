@@ -7,6 +7,21 @@ report → IG calls Lot7 with its item list → Lot7 prices each item using
 the same cost engine as the main Lot7 report → IG renders a cost badge
 inline next to each finding (their page, their DOM). Toggle off = hidden.
 
+## Implementation status (updated July 19, 2026)
+
+Shipped and verified end-to-end against live pricing calls: `POST
+/v1/cost-estimate/batch` in `app.py`. Request/response shape matches this
+spec exactly. **Not yet done:**
+- Served on the same Flask app/domain, not yet on a dedicated `api.lot7.ai`
+  subdomain — that's a later DNS/infra step, not a code change.
+- Auth is a single shared key via `IG_COST_API_KEY` in `.env` (checked
+  against `Authorization: Bearer <key>`) — no per-partner key issuance
+  system yet since there's only one partner so far.
+- Rate limiting (429, proposed 30 req/min) is NOT enforced — no
+  Flask-Limiter/Redis in place. Fine for a single low-volume partner at
+  launch; needs real enforcement before onboarding more partners or if IG
+  sends unexpectedly high volume.
+
 ## Why a live callback, not a data dump
 
 We could batch-export Lot7's output and hand IG a file to import, but that
@@ -16,12 +31,21 @@ re-toggling is instant without a second network call.
 
 ## One cost engine, not a new one for this integration
 
-This endpoint must price off the SAME source as the buyer dashboard and
-the realtor report: `cost_lookup.py` (deterministic category ranges) with
-the 3x range cap. No separate/looser prompt for this feature — that's how
-Lot7's own numbers stayed consistent across surfaces, and it's the whole
-reason IG can trust the badge matches what a buyer would see in the full
-Lot7 report.
+This endpoint prices off the SAME engine as the buyer dashboard and the
+realtor report: `price_findings_with_ai()` in `utils.py` — a judgment-based
+pricing pass anchored to `cost_lookup.py`'s category ranges, with the 3x
+range cap enforced in code. Earlier drafts of this spec described a blind
+`category_key -> cost_lookup.py` lookup; that was tried and dropped (see
+`generate_realtor_issues_report`'s Pass 2 comment) because it had no way to
+catch a finding whose wording coincidentally overlapped an unrelated
+category — e.g. a Garage finding pricing itself off a Roof category. The
+table is still the anchor (same low/high ranges, same trades), it's just
+not a blind dictionary lookup anymore. No separate/looser prompt for this
+feature — that's how Lot7's own numbers stay consistent across surfaces,
+and it's the whole reason IG can trust the badge matches what a buyer
+would see in the full Lot7 report. `confidence: "matched"` means the
+model's price landed essentially on one of the table's categories;
+`"estimated"` means it reasoned beyond the table.
 
 ## Endpoint
 

@@ -45,6 +45,10 @@ class InspectionReport(db.Model):
     extractedText = db.Column(db.Text)
     summary = db.Column(db.Text)
     analysis_json = db.Column(db.Text, nullable=True)
+    # JSON list of {appliance, manufactured_year, status} from extract_appliance_profile()
+    # (utils.py) — the data foundation for the home-assistant "living profile".
+    # Not yet populated on upload; storage only until the trigger engine exists to use it.
+    appliance_profile_json = db.Column(db.Text, nullable=True)
     user_id = db.Column(db.String(36), db.ForeignKey('User.id'), nullable=True, index=True)
     is_paid = db.Column(db.Boolean, default=False)
     shareToken = db.Column(db.String(100), unique=True)
@@ -57,6 +61,30 @@ class InspectionReport(db.Model):
     leads = db.relationship('Lead', backref='report', lazy=True, cascade='all, delete-orphan')
     reportWarranties = db.relationship('ReportWarranty', backref='report', lazy=True, cascade='all, delete-orphan')
     warrantyQueries = db.relationship('WarrantyQuery', backref='report', lazy=True, cascade='all, delete-orphan')
+    careEvents = db.relationship('CareEvent', backref='report', lazy=True, cascade='all, delete-orphan')
+
+
+class CareEvent(db.Model):
+    """
+    A scheduled home-maintenance nudge — the home-assistant trigger engine.
+    message is fully composed at creation time (by generate_care_events() in
+    utils.py) so the daily dispatcher does zero AI work: just a plain query
+    on due_date/sent, a send, and a reschedule if recurring.
+    """
+    __tablename__ = 'CareEvent'
+
+    id = db.Column(db.String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    reportId = db.Column(db.String(36), db.ForeignKey('InspectionReport.id'), nullable=False, index=True)
+    appliance = db.Column(db.String(100), nullable=False)
+    # age_based | seasonal | time_based | weather_triggered
+    eventType = db.Column(db.String(30), nullable=False)
+    dueDate = db.Column(db.Date, nullable=False, index=True)
+    recurringIntervalDays = db.Column(db.Integer, nullable=True)
+    message = db.Column(db.Text, nullable=False)
+    sent = db.Column(db.Boolean, default=False, nullable=False, index=True)
+    sentAt = db.Column(db.DateTime, nullable=True)
+    createdAt = db.Column(db.DateTime, default=datetime.utcnow)
+
 
 class Conversation(db.Model):
     __tablename__ = 'Conversation'

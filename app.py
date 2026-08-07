@@ -1,3 +1,6 @@
+from dotenv import load_dotenv
+load_dotenv()
+
 from flask import Flask, request, jsonify, session, redirect
 from flask_cors import CORS
 from flask_login import LoginManager, login_user, logout_user, login_required, current_user
@@ -10,6 +13,7 @@ from utils import (
     generate_summary_from_report,
     generate_structured_analysis,
     generate_realtor_issues_report,
+    price_findings_with_ai,
     InspectionReportQA,
     save_uploaded_file,
     generate_punchlist,
@@ -23,6 +27,7 @@ from warranty_utils import (
 import uuid
 import os
 import threading
+from concurrent.futures import ThreadPoolExecutor
 import stripe
 stripe.api_key = os.getenv('STRIPE_SECRET_KEY')
 from datetime import datetime
@@ -266,18 +271,24 @@ def run_analysis_background(app_ctx, report_id, extracted_text):
         try:
             JOB_STATUS[report_id] = {'status': 'processing', 'progress': 15}
 
-            print(f"[BG {report_id}] Generating summary...")
-            summary = generate_summary_from_report(extracted_text).replace('\x00', '')
-            JOB_STATUS[report_id]['progress'] = 50
+            # Summary and structured analysis both take only extracted_text as
+            # input — no dependency between them — so run them concurrently
+            # instead of back-to-back to cut wall-clock time.
+            print(f"[BG {report_id}] Generating summary + structured analysis in parallel...")
+            with ThreadPoolExecutor(max_workers=2) as pool:
+                summary_future = pool.submit(generate_summary_from_report, extracted_text)
+                analysis_future = pool.submit(generate_structured_analysis, extracted_text)
 
-            print(f"[BG {report_id}] Generating structured analysis...")
-            try:
-                analysis_raw = generate_structured_analysis(extracted_text)
-                json.loads(analysis_raw)  # validate JSON
-                analysis_json = analysis_raw
-            except Exception as e:
-                print(f"[BG {report_id}] Structured analysis failed: {e}")
-                analysis_json = None
+                summary = summary_future.result().replace('\x00', '')
+                JOB_STATUS[report_id]['progress'] = 50
+
+                try:
+                    analysis_raw = analysis_future.result()
+                    json.loads(analysis_raw)  # validate JSON
+                    analysis_json = analysis_raw
+                except Exception as e:
+                    print(f"[BG {report_id}] Structured analysis failed: {e}")
+                    analysis_json = None
             JOB_STATUS[report_id]['progress'] = 88
 
             report = InspectionReport.query.get(report_id)
@@ -1008,6 +1019,84 @@ def generate_realtor_report():
         return jsonify({'error': f'Analysis failed: {e}'}), 500
 
     return jsonify(result)
+
+@app.route('/v1/cost-estimate/batch', methods=['POST'])
+def ig_cost_estimate_batch():
+    """
+    Inspectagram partnership toggle — see docs/ig-cost-estimate-api-spec.md.
+    IG sends its own report's item list; we price each one using the same
+    judgment-based pricing engine (price_findings_with_ai) as the realtor
+    report and buyer dashboard — one cost engine across every surface.
+    """
+    api_key = os.getenv('IG_COST_API_KEY')
+    auth_header = request.headers.get('Authorization', '')
+    provided = auth_header[7:] if auth_header.startswith('Bearer ') else ''
+    if not api_key or not provided or provided != api_key:
+        return jsonify({'error': 'Unauthorized'}), 401
+
+    data = request.get_json(silent=True) or {}
+    items = data.get('items')
+    if not items or not isinstance(items, list):
+        return jsonify({'error': 'items array is required'}), 400
+
+    currency = (data.get('currency') or 'USD').upper()
+    if currency not in ('USD', 'CAD'):
+        currency = 'USD'
+
+    pricing_input = []
+    for it in items:
+        if not isinstance(it, dict):
+            continue
+        item_id = it.get('item_id')
+        finding = (it.get('finding') or '').strip()
+        if not item_id or not finding:
+            continue
+        pricing_input.append({
+            'id': str(item_id),
+            'name': finding[:60],
+            'finding': finding,
+            'section': it.get('section'),
+            'category_hint': None,
+        })
+
+    if not pricing_input:
+        return jsonify({'results': []}), 200
+
+    try:
+        priced_by_id = price_findings_with_ai(pricing_input, currency=currency)
+    except Exception as e:
+        print(f"IG cost-estimate batch error: {e}")
+        return jsonify({'error': 'Pricing failed'}), 500
+
+    def parse_range(cost_str):
+        try:
+            lo_s, hi_s = cost_str.replace('$', '').replace(',', '').split(' - ')
+            return float(lo_s), float(hi_s)
+        except Exception:
+            return None
+
+    results = []
+    for entry in pricing_input:
+        p = priced_by_id.get(entry['id'])
+        if not p or not p.get('cost'):
+            continue
+        parsed = parse_range(p['cost'])
+        if not parsed:
+            continue
+        lo, hi = parsed
+        most_likely = round((lo + hi) / 2 / 50) * 50
+        confidence = p.get('confidence') if p.get('confidence') in ('matched', 'estimated') else 'estimated'
+        results.append({
+            'item_id': entry['id'],
+            'most_likely': int(most_likely),
+            'low': int(lo),
+            'high': int(hi),
+            'currency': currency,
+            'trade': p.get('trade') or None,
+            'confidence': confidence,
+        })
+
+    return jsonify({'results': results}), 200
 
 @app.route('/api/status/<report_id>', methods=['GET'])
 def get_upload_status(report_id):
@@ -1936,6 +2025,17 @@ with app.app_context():
                 conn.execute(text("ALTER TABLE \"User\" ADD COLUMN role VARCHAR(20) NOT NULL DEFAULT 'buyer'"))
                 conn.commit()
             print("Migration: added role column to User")
+    except Exception as e:
+        print(f"Migration note: {e}")
+    # Safe migration: add appliance_profile_json column to existing InspectionReport table if absent
+    try:
+        inspector = sa_inspect(db.engine)
+        cols = [c['name'] for c in inspector.get_columns('InspectionReport')]
+        if 'appliance_profile_json' not in cols:
+            with db.engine.connect() as conn:
+                conn.execute(text('ALTER TABLE "InspectionReport" ADD COLUMN appliance_profile_json TEXT'))
+                conn.commit()
+            print("Migration: added appliance_profile_json column to InspectionReport")
     except Exception as e:
         print(f"Migration note: {e}")
     print("Database tables verified/created")

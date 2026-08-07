@@ -141,7 +141,7 @@
         <div class="processing" id="processingState">
           <div class="processing-ring"></div>
           <div class="processing-text">Analysing your report&hellip;</div>
-          <div class="processing-timing">This usually takes 30&ndash;60 seconds</div>
+          <div class="processing-timing">This usually takes 1&ndash;3 minutes</div>
           <div class="processing-step" id="processingStep"></div>
           <div class="processing-fact" id="processingFact"></div>
         </div>
@@ -265,6 +265,22 @@
         }
       },3000);
     });
+
+    // IG (or any partner) deep link: /lot7-upload?report_url=<encoded report URL>
+    // Skip the form entirely and drop straight into analysis — a buyer arriving
+    // from a report they were just handed shouldn't have to type anything first.
+    (function handleDeepLink(){
+      const params = new URLSearchParams(window.location.search);
+      const deepLinkUrl = params.get('report_url');
+      if(!deepLinkUrl) return;
+      document.getElementById('reportUrl').value = deepLinkUrl;
+      const nameParam = params.get('customer_name') || params.get('name');
+      if(nameParam) document.getElementById('customerName').value = nameParam;
+      const emailParam = params.get('customer_email') || params.get('email');
+      if(emailParam) document.getElementById('customerEmail').value = emailParam;
+      updateSubmitState();
+      uploadForm.requestSubmit();
+    })();
   </script>
 </body>
 </html>
