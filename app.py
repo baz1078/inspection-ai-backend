@@ -73,6 +73,11 @@ def account_page():
     with open('account.html', 'r', encoding='utf-8') as f:
         return f.read()
 
+@app.route('/home-profile')
+def home_profile_page():
+    with open('home-profile.html', 'r', encoding='utf-8') as f:
+        return f.read()
+
 @app.route('/realtor-report')
 @login_required
 def realtor_report_page():
@@ -1827,6 +1832,38 @@ def set_report_alerts(report_id):
     report.alertsEnabled = bool(data['enabled'])
     db.session.commit()
     return jsonify({'success': True, 'alertsEnabled': report.alertsEnabled})
+
+
+@app.route('/api/home-profile/<report_id>', methods=['GET'])
+@login_required
+def get_home_profile(report_id):
+    """Appliance profile + scheduled care events for one report — backs the
+    My Home page. Owner-only, same pattern as the alerts toggle."""
+    report = InspectionReport.query.get(report_id)
+    if not report or report.user_id != current_user.id:
+        return jsonify({'error': 'Not found'}), 404
+
+    try:
+        appliances = json.loads(report.appliance_profile_json) if report.appliance_profile_json else []
+    except Exception:
+        appliances = []
+
+    events = CareEvent.query.filter_by(reportId=report_id).order_by(CareEvent.dueDate.asc()).all()
+
+    return jsonify({
+        'address': report.address,
+        'alertsEnabled': report.alertsEnabled,
+        'appliances': appliances,
+        'events': [{
+            'id': e.id,
+            'appliance': e.appliance,
+            'eventType': e.eventType,
+            'dueDate': e.dueDate.isoformat(),
+            'message': e.message,
+            'sent': e.sent,
+            'sentAt': e.sentAt.isoformat() if e.sentAt else None,
+        } for e in events],
+    })
 
 
 # ============================================================================

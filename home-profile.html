@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>My Home — Lot7</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;0,9..40,800;1,9..40,300&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --dark-bg: #0b0f18; --card-bg: #141928; --surface: #1c2338;
+      --teal: #14b8a6; --teal-dim: rgba(20,184,166,0.12); --teal-glow: rgba(20,184,166,0.25);
+      --pink: #d946a6;
+      --text: #f0f4ff; --text-muted: #6b7a99; --text-sub: #9aa3b8;
+      --border: rgba(255,255,255,0.08); --border-soft: rgba(255,255,255,0.05);
+      --good: #34d399; --good-dim: rgba(52,211,153,0.12);
+      --watch: #f2b84b; --watch-dim: rgba(242,184,75,0.12);
+      --urgent: #f0665e; --urgent-dim: rgba(240,102,94,0.13);
+    }
+    html, body { min-height: 100vh; }
+    body { font-family: 'DM Sans', sans-serif; background: var(--dark-bg); color: var(--text); overflow-x: hidden; }
+
+    .bg-mesh { position: fixed; inset: 0; pointer-events: none; z-index: 0; overflow: hidden; }
+    .bg-mesh::before { content: ''; position: absolute; width: 700px; height: 700px; top: -200px; left: -200px; background: radial-gradient(circle, rgba(20,184,166,0.07) 0%, transparent 65%); }
+    .bg-mesh::after { content: ''; position: absolute; width: 600px; height: 600px; bottom: -150px; right: -100px; background: radial-gradient(circle, rgba(217,70,166,0.06) 0%, transparent 65%); }
+    .bg-grid { position: fixed; inset: 0; z-index: 0; background-image: linear-gradient(rgba(255,255,255,0.012) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.012) 1px, transparent 1px); background-size: 48px 48px; }
+
+    .app-shell { position: relative; z-index: 1; display: flex; align-items: stretch; min-height: 100vh; }
+    .sidebar { width: 240px; flex-shrink: 0; background: var(--card-bg); border-right: 1px solid var(--border); display: flex; flex-direction: column; padding: 24px 16px; position: sticky; top: 0; height: 100vh; overflow-y: auto; }
+    .sb-logo { font-family: 'DM Sans', sans-serif; font-weight: 800; font-size: 18px; color: var(--teal); letter-spacing: 1px; padding: 2px 10px 0; margin-bottom: 20px; text-decoration: none; display: block; }
+    .sb-property { margin: 0 0 20px; padding: 12px; background: var(--surface); border: 1px solid var(--border-soft); border-radius: 10px; }
+    .sb-property-label { font-family: 'DM Sans', sans-serif; font-size: 9.5px; font-weight: 700; letter-spacing: 1.2px; text-transform: uppercase; color: var(--text-muted); margin-bottom: 4px; }
+    .sb-property-addr { font-size: 12.5px; color: var(--text-sub); line-height: 1.4; }
+    .sb-nav { display: flex; flex-direction: column; gap: 2px; flex: 1; }
+    .sb-link { display: flex; align-items: center; gap: 11px; padding: 10px 12px; border-radius: 9px; color: var(--text-sub); font-size: 13.5px; text-decoration: none; }
+    .sb-link svg { width: 17px; height: 17px; flex-shrink: 0; }
+    .sb-link:hover { background: var(--surface); color: var(--text); }
+    .sb-link.active { background: var(--teal-dim); color: var(--teal); font-weight: 500; }
+    .sb-foot { padding-top: 14px; border-top: 1px solid var(--border-soft); }
+    .sb-back { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--text-muted); text-decoration: none; padding: 8px 10px; border-radius: 8px; }
+    .sb-back:hover { color: var(--text-sub); background: var(--surface); }
+    .sb-back svg { width: 13px; height: 13px; }
+
+    .shell-main { flex: 1; min-width: 0; }
+    .page { position: relative; z-index: 1; max-width: 900px; padding: 44px 40px 80px; }
+
+    .eyebrow { font-family: 'DM Sans', sans-serif; font-size: 11.5px; font-weight: 700; letter-spacing: 2.2px; text-transform: uppercase; color: var(--teal); margin-bottom: 14px; display: flex; align-items: center; gap: 9px; }
+    .eyebrow-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--teal); box-shadow: 0 0 8px var(--teal-glow); }
+    .header-row { display: flex; justify-content: space-between; align-items: flex-start; gap: 24px; flex-wrap: wrap; margin-bottom: 6px; }
+    h1 { font-family: 'DM Sans', sans-serif; font-weight: 800; font-size: clamp(24px,4vw,34px); line-height: 1.15; }
+    .address { color: var(--text-sub); font-weight: 400; font-size: 15px; margin-top: 4px; }
+    .subcopy { color: var(--text-muted); font-size: 14px; max-width: 56ch; margin-top: 10px; line-height: 1.6; }
+
+    .mute-toggle { display: flex; align-items: center; gap: 10px; background: var(--card-bg); border: 1px solid var(--border); border-radius: 100px; padding: 8px 14px; font-size: 12.5px; color: var(--text-sub); white-space: nowrap; }
+    .switch { position: relative; width: 34px; height: 19px; flex-shrink: 0; }
+    .switch input { opacity: 0; width: 0; height: 0; }
+    .switch-track { position: absolute; inset: 0; background: var(--surface); border: 1px solid var(--border); border-radius: 100px; cursor: pointer; transition: .15s; }
+    .switch-track::before { content: ''; position: absolute; width: 13px; height: 13px; left: 2px; top: 2px; background: var(--text-muted); border-radius: 50%; transition: .15s; }
+    .switch input:checked + .switch-track { background: var(--teal-dim); border-color: var(--teal); }
+    .switch input:checked + .switch-track::before { transform: translateX(15px); background: var(--teal); }
+
+    .stat-strip { display: grid; grid-template-columns: repeat(4,1fr); gap: 1px; background: var(--border); border: 1px solid var(--border); border-radius: 14px; overflow: hidden; margin: 30px 0 36px; }
+    .stat { background: var(--card-bg); padding: 16px 18px; }
+    .stat-num { font-family: 'DM Sans', sans-serif; font-weight: 800; font-size: 24px; line-height: 1; }
+    .stat-label { font-size: 11px; color: var(--text-muted); margin-top: 6px; }
+    .stat.n-urgent .stat-num { color: var(--urgent); }
+    .stat.n-good .stat-num { color: var(--good); }
+
+    .section-label { font-family: 'DM Sans', sans-serif; font-size: 12px; font-weight: 700; letter-spacing: 1.6px; text-transform: uppercase; color: var(--text-sub); margin: 32px 0 16px 2px; }
+    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    @media (max-width: 720px) { .grid { grid-template-columns: 1fr; } .stat-strip { grid-template-columns: 1fr 1fr; } }
+
+    .card { background: var(--card-bg); border: 1px solid var(--border); border-radius: 16px; padding: 20px 20px 18px; display: flex; flex-direction: column; gap: 12px; }
+    .card-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+    .card-name { font-family: 'DM Sans', sans-serif; font-weight: 700; font-size: 15px; }
+    .card-sub { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+    .pill { font-family: 'DM Sans', sans-serif; font-size: 10.5px; font-weight: 700; padding: 5px 10px; border-radius: 100px; white-space: nowrap; flex-shrink: 0; }
+    .pill.urgent { color: var(--urgent); background: var(--urgent-dim); border: 1px solid rgba(240,102,94,.28); }
+    .pill.good { color: var(--good); background: var(--good-dim); border: 1px solid rgba(52,211,153,.25); }
+    .pill.neutral { color: var(--text-sub); background: var(--surface); border: 1px solid var(--border); }
+    .specs { background: var(--surface); border: 1px solid var(--border-soft); border-radius: 10px; padding: 10px 12px; font-size: 12px; display: flex; flex-direction: column; gap: 5px; }
+    .spec-row { display: flex; justify-content: space-between; gap: 10px; }
+    .spec-row .k { color: var(--text-muted); }
+    .age-line { font-size: 12.5px; color: var(--text-sub); }
+    .age-line b { color: var(--text); font-weight: 500; }
+
+    .reminder-row { display: flex; justify-content: space-between; align-items: center; gap: 12px; background: var(--card-bg); border: 1px solid var(--border); border-radius: 12px; padding: 14px 16px; margin-bottom: 10px; }
+    .reminder-left { flex: 1; min-width: 0; }
+    .reminder-app { font-weight: 500; font-size: 13.5px; }
+    .reminder-msg { font-size: 12.5px; color: var(--text-muted); margin-top: 3px; }
+    .reminder-date { font-size: 11.5px; color: var(--text-sub); white-space: nowrap; }
+
+    .empty-note { font-size: 13px; color: var(--text-muted); line-height: 1.6; background: var(--card-bg); border: 1px dashed var(--border); border-radius: 12px; padding: 20px; text-align: center; }
+    .loading { color: var(--text-muted); font-size: 13px; padding: 40px 0; text-align: center; }
+  </style>
+</head>
+<body>
+  <div class="bg-mesh"></div>
+  <div class="bg-grid"></div>
+
+  <div class="app-shell">
+    <nav class="sidebar">
+      <a class="sb-logo" href="/">LOT7</a>
+      <div class="sb-property">
+        <div class="sb-property-label">Your Home</div>
+        <div class="sb-property-addr" id="sbAddress">Loading…</div>
+      </div>
+      <div class="sb-nav">
+        <a class="sb-link active" href="#">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-8 9 8"/><path d="M5 10v10a1 1 0 0 0 1 1h4v-6h4v6h4a1 1 0 0 0 1-1V10"/></svg>
+          Home Profile
+        </a>
+        <a class="sb-link" href="/account">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+          My Reports
+        </a>
+        <a class="sb-link" href="/account">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-8 8-8s8 3.6 8 8"/></svg>
+          Account
+        </a>
+      </div>
+      <div class="sb-foot">
+        <a class="sb-back" href="/account">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+          Back to reports
+        </a>
+      </div>
+    </nav>
+
+    <main class="shell-main">
+      <div class="page">
+        <div class="eyebrow"><span class="eyebrow-dot"></span>Home Profile</div>
+        <div class="header-row">
+          <div>
+            <h1>Your home's living profile</h1>
+            <div class="address" id="pageAddress">Loading…</div>
+          </div>
+          <label class="mute-toggle">
+            Alerts
+            <span class="switch">
+              <input type="checkbox" id="alertsToggle" checked>
+              <span class="switch-track" onclick="document.getElementById('alertsToggle').click()"></span>
+            </span>
+          </label>
+        </div>
+        <p class="subcopy">Built automatically from your inspection report's data-plate photos. No data entry, no guessing at ages.</p>
+
+        <div id="content"><div class="loading">Loading your home profile…</div></div>
+      </div>
+    </main>
+  </div>
+
+  <script>
+    const params = new URLSearchParams(window.location.search);
+    const reportId = params.get('report_id');
+
+    function escapeHtml(s) { const d = document.createElement('div'); d.textContent = s || ''; return d.innerHTML; }
+    function fmtDate(iso) { return new Date(iso + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }); }
+
+    function applianceCard(a) {
+      const captured = a.status === 'captured' || a.model || a.serial;
+      const pillClass = a.status === 'not_accessible' ? 'neutral' : (captured ? 'good' : 'neutral');
+      const pillText = a.status === 'not_accessible' ? 'Not Captured' : (captured ? 'Verified' : 'Unclear');
+      const specs = [];
+      if (a.model) specs.push(`<div class="spec-row"><span class="k">Model</span><span>${escapeHtml(a.model)}</span></div>`);
+      if (a.serial) specs.push(`<div class="spec-row"><span class="k">Serial</span><span>${escapeHtml(a.serial)}</span></div>`);
+      const specsHtml = specs.length ? `<div class="specs">${specs.join('')}</div>` : '';
+      const age = a.manufactured_year
+        ? `<div class="age-line">Manufactured <b>${a.manufactured_year}</b></div>`
+        : `<div class="age-line">${a.status === 'not_accessible' ? 'No data-plate photo found in report' : 'Age not captured'}</div>`;
+      return `<div class="card">
+        <div class="card-top">
+          <div>
+            <div class="card-name">${escapeHtml(a.appliance || a.appliance_guess || 'Unknown')}</div>
+            <div class="card-sub">${escapeHtml(a.brand || '')}</div>
+          </div>
+          <div class="pill ${pillClass}">${pillText}</div>
+        </div>
+        ${specsHtml}
+        ${age}
+      </div>`;
+    }
+
+    function reminderRow(e) {
+      return `<div class="reminder-row">
+        <div class="reminder-left">
+          <div class="reminder-app">${escapeHtml(e.appliance)}</div>
+          <div class="reminder-msg">${escapeHtml(e.message)}</div>
+        </div>
+        <div class="reminder-date">${e.sent ? 'Sent ' + fmtDate(e.dueDate) : 'Due ' + fmtDate(e.dueDate)}</div>
+      </div>`;
+    }
+
+    async function init() {
+      if (!reportId) {
+        document.getElementById('content').innerHTML = '<div class="empty-note">No report selected. Go to My Reports and open a home profile from there.</div>';
+        return;
+      }
+
+      const meRes = await fetch('/api/auth/me', { credentials: 'include' });
+      const me = await meRes.json();
+      if (!me.authenticated) {
+        window.location.href = '/login?next=' + encodeURIComponent(window.location.pathname + window.location.search);
+        return;
+      }
+
+      const res = await fetch(`/api/home-profile/${reportId}`, { credentials: 'include' });
+      if (!res.ok) {
+        document.getElementById('content').innerHTML = '<div class="empty-note">Could not load this home profile.</div>';
+        return;
+      }
+      const data = await res.json();
+
+      document.getElementById('sbAddress').textContent = data.address || 'Your property';
+      document.getElementById('pageAddress').textContent = data.address || '';
+      document.title = (data.address || 'My Home') + ' — Lot7';
+
+      const toggle = document.getElementById('alertsToggle');
+      toggle.checked = !!data.alertsEnabled;
+      toggle.addEventListener('change', async () => {
+        await fetch(`/api/reports/${reportId}/alerts`, {
+          method: 'POST', credentials: 'include',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ enabled: toggle.checked })
+        });
+      });
+
+      const appliances = data.appliances || [];
+      const events = data.events || [];
+      const captured = appliances.filter(a => a.status === 'captured' || a.model || a.serial).length;
+      const notCaptured = appliances.length - captured;
+      const upcoming = events.filter(e => !e.sent).length;
+
+      let html = `<div class="stat-strip">
+        <div class="stat"><div class="stat-num">${appliances.length}</div><div class="stat-label">Systems tracked</div></div>
+        <div class="stat n-urgent"><div class="stat-num">${upcoming}</div><div class="stat-label">Upcoming reminders</div></div>
+        <div class="stat n-good"><div class="stat-num">${captured}</div><div class="stat-label">Specs verified</div></div>
+        <div class="stat"><div class="stat-num">${notCaptured}</div><div class="stat-label">No photo on file</div></div>
+      </div>`;
+
+      html += '<div class="section-label">Systems &amp; Appliances</div>';
+      html += appliances.length
+        ? `<div class="grid">${appliances.map(applianceCard).join('')}</div>`
+        : '<div class="empty-note">No appliance data captured for this report yet.</div>';
+
+      html += '<div class="section-label">Reminders</div>';
+      html += events.length
+        ? events.map(reminderRow).join('')
+        : '<div class="empty-note">Nothing scheduled yet — reminders are set up automatically based on your home systems.</div>';
+
+      document.getElementById('content').innerHTML = html;
+    }
+
+    init();
+  </script>
+</body>
+</html>
