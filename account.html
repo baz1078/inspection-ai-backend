@@ -146,6 +146,25 @@
     }
     .copy-btn:hover { border-color: var(--border-focus); color: var(--teal); }
 
+    /* Alert mute toggle — home-maintenance reminders per report */
+    .alert-toggle-wrap {
+      display: flex; align-items: center; gap: 7px; flex-shrink: 0;
+      padding-right: 10px; margin-right: 2px; border-right: 1px solid var(--border);
+    }
+    .alert-toggle-label { font-size: 11px; color: var(--text-muted); white-space: nowrap; }
+    .alert-toggle {
+      position: relative; width: 34px; height: 19px; border-radius: 100px; flex-shrink: 0;
+      background: var(--surface); border: 1px solid var(--border); cursor: pointer;
+      transition: background 0.2s, border-color 0.2s;
+    }
+    .alert-toggle.on { background: var(--teal-dim); border-color: rgba(20,184,166,0.4); }
+    .alert-toggle-knob {
+      position: absolute; top: 2px; left: 2px; width: 13px; height: 13px; border-radius: 50%;
+      background: var(--text-muted); transition: transform 0.2s, background 0.2s;
+    }
+    .alert-toggle.on .alert-toggle-knob { transform: translateX(15px); background: var(--teal); }
+    @media (max-width: 600px) { .alert-toggle-label { display: none; } }
+
     /* Empty state */
     .empty-state { text-align: center; padding: 64px 24px; }
     .empty-icon { font-size: 48px; margin-bottom: 16px; opacity: 0.4; }
@@ -336,6 +355,12 @@
             </div>
           </div>
           <div class="report-row-right">
+            <div class="alert-toggle-wrap">
+              <span class="alert-toggle-label">Alerts</span>
+              <div class="alert-toggle ${r.alertsEnabled ? 'on' : ''}" onclick="toggleAlerts(event, '${r.id}', ${!!r.alertsEnabled})" title="${r.alertsEnabled ? 'Alerts on — click to mute' : 'Alerts muted — click to turn on'}">
+                <div class="alert-toggle-knob"></div>
+              </div>
+            </div>
             <button class="copy-btn" onclick="copyLink(event, '${r.id}', ${isPaid})" title="Copy share link">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
             </button>
@@ -345,6 +370,27 @@
             </div>
           </div>
         </a>`;
+    }
+
+    async function toggleAlerts(event, reportId, currentlyEnabled) {
+      event.preventDefault();
+      event.stopPropagation();
+      const next = !currentlyEnabled;
+      try {
+        const res = await fetch(`/api/reports/${reportId}/alerts`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({ enabled: next }),
+        });
+        if (!res.ok) throw new Error('Request failed');
+        const report = allReports.find(r => r.id === reportId);
+        if (report) report.alertsEnabled = next;
+        filterReports();
+        showToast(next ? 'Home alerts turned on' : 'Home alerts muted');
+      } catch (e) {
+        showToast('Could not update alerts — try again');
+      }
     }
 
     function filterReports() {

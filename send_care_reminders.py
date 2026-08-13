@@ -6,8 +6,11 @@ reschedule if the event is recurring. All AI reasoning already happened
 when the CareEvent row was created (see generate_care_events() in utils.py).
 
 Usage:
-    python send_care_reminders.py           # sends for real
-    python send_care_reminders.py --dry-run # logs what would be sent, no email/db writes
+    python send_care_reminders.py                    # sends for real, as of today
+    python send_care_reminders.py --dry-run           # logs what would be sent, no email/db writes
+    python send_care_reminders.py --as-of=2027-04-01  # pretend "today" is this date — for
+                                                        # testing recurring/future events without
+                                                        # waiting real months
 """
 
 import sys
@@ -21,9 +24,9 @@ from models import CareEvent
 from utils import send_care_event_email
 
 
-def main(dry_run=False):
+def main(dry_run=False, as_of=None):
     with app.app_context():
-        today = date.today()
+        today = as_of or date.today()
         due = CareEvent.query.filter(CareEvent.dueDate <= today, CareEvent.sent == False).all()
         print(f"{len(due)} care event(s) due as of {today.isoformat()}{' [DRY RUN]' if dry_run else ''}")
 
@@ -34,6 +37,10 @@ def main(dry_run=False):
                 if report.user_id and report.user:
                     recipient = report.user.email
                 recipient = recipient or report.customerEmail
+
+            if report and not report.alertsEnabled:
+                print(f"  Skipping {event.appliance} (report {event.reportId}): alerts muted for this home")
+                continue
 
             if not recipient:
                 print(f"  Skipping {event.appliance} (report {event.reportId}): no recipient email on file")
@@ -70,4 +77,6 @@ def main(dry_run=False):
 
 
 if __name__ == '__main__':
-    main(dry_run='--dry-run' in sys.argv)
+    as_of_arg = next((a.split('=', 1)[1] for a in sys.argv if a.startswith('--as-of=')), None)
+    as_of_date = datetime.strptime(as_of_arg, '%Y-%m-%d').date() if as_of_arg else None
+    main(dry_run='--dry-run' in sys.argv, as_of=as_of_date)

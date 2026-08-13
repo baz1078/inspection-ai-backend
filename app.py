@@ -6,7 +6,7 @@ from flask_cors import CORS
 from flask_login import LoginManager, login_user, logout_user, login_required, current_user
 from flask_bcrypt import Bcrypt
 from werkzeug.utils import secure_filename
-from models import db, User, InspectionReport, Conversation, Question, Contractor, Lead, Analytics, WarrantyDocument, ReportWarranty, WarrantyQuery
+from models import db, User, InspectionReport, CareEvent, Conversation, Question, Contractor, Lead, Analytics, WarrantyDocument, ReportWarranty, WarrantyQuery
 from utils import (
     extract_text_from_pdf,
     fetch_report_text_from_url,
@@ -14,6 +14,10 @@ from utils import (
     generate_structured_analysis,
     generate_realtor_issues_report,
     price_findings_with_ai,
+    fetch_report_json,
+    extract_appliance_profile,
+    extract_appliance_profile_from_json,
+    generate_care_events,
     InspectionReportQA,
     save_uploaded_file,
     generate_punchlist,
@@ -30,7 +34,7 @@ import threading
 from concurrent.futures import ThreadPoolExecutor
 import stripe
 stripe.api_key = os.getenv('STRIPE_SECRET_KEY')
-from datetime import datetime
+from datetime import datetime, timedelta
 import re
 import json
 from collections import OrderedDict
@@ -305,6 +309,46 @@ def run_analysis_background(app_ctx, report_id, extracted_text):
 
             JOB_STATUS[report_id] = {'status': 'done', 'progress': 100}
             print(f"[BG {report_id}] Analysis complete.")
+
+            # Home-assistant foundation: best-effort, never blocks or fails
+            # the main analysis above (JOB_STATUS is already 'done'). Tries
+            # the JSON+Vision path first (real make/model/serial/date, only
+            # reachable for reports the API key covers), falls back to
+            # text-only age extraction otherwise. Alerts default ON — the
+            # "My Reports" mute toggle (report.alertsEnabled) only affects
+            # send-time in the dispatcher, not whether events get generated.
+            try:
+                appliance_profile = None
+                if report and report.filePath:
+                    m = re.search(r'/reports/([0-9a-f-]{36})', report.filePath)
+                    if m:
+                        report_json = fetch_report_json(m.group(1))
+                        if report_json is not None:
+                            appliance_profile = extract_appliance_profile_from_json(report_json)
+                            print(f"[BG {report_id}] Appliance profile via JSON+Vision: {len(appliance_profile)} item(s)")
+                if appliance_profile is None:
+                    appliance_profile = extract_appliance_profile(extracted_text)
+                    print(f"[BG {report_id}] Appliance profile via text extraction: {len(appliance_profile)} item(s)")
+
+                if report:
+                    report.appliance_profile_json = json.dumps(appliance_profile)
+                    db.session.commit()
+
+                events = generate_care_events(appliance_profile)
+                for ev in events:
+                    due_date = (datetime.utcnow() + timedelta(days=ev.get('due_in_days', 0) or 0)).date()
+                    db.session.add(CareEvent(
+                        reportId=report_id,
+                        appliance=ev.get('appliance', 'Unknown'),
+                        eventType=ev.get('event_type', 'age_based'),
+                        dueDate=due_date,
+                        recurringIntervalDays=ev.get('recurring_interval_days'),
+                        message=ev.get('message', ''),
+                    ))
+                db.session.commit()
+                print(f"[BG {report_id}] Scheduled {len(events)} care event(s).")
+            except Exception as e:
+                print(f"[BG {report_id}] Appliance profile / care event step failed (non-fatal): {e}")
 
         except Exception as e:
             print(f"[BG {report_id}] Background analysis error: {e}")
@@ -1762,7 +1806,27 @@ def my_reports():
         'createdAt': r.createdAt.isoformat(),
         'shareToken': r.shareToken,
         'is_paid': r.is_paid,
+        'alertsEnabled': r.alertsEnabled,
     } for r in reports])
+
+
+@app.route('/api/reports/<report_id>/alerts', methods=['POST'])
+@login_required
+def set_report_alerts(report_id):
+    """Mute/unmute home-maintenance care-event alerts for one report — a
+    buyer who inspected multiple homes before buying mutes the ones they
+    didn't end up purchasing. Events already generated for a muted report
+    stay in the DB; the dispatcher just skips sending for it, so toggling
+    back on works instantly with no regeneration needed."""
+    report = InspectionReport.query.get(report_id)
+    if not report or report.user_id != current_user.id:
+        return jsonify({'error': 'Not found'}), 404
+    data = request.get_json(silent=True) or {}
+    if 'enabled' not in data:
+        return jsonify({'error': 'enabled is required'}), 400
+    report.alertsEnabled = bool(data['enabled'])
+    db.session.commit()
+    return jsonify({'success': True, 'alertsEnabled': report.alertsEnabled})
 
 
 # ============================================================================
@@ -2036,6 +2100,17 @@ with app.app_context():
                 conn.execute(text('ALTER TABLE "InspectionReport" ADD COLUMN appliance_profile_json TEXT'))
                 conn.commit()
             print("Migration: added appliance_profile_json column to InspectionReport")
+    except Exception as e:
+        print(f"Migration note: {e}")
+    # Safe migration: add alertsEnabled column to existing InspectionReport table if absent
+    try:
+        inspector = sa_inspect(db.engine)
+        cols = [c['name'] for c in inspector.get_columns('InspectionReport')]
+        if 'alertsEnabled' not in cols:
+            with db.engine.connect() as conn:
+                conn.execute(text('ALTER TABLE "InspectionReport" ADD COLUMN "alertsEnabled" BOOLEAN NOT NULL DEFAULT TRUE'))
+                conn.commit()
+            print("Migration: added alertsEnabled column to InspectionReport")
     except Exception as e:
         print(f"Migration note: {e}")
     print("Database tables verified/created")

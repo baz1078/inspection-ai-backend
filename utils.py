@@ -1,5 +1,6 @@
 import os
 import json
+import base64
 from anthropic import Anthropic
 import smtplib
 from email.mime.text import MIMEText
@@ -798,6 +799,143 @@ Return ONLY valid JSON, no markdown, no backticks:
             by_appliance[name] = {"appliance": name, "manufactured_year": year, "status": status}
 
     return list(by_appliance.values())
+
+
+def fetch_report_json(ext_id, api_key=None):
+    """
+    Fetch a report's full structured JSON via Inspectagram's per-user API
+    key export endpoint (GET /v3/reports/{ext_id}.json) — see
+    API_REPORT_EXPORT.md for the full spec. Returns None (not a raise) if
+    the key is missing, unauthorized, or the report isn't reachable by this
+    key's scope, so callers can fall back to fetch_report_text_from_url()'s
+    HTML scrape instead of hard-failing. As of July 2026 this key is scoped
+    to a single company's reports (Assure Inspections) — most reports will
+    NOT be reachable this way yet.
+    """
+    import urllib.request
+
+    api_key = api_key or os.getenv('INSPECTAGRAM_API_KEY')
+    if not api_key:
+        return None
+
+    url = f'https://admin.inspectagram.io/v3/reports/{ext_id}.json'
+    req = urllib.request.Request(url, headers={'Authorization': f'Bearer {api_key}'})
+    try:
+        with urllib.request.urlopen(req, timeout=20) as resp:
+            return json.loads(resp.read())
+    except Exception as e:
+        print(f"fetch_report_json failed for {ext_id}: {e}")
+        return None
+
+
+def _real_data_plate_images(report_json):
+    """
+    Images labeled "Data Plate" in the report JSON, deduped to drop
+    Inspectagram's shared placeholder graphic — when no real photo was
+    attached, multiple "Data Plate" entries point at the same tiny
+    (~5.5KB) /global/ asset instead of a real photo. Detected by remotePath
+    repeating across entries; a real photo's path is unique to that image.
+    """
+    from collections import Counter
+
+    images = report_json.get('images', []) if report_json else []
+    candidates = [img for img in images if (img.get('label') or '').startswith('Data Plate')]
+    path_counts = Counter(img.get('remotePath') for img in candidates)
+    return [
+        {'id': img.get('id'), 'label': img.get('label'), 'url': img.get('remotePath')}
+        for img in candidates
+        if path_counts[img.get('remotePath')] == 1 and img.get('remotePath')
+    ]
+
+
+def read_data_plate_photo(image_url):
+    """
+    Send one data-plate photo through Claude Vision. Returns
+    {brand, model, serial, appliance_guess, other_notes} or None on
+    download/parse failure — callers should skip, not fabricate.
+    """
+    import urllib.request
+
+    req = urllib.request.Request(image_url, headers={'User-Agent': 'Mozilla/5.0'})
+    try:
+        with urllib.request.urlopen(req, timeout=20) as resp:
+            img_bytes = resp.read()
+            content_type = resp.headers.get('Content-Type', 'image/jpeg')
+    except Exception as e:
+        print(f"read_data_plate_photo: download failed for {image_url}: {e}")
+        return None
+
+    media_type = content_type if content_type.startswith('image/') else 'image/jpeg'
+    if media_type == 'image/jpg':
+        media_type = 'image/jpeg'  # Anthropic's API wants the canonical MIME type
+    img_b64 = base64.standard_b64encode(img_bytes).decode('utf-8')
+
+    client = create_ai_client()
+    system_prompt = """You are reading a photo of an appliance data plate/nameplate from a home inspection report. Extract exactly what is printed, do not guess or fill gaps.
+
+If a manufacture date is printed (e.g. "MFR DATE 2/2005", a date code, a "birth date"), extract just the 4-digit year into manufactured_year — this is a separate, structured field from other_notes, not something to only mention in the freeform text.
+
+Return ONLY valid JSON, no markdown:
+{
+  "brand": "..." or null,
+  "model": "..." or null,
+  "serial": "..." or null,
+  "appliance_guess": "e.g. Refrigerator, Dishwasher, Range" or null,
+  "manufactured_year": 2005 or null,
+  "other_notes": "any other clearly useful info (voltage, capacity, refrigerant type, etc. — do NOT repeat the manufacture date here)" or null
+}"""
+    try:
+        msg = client.messages.create(
+            model="claude-sonnet-4-6",
+            max_tokens=500,
+            temperature=0,
+            system=system_prompt,
+            messages=[{
+                "role": "user",
+                "content": [
+                    {"type": "image", "source": {"type": "base64", "media_type": media_type, "data": img_b64}},
+                    {"type": "text", "text": "Extract the data plate info from this photo."}
+                ]
+            }]
+        )
+        raw = msg.content[0].text.strip()
+        if raw.startswith("```"):
+            raw = raw.split("\n", 1)[1]
+        if raw.endswith("```"):
+            raw = raw.rsplit("```", 1)[0]
+        return json.loads(raw.strip())
+    except Exception as e:
+        print(f"read_data_plate_photo: Vision extraction failed for {image_url}: {e}")
+        return None
+
+
+def extract_appliance_profile_from_json(report_json):
+    """
+    Vision-based appliance profile — strictly richer than
+    extract_appliance_profile() (real brand/model/serial from the actual
+    data-plate photo, not just a year parsed from a text caption) but only
+    usable where fetch_report_json() succeeded, i.e. the API key can reach
+    that report. Only sends the images the API already labeled "Data
+    Plate" — no blind scanning of every photo in the report.
+
+    Returns: [{"appliance": str, "manufactured_year": int|None, "status": str,
+               "brand": str|None, "model": str|None, "serial": str|None,
+               "other_notes": str|None, "source_image_id": str}]
+    "appliance"/"manufactured_year"/"status" are normalized to the same
+    shape extract_appliance_profile() (text-based) uses, so both feed
+    generate_care_events() identically — brand/model/serial/other_notes
+    are extras carried through for richer display, not required downstream.
+    """
+    plates = _real_data_plate_images(report_json)
+    results = []
+    for plate in plates:
+        info = read_data_plate_photo(plate['url'])
+        if info:
+            info['source_image_id'] = plate.get('id')
+            info['appliance'] = info.get('appliance_guess') or 'Unknown appliance'
+            info['status'] = 'captured' if info.get('manufactured_year') else 'unclear'
+            results.append(info)
+    return results
 
 
 def generate_care_events(appliance_profile, current_date=None):

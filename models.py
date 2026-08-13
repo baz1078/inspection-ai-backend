@@ -47,8 +47,12 @@ class InspectionReport(db.Model):
     analysis_json = db.Column(db.Text, nullable=True)
     # JSON list of {appliance, manufactured_year, status} from extract_appliance_profile()
     # (utils.py) — the data foundation for the home-assistant "living profile".
-    # Not yet populated on upload; storage only until the trigger engine exists to use it.
     appliance_profile_json = db.Column(db.Text, nullable=True)
+    # Per-report mute switch for care-event reminders — a buyer with multiple
+    # inspections (e.g. homes they didn't end up buying) mutes the ones that
+    # aren't their actual home. Default True: alerts auto-start after initial
+    # analysis, opt-out rather than opt-in.
+    alertsEnabled = db.Column(db.Boolean, default=True, nullable=False)
     user_id = db.Column(db.String(36), db.ForeignKey('User.id'), nullable=True, index=True)
     is_paid = db.Column(db.Boolean, default=False)
     shareToken = db.Column(db.String(100), unique=True)
